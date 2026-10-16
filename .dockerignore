@@ -1,0 +1,6 @@
+.m2/
+target/
+.git/
+**/__pycache__/
+*.cdx.json
+.claude/

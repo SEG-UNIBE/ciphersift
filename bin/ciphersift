@@ -1,0 +1,101 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+#
+# Launcher for CipherSift (SPEC.md 3). Looks for the fat jar next to this script
+# (../lib/ciphersift.jar, ../target/ciphersift-*-all.jar) unless CIPHERSIFT_JAR is set.
+#
+# Java runtime (Java 23 or newer is needed): $CIPHERSIFT_JAVA (a java executable), else
+# $JAVA_HOME/bin/java, else `java` on PATH. If the chosen runtime is too old, the next explicitly
+# configured one (CIPHERSIFT_JAVA, then JAVA_HOME) is tried; the file system is never searched.
+# No suitable runtime: one-line error and exit code 6.
+set -e
+min_java=23
+exit_old_java=6
+
+here="$(cd "$(dirname "$0")" && pwd)"
+jar="${CIPHERSIFT_JAR:-}"
+if [ -z "$jar" ]; then
+  for c in "$here/../lib/ciphersift.jar" "$here"/../target/ciphersift-*-all.jar; do
+    if [ -f "$c" ]; then jar="$c"; break; fi
+  done
+fi
+if [ -z "$jar" ] || [ ! -f "$jar" ]; then
+  echo "ciphersift: error: cannot find the CipherSift jar (set CIPHERSIFT_JAR)" >&2
+  exit 1
+fi
+
+# Prints the version string of the java executable $1 (e.g. 25.0.1, 1.8.0_492), or nothing.
+# Reads the runtime's `release` file when there is one (no extra JVM start), else asks `java -version`.
+java_version() {
+  _exe="$1"
+  _real="$(readlink -f "$_exe" 2>/dev/null || printf '%s' "$_exe")"
+  _rel="$(dirname "$(dirname "$_real")")/release"
+  if [ -f "$_rel" ]; then
+    _v="$(sed -n 's/^JAVA_VERSION="\([^"]*\)".*/\1/p' "$_rel" 2>/dev/null | head -n 1)"
+    if [ -n "$_v" ]; then printf '%s\n' "$_v"; return 0; fi
+  fi
+  "$_exe" -version 2>&1 | sed -n 's/.* version "\([^"]*\)".*/\1/p' | head -n 1
+}
+
+# Major version of a version string: 1.8.0_492 -> 8, 25.0.1 -> 25, 26-ea -> 26; nothing if unknown.
+java_major() {
+  case "$1" in
+    1.*) printf '%s\n' "$1" | sed -n 's/^1\.\([0-9][0-9]*\).*/\1/p' ;;
+    *) printf '%s\n' "$1" | sed -n 's/^\([0-9][0-9]*\).*/\1/p' ;;
+  esac
+}
+
+# Candidates: explicitly configured runtimes in order of preference, else `java` on PATH.
+explicit=""
+if [ -n "${CIPHERSIFT_JAVA:-}" ]; then explicit="CIPHERSIFT_JAVA"; fi
+if [ -n "${JAVA_HOME:-}" ]; then explicit="$explicit JAVA_HOME"; fi
+
+java=""
+found=""
+try_java() { # $1: executable, $2: description; sets java on success, records the first rejection
+  if [ ! -x "$1" ] || [ -d "$1" ]; then
+    [ -n "$found" ] || found="no executable $1 ($2)"
+    return 1
+  fi
+  _ver="$(java_version "$1")"
+  _maj="$(java_major "$_ver")"
+  if [ -n "$_maj" ] && [ "$_maj" -lt "$min_java" ]; then
+    [ -n "$found" ] || found="$_ver ($1)"
+    return 1
+  fi
+  java="$1"   # new enough, or version unknown: the jar checks again itself
+  return 0
+}
+
+if [ -n "$explicit" ]; then
+  for v in $explicit; do
+    case "$v" in
+      CIPHERSIFT_JAVA) try_java "$CIPHERSIFT_JAVA" "CIPHERSIFT_JAVA" && break ;;
+      JAVA_HOME) try_java "$JAVA_HOME/bin/java" "JAVA_HOME" && break ;;
+    esac
+  done
+else
+  p="$(command -v java 2>/dev/null || true)"
+  if [ -z "$p" ]; then
+    found="no java on PATH"
+  else
+    try_java "$p" "PATH" || true
+  fi
+fi
+if [ -z "$java" ]; then
+  echo "ciphersift: error: CipherSift needs Java $min_java or newer; found $found; set CIPHERSIFT_JAVA or JAVA_HOME" >&2
+  exit "$exit_old_java"
+fi
+
+# The JVM decodes file names with the locale's charset (sun.jnu.encoding, which cannot be
+# overridden). Under a non-UTF-8 locale such as C/POSIX, non-ASCII file names would be reported
+# differently (SPEC 12), so run the JVM with a UTF-8 locale on Linux.
+if [ "$(uname -s 2>/dev/null)" = Linux ] && command -v locale >/dev/null 2>&1; then
+  case "$(locale charmap 2>/dev/null)" in
+    UTF-8|utf8) ;;
+    *) LC_ALL=C.UTF-8; export LC_ALL ;;
+  esac
+fi
+# shellcheck disable=SC2086 # CIPHERSIFT_JAVA_OPTS is a list of options
+exec "$java" --enable-native-access=ALL-UNNAMED $CIPHERSIFT_JAVA_OPTS -jar "$jar" "$@"

@@ -1,0 +1,218 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * Copyright 2026 The CipherSift Authors
+ */
+package ch.unibe.seg.ciphersift.rules;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import ch.unibe.seg.ciphersift.TestSupport;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
+
+/** Rule loading and validation (SPEC 5, 5.8). */
+class RuleLoaderTest {
+    private static final String HEAD = "id: java.t.x\nkind: source\nlanguage: java\nname: t\nasset: {type: algorithm}\n";
+
+    private static RuleException fail(String path, String yaml) {
+        return assertThrows(RuleException.class, () -> RuleLoader.load(List.of(
+                new RuleLoader.RuleFile(path, yaml.getBytes(StandardCharsets.UTF_8)))));
+    }
+
+    @Test
+    void bundledRuleSet() throws Exception {
+        RuleSet r = RuleLoader.loadBundled();
+        assertEquals(88, r.javaRules().size());
+        assertEquals(79, r.pythonRules().size());
+        assertEquals(1, r.constantsDocuments());
+        assertNotNull(r.dependencyRule("maven"));
+        assertNotNull(r.dependencyRule("pypi"));
+        assertEquals("SHA-256", r.javaConstant("MessageDigestAlgorithms", "SHA_256"));
+        for (int i = 1; i < r.javaRules().size(); i++) {
+            assertTrue(r.javaRules().get(i - 1).id().compareTo(r.javaRules().get(i).id()) < 0, "id order");
+        }
+        assertTrue(r.dependencyRule("maven").matches("ORG.BOUNCYCASTLE:bcprov-jdk18on"));
+        assertFalse(r.dependencyRule("maven").matches("com.google.guava:guava"));
+        // the bundled set equals the repository's rules/ directory
+        RuleSet dir = RuleLoader.loadDirectory(TestSupport.baseDir().resolve("rules"));
+        assertEquals(r.digest(), dir.digest());
+    }
+
+    /** Every bundled rule document validates on its own against the schema and the semantic checks. */
+    @TestFactory
+    Stream<DynamicTest> everyBundledRuleValidates() throws Exception {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (RuleLoader.RuleFile f : RuleLoader.bundledFiles()) {
+            tests.add(DynamicTest.dynamicTest(f.path(), () -> RuleLoader.load(List.of(f))));
+        }
+        assertEquals(170, tests.size());
+        return tests.stream();
+    }
+
+    @Test
+    void schemaErrorsNameFileAndPointer() {
+        RuleException e = fail("a.yaml", HEAD + "match:\n- call: a.B.c\n  bogus: 1\n");
+        assertTrue(e.getMessage().contains("a.yaml: /match/0:"), e.getMessage());
+        assertTrue(e.getMessage().contains("bogus"), e.getMessage());
+        RuleException proto = fail("p.yaml", "id: java.t.p\nkind: source\nlanguage: java\nname: t\n"
+                + "asset: {type: protocol}\nmatch:\n- method: x\n");
+        assertTrue(proto.getMessage().contains("p.yaml: /asset:"), proto.getMessage());
+    }
+
+    @Test
+    void semanticChecks() {
+        assertTrue(fail("r.yaml", HEAD + "match:\n- call: a.B.c\n  firstString: \"((\"\n").getMessage()
+                .contains("r.yaml: /match/0/firstString: invalid regular expression"));
+        assertTrue(fail("p.yaml", HEAD + "match:\n- call: a.B.c\n  param: {keyword: k}\n").getMessage()
+                .contains("/match/0/param/keyword"));
+        RuleException dup = assertThrows(RuleException.class, () -> RuleLoader.load(List.of(
+                new RuleLoader.RuleFile("a.yaml", (HEAD + "match:\n- method: x\n").getBytes(StandardCharsets.UTF_8)),
+                new RuleLoader.RuleFile("b.yaml", (HEAD + "match:\n- method: y\n").getBytes(StandardCharsets.UTF_8)))));
+        assertTrue(dup.getMessage().contains("duplicate rule id java.t.x"), dup.getMessage());
+        String consts = "kind: constants\nlanguage: java\nconstants: {A: {B: c}}\n";
+        RuleException two = assertThrows(RuleException.class, () -> RuleLoader.load(List.of(
+                new RuleLoader.RuleFile("a.yaml", ("id: java.c1\n" + consts).getBytes(StandardCharsets.UTF_8)),
+                new RuleLoader.RuleFile("b.yaml", ("id: java.c2\n" + consts).getBytes(StandardCharsets.UTF_8)))));
+        assertTrue(two.getMessage().contains("second constants document"), two.getMessage());
+        assertTrue(fail("m.yaml", HEAD + "---\n" + HEAD).getMessage().contains("exactly one document"));
+        assertTrue(fail("e.yaml", "").getMessage().contains("e.yaml"));
+        assertTrue(fail("j.json", "{\"id\": 1").getMessage().contains("j.json"));
+    }
+
+    @Test
+    void yaml12Booleans() throws Exception {
+        // "yes" / "on" are strings in YAML 1.2: valid as a method name and a regex
+        RuleSet r = RuleLoader.load(List.of(new RuleLoader.RuleFile("y.yaml",
+                (HEAD + "match:\n- method: on\n  firstString: yes\n").getBytes(StandardCharsets.UTF_8))));
+        JavaPattern p = r.javaRules().get(0).javaPatterns().get(0);
+        assertEquals("on", p.member);
+        assertEquals("yes", p.firstString.pattern());
+        assertEquals(2, p.specificity);
+    }
+
+    @Test
+    void directoryLoadingIgnoresOtherFiles() throws Exception {
+        Path d = Files.createTempDirectory("rules");
+        Files.createDirectories(d.resolve("sub"));
+        Files.writeString(d.resolve("sub/x.yml"), HEAD + "match:\n- method: x\n");
+        Files.writeString(d.resolve("README.md"), "not a rule");
+        RuleSet r = RuleLoader.loadDirectory(d);
+        assertEquals(1, r.javaRules().size());
+        assertEquals("sub/x.yml", r.javaRules().get(0).file());
+    }
+
+    @Test
+    void packagePatterns() {
+        DependencyRule r = new DependencyRule("dep.x", "maven", "x", List.of(
+                DependencyRule.compilePackage("org.bouncycastle:*"), DependencyRule.compilePackage("a.b:c*d")));
+        assertTrue(r.matches("org.bouncycastle:bcprov"));
+        assertTrue(r.matches("a.b:c-x.y-d"));
+        assertFalse(r.matches("a.bx:cd"));
+        assertFalse(r.matches("org.bouncycastle"));
+    }
+
+    /** DECISIONS O6: {@code new: X*} is rejected at load time. */
+    @Test
+    void newAnchorWithStarRejected() {
+        RuleException e = fail("n.yaml", HEAD + "match:\n- new: a.b.C*\n");
+        assertTrue(e.getMessage().contains("n.yaml: /match/0/new"), e.getMessage());
+        assertTrue(e.getMessage().contains("\"*\" is not allowed"), e.getMessage());
+    }
+
+    /** DECISIONS O2: {@code param} does not make a Java pattern specific. */
+    @Test
+    void paramIsNotACondition() throws Exception {
+        RuleSet r = RuleLoader.load(List.of(new RuleLoader.RuleFile("p.yaml", (HEAD
+                + "match:\n- call: a.B.c\n  param: {index: 0}\n- call: a.B.d\n  param: {index: 0}\n  anyString: x\n"
+                + "- call: a.B.e\n").getBytes(StandardCharsets.UTF_8))));
+        List<JavaPattern> ps = r.javaRules().get(0).javaPatterns();
+        assertEquals(1, ps.get(0).specificity, "anchor + param is bare");
+        assertEquals(2, ps.get(1).specificity, "a real condition is specific");
+        assertEquals(1, ps.get(2).specificity);
+    }
+
+    /** DECISIONS O6: symbolic links inside a rule directory are rule errors; the directory itself may be a link. */
+    @Test
+    void symbolicLinksInRuleDirectories(@org.junit.jupiter.api.io.TempDir Path tmp) throws Exception {
+        Path dir = Files.createDirectories(tmp.resolve("rules/java"));
+        Files.writeString(dir.resolve("a.yaml"), HEAD + "match:\n- call: a.B.c\n");
+        Path outside = Files.writeString(tmp.resolve("outside.yaml"),
+                HEAD.replace("java.t.x", "java.t.y") + "match:\n- call: a.B.c\n");
+        Path dirLink = tmp.resolve("linked-rules");
+        try {
+            Files.createSymbolicLink(dirLink, tmp.resolve("rules"));
+        } catch (UnsupportedOperationException | java.io.IOException ex) {
+            return; // no symbolic links here
+        }
+        assertEquals(1, RuleLoader.loadDirectory(dirLink).javaRules().size(), "the directory argument may be a link");
+        Files.createSymbolicLink(dir.resolve("b.yaml"), outside);
+        RuleException e = assertThrows(RuleException.class, () -> RuleLoader.loadDirectory(tmp.resolve("rules")));
+        assertEquals(List.of("java/b.yaml: (document): symbolic links are not allowed in a rule directory"),
+                e.problems());
+    }
+
+    /**
+     * DECISIONS F2: the bundled set is loaded without schema validation only when it is the set that the
+     * build validated; the result equals a full validation.
+     */
+    @Test
+    void trustedBundledLoadEqualsFullValidation() throws Exception {
+        List<RuleLoader.RuleFile> files = RuleLoader.bundledFiles();
+        byte[] schema = RuleLoader.resourceBytes("schema/rule-schema.json");
+        byte[] bundle = RuleLoader.resourceBytes(RuleLoader.BUNDLE_RESOURCE);
+        assertNotNull(bundle, "the build step wrote the pre-parsed bundle");
+        String marker = new String(RuleLoader.resourceBytes(RuleLoader.VALIDATED_RESOURCE), StandardCharsets.UTF_8).strip();
+        assertEquals(marker, RuleLoader.validationKey(files, schema, bundle));
+        RuleSet trusted = RuleLoader.loadTrusted(files, bundle);
+        RuleSet full = RuleLoader.load(files);
+        assertNotNull(trusted);
+        assertEquals(full.digest(), trusted.digest());
+        assertEquals(ids(full), ids(trusted));
+        // any change to a file or the bundle changes the key, so the full validation runs instead
+        List<RuleLoader.RuleFile> changed = new ArrayList<>(files);
+        RuleLoader.RuleFile f0 = changed.get(0);
+        changed.set(0, new RuleLoader.RuleFile(f0.path(), (new String(f0.bytes(), StandardCharsets.UTF_8) + "\n")
+                .getBytes(StandardCharsets.UTF_8)));
+        assertFalse(marker.equals(RuleLoader.validationKey(changed, schema, bundle)));
+        byte[] otherBundle = bundle.clone();
+        otherBundle[otherBundle.length - 1] = ' ';
+        assertFalse(marker.equals(RuleLoader.validationKey(files, schema, otherBundle)));
+        // a bundle that does not fit the files is refused
+        assertEquals(null, RuleLoader.loadTrusted(files.subList(1, files.size()), bundle));
+        assertEquals(null, RuleLoader.loadTrusted(files, "[]".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /** The streaming reader gives the same trees as the object mapper (also for unusual scalars). */
+    @Test
+    void streamingReaderEqualsMapper() throws Exception {
+        String yaml = "a: 1\nb: 12345678901\nc: 123456789012345678901234567890\nd: 1.5\ne: true\nf: yes\n"
+                + "g: null\nh: [1, [2, {x: y}], []]\ni: {}\nj: 'it''s'\nk: ~\n";
+        RuleLoader.RuleFile f = new RuleLoader.RuleFile("t.yaml", yaml.getBytes(StandardCharsets.UTF_8));
+        assertEquals(RuleLoader.parse(f), TreeReader.read(f.path(), f.bytes()));
+        RuleLoader.RuleFile j = new RuleLoader.RuleFile("t.json",
+                "{\"a\": [1, 2.5, \"x\", null, false, {\"b\": {}}]}".getBytes(StandardCharsets.UTF_8));
+        assertEquals(RuleLoader.parse(j), TreeReader.read(j.path(), j.bytes()));
+        assertThrows(java.io.IOException.class, () -> TreeReader.read("d.yaml",
+                "a: 1\na: 2\n".getBytes(StandardCharsets.UTF_8)), "duplicate keys");
+        assertThrows(java.io.IOException.class, () -> TreeReader.read("m.yaml",
+                "a: 1\n---\nb: 2\n".getBytes(StandardCharsets.UTF_8)), "two documents");
+    }
+
+    private static List<String> ids(RuleSet r) {
+        List<String> l = new ArrayList<>();
+        r.javaRules().forEach(x -> l.add(x.id() + "/" + x.javaPatterns().size()));
+        r.pythonRules().forEach(x -> l.add(x.id() + "/" + x.pythonPatterns().size()));
+        return l;
+    }
+}

@@ -1,0 +1,42 @@
+CipherSift
+Copyright 2026 The CipherSift Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The CipherSift jar (ciphersift-<version>-all.jar) bundles the following third-party
+components. The licence texts of the MIT- and Unicode-licensed components are included in
+the jar under META-INF/ciphersift/licenses/<component>/LICENSE (in the source tree:
+native/vendor/<component>/LICENSE and src/main/resources/META-INF/ciphersift/licenses/);
+this NOTICE and the Apache License 2.0 are in the jar as META-INF/ciphersift/NOTICE and
+META-INF/ciphersift/LICENSE.
+
+Native libraries (built from source by native/build-natives.sh, bundled under /native/):
+
+  tree-sitter (core) v0.26.10 - MIT License
+    Copyright (c) 2018 Max Brunsfeld
+    contains ICU headers (utf8.h, utf16.h, umachine.h) - Unicode License (ICU 58 and later)
+      Copyright (c) 1991-2019 Unicode, Inc.; see tree-sitter/lib/src/unicode/LICENSE
+  tree-sitter-java v0.23.5 - MIT License
+    Copyright (c) 2017 Ayman Nadeem
+  tree-sitter-python v0.25.0 - MIT License
+    Copyright (c) 2016 Max Brunsfeld
+
+Java libraries:
+
+  jtreesitter 0.26.1 (io.github.tree-sitter:jtreesitter) - MIT License
+    Copyright (c) 2024 tree-sitter contributors
+  JSpecify 1.0.0 (org.jspecify:jspecify), runtime dependency of jtreesitter - Apache License 2.0
+  Jackson 2.22.3: jackson-core, jackson-databind, jackson-annotations,
+    jackson-dataformat-yaml, jackson-dataformat-toml (com.fasterxml.jackson) - Apache License 2.0
+    jackson-core contains FastDoubleParser (MIT License, Copyright (c) Werner Randelshofer)
+    and Schubfach-derived code (MIT License, Copyright (c) Raffaello Giulietti); see
+    META-INF/FastDoubleParser-LICENSE, META-INF/FastDoubleParser-ThirdParty-LICENSE and
+    META-INF/Schubfach-LICENSE in the jar.
+  SnakeYAML 2.5 (org.yaml:snakeyaml), via jackson-dataformat-yaml - Apache License 2.0
+  picocli 4.7.7 (info.picocli:picocli) - Apache License 2.0
+  json-schema-validator 2.0.4 (com.networknt:json-schema-validator) - Apache License 2.0
+  ITU 1.14.0 (com.ethlo.time:itu), dependency of json-schema-validator - Apache License 2.0
+  SLF4J API 2.0.17 (org.slf4j:slf4j-api), dependency of json-schema-validator - MIT License
+    Copyright (c) 2004-2022 QOS.ch Sarl (Switzerland)
+
+The list was checked against `mvn dependency:tree -Dscope=runtime`.

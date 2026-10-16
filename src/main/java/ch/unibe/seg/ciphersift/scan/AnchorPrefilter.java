@@ -1,0 +1,346 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * Copyright 2026 The CipherSift Authors
+ */
+package ch.unibe.seg.ciphersift.scan;
+
+import ch.unibe.seg.ciphersift.rules.JavaPattern;
+import ch.unibe.seg.ciphersift.rules.PythonPattern;
+import ch.unibe.seg.ciphersift.rules.SourceRule;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * A sound textual pre-check: can any pattern of the rule set possibly fire in a source text? If not,
+ * the file needs neither parsing nor analysis, because its findings are empty by construction.
+ *
+ * <p>Every anchor compares node texts of the analysed file with literal names of the pattern
+ * (SPEC 7.2, 7.3.2, 7.6, 8.2–8.6, 8.9), so those names occur in the file's text:
+ *
+ * <ul>
+ *   <li>Java {@code call: C.m} / {@code field: C.F}: the member ({@code m}, a prefix for {@code m*})
+ *       is the text of the event's name; the simple name of {@code C} is part of the receiver text
+ *       (every case of {@code denotes}) or of the static import that supplies the static candidate.
+ *   <li>Java {@code new: C}: the simple name of {@code C} is the last segment of the type text.
+ *   <li>Java {@code method}/{@code override}: the name (or prefix).
+ *   <li>Python {@code call: a.b.c}: a resolved call name is built only from identifier texts,
+ *       attribute names and import texts of the file, so every identifier part of the value occurs;
+ *       {@code method}: one of the names; {@code anyCall}: each required keyword;
+ *       {@code assign}: the attribute name. The symbol conditions {@code anySymbol} /
+ *       {@code allSymbols} hit only resolved names, so the identifier parts of one (of all) listed
+ *       names occur as well.
+ * </ul>
+ *
+ * A file passes if, for some pattern, all of its required names occur as substrings anywhere in the
+ * text (strings and comments included; no word boundaries are checked, so the test only ever errs
+ * towards analysing a file). The check is one pass of an Aho–Corasick automaton over the text.
+ * Patterns whose required names cannot be determined make the filter accept every text.
+ */
+final class AnchorPrefilter {
+    /** Accepts every text. */
+    static final AnchorPrefilter ALL = new AnchorPrefilter(null, null, 0, null, null, 0);
+
+    /** For each pattern: its clauses; a clause is satisfied by any of its token ids. */
+    private final int[][][] patterns;
+    /** Character class of each ASCII character (0: occurs in no name). */
+    private final byte[] classes;
+    private final int width;
+    /** Complete automaton: next state = delta[state * width + class]. */
+    private final int[] delta;
+    /** Per state: ids of the names ending here (failure links included), or null. */
+    private final int[][] outputs;
+    private final int tokenCount;
+
+    private AnchorPrefilter(int[][][] patterns, byte[] classes, int width, int[] delta, int[][] outputs,
+            int tokenCount) {
+        this.patterns = patterns;
+        this.classes = classes;
+        this.width = width;
+        this.delta = delta;
+        this.outputs = outputs;
+        this.tokenCount = tokenCount;
+    }
+
+    /** The filter for the Java rules. */
+    static AnchorPrefilter java(List<SourceRule> rules) {
+        List<List<List<String>>> pats = new ArrayList<>();
+        for (SourceRule r : rules) {
+            for (JavaPattern p : r.javaPatterns()) {
+                List<List<String>> clauses = new ArrayList<>();
+                switch (p.anchor) {
+                    case CALL, FIELD -> {
+                        clauses.add(List.of(simpleName(p.className)));
+                        if (!p.member.isEmpty()) {
+                            clauses.add(List.of(p.member));
+                        }
+                    }
+                    case NEW -> clauses.add(List.of(simpleName(p.className)));
+                    default -> {
+                        if (!p.member.isEmpty()) {
+                            clauses.add(List.of(p.member));
+                        }
+                    }
+                }
+                pats.add(clauses);
+            }
+        }
+        return build(pats);
+    }
+
+    /** The filter for the Python rules. */
+    static AnchorPrefilter python(List<SourceRule> rules) {
+        List<List<List<String>>> pats = new ArrayList<>();
+        for (SourceRule r : rules) {
+            for (PythonPattern p : r.pythonPatterns()) {
+                List<List<String>> clauses = new ArrayList<>();
+                if (p.call != null) {
+                    for (String part : identifierParts(p.call)) {
+                        clauses.add(List.of(part));
+                    }
+                    if (p.methods != null) {
+                        clauses.add(List.copyOf(p.methods));
+                    }
+                } else if (p.methods != null) {
+                    clauses.add(List.copyOf(p.methods));
+                } else if (p.anyCall) {
+                    if (p.kwargs != null) {
+                        for (String k : p.kwargs.keySet()) {
+                            clauses.add(List.of(k));
+                        }
+                    }
+                } else if (p.assign != null) {
+                    clauses.add(List.of(p.assign));
+                }
+                if (clauses.isEmpty()) {
+                    pats.add(clauses); // makes the filter accept everything
+                    continue;
+                }
+                // a symbol hits a listed name if it equals the name or ends with "." + name (SPEC 8.5.2);
+                // symbols are resolved names, so every identifier part of a hit name occurs in the text
+                if (p.allSymbols != null) {
+                    for (String n : p.allSymbols) {
+                        for (String part : identifierParts(n)) {
+                            clauses.add(List.of(part));
+                        }
+                    }
+                }
+                if (p.anySymbol != null && !p.anySymbol.isEmpty()) {
+                    for (String n : p.anySymbol) {
+                        List<List<String>> c = new ArrayList<>(clauses);
+                        for (String part : identifierParts(n)) {
+                            c.add(List.of(part));
+                        }
+                        pats.add(c);
+                    }
+                } else {
+                    pats.add(clauses);
+                }
+            }
+        }
+        return build(pats);
+    }
+
+    private static String simpleName(String className) {
+        if (className == null) {
+            return "";
+        }
+        int dot = className.lastIndexOf('.');
+        return dot < 0 ? className : className.substring(dot + 1);
+    }
+
+    /** The maximal runs of {@code [A-Za-z0-9_]} of a dotted value, skipping {@code <…>} placeholders. */
+    static List<String> identifierParts(String dotted) {
+        List<String> out = new ArrayList<>();
+        for (String seg : dotted.split("\\.", -1)) {
+            if (seg.indexOf('<') >= 0 || seg.indexOf('>') >= 0) {
+                continue; // e.g. <expr> (SPEC 8.4.2 shape): not source text
+            }
+            int i = 0;
+            while (i < seg.length()) {
+                while (i < seg.length() && !isWordChar(seg.charAt(i))) {
+                    i++;
+                }
+                int s = i;
+                while (i < seg.length() && isWordChar(seg.charAt(i))) {
+                    i++;
+                }
+                if (i > s) {
+                    out.add(seg.substring(s, i));
+                }
+            }
+        }
+        return out;
+    }
+
+    private static boolean isWordChar(char c) {
+        return c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+    }
+
+    private static AnchorPrefilter build(List<List<List<String>>> pats) {
+        Map<String, Integer> ids = new LinkedHashMap<>();
+        int[][][] compiled = new int[pats.size()][][];
+        for (int i = 0; i < pats.size(); i++) {
+            List<List<String>> clauses = pats.get(i);
+            if (clauses.isEmpty()) {
+                return ALL; // a pattern without required names can fire anywhere
+            }
+            compiled[i] = new int[clauses.size()][];
+            for (int c = 0; c < clauses.size(); c++) {
+                List<String> alts = clauses.get(c);
+                int[] a = new int[alts.size()];
+                for (int k = 0; k < alts.size(); k++) {
+                    String t = alts.get(k);
+                    if (t.isEmpty()) {
+                        return ALL;
+                    }
+                    for (int j = 0; j < t.length(); j++) {
+                        if (t.charAt(j) >= 128) {
+                            return ALL; // the automaton covers ASCII names only
+                        }
+                    }
+                    Integer id = ids.get(t);
+                    if (id == null) {
+                        id = ids.size();
+                        ids.put(t, id);
+                    }
+                    a[k] = id;
+                }
+                compiled[i][c] = a;
+            }
+        }
+        if (compiled.length == 0) {
+            return new AnchorPrefilter(compiled, new byte[128], 1, new int[1], new int[1][], 0); // never fires
+        }
+        // character classes: 0 for every character that occurs in no name, 1..k otherwise
+        byte[] classes = new byte[128];
+        int k = 0;
+        for (String t : ids.keySet()) {
+            for (int j = 0; j < t.length(); j++) {
+                char ch = t.charAt(j);
+                if (classes[ch] == 0) {
+                    classes[ch] = (byte) ++k; // at most 127 classes
+                }
+            }
+        }
+        int width = k + 1;
+        // trie (state 0 is the root), then failure links breadth first, making the automaton complete
+        int[] delta = new int[width * 16];
+        Arrays.fill(delta, -1);
+        int states = 1;
+        List<List<Integer>> out = new ArrayList<>();
+        out.add(new ArrayList<>());
+        for (Map.Entry<String, Integer> e : ids.entrySet()) {
+            int st = 0;
+            for (int j = 0; j < e.getKey().length(); j++) {
+                int c = classes[e.getKey().charAt(j)];
+                int t = delta[st * width + c];
+                if (t < 0) {
+                    t = states++;
+                    if (states * width > delta.length) {
+                        int old = delta.length;
+                        delta = Arrays.copyOf(delta, old * 2);
+                        Arrays.fill(delta, old, delta.length, -1);
+                    }
+                    out.add(new ArrayList<>());
+                    delta[st * width + c] = t;
+                }
+                st = t;
+            }
+            out.get(st).add(e.getValue());
+        }
+        int[] fail = new int[states];
+        int[] queue = new int[states];
+        int head = 0;
+        int tail = 0;
+        for (int c = 0; c < width; c++) {
+            int t = delta[c];
+            if (t < 0) {
+                delta[c] = 0;
+            } else {
+                fail[t] = 0;
+                queue[tail++] = t;
+            }
+        }
+        while (head < tail) {
+            int st = queue[head++];
+            out.get(st).addAll(out.get(fail[st]));
+            for (int c = 0; c < width; c++) {
+                int t = delta[st * width + c];
+                int viaFail = delta[fail[st] * width + c];
+                if (t < 0) {
+                    delta[st * width + c] = viaFail;
+                } else {
+                    fail[t] = viaFail;
+                    queue[tail++] = t;
+                }
+            }
+        }
+        int[][] outputs = new int[states][];
+        for (int st = 0; st < states; st++) {
+            List<Integer> o = out.get(st);
+            if (!o.isEmpty()) {
+                outputs[st] = o.stream().distinct().mapToInt(Integer::intValue).toArray();
+            }
+        }
+        return new AnchorPrefilter(compiled, classes, width, Arrays.copyOf(delta, states * width), outputs,
+                ids.size());
+    }
+
+    /** Is it possible that some pattern fires in {@code text}? */
+    boolean mayMatch(CharSequence text) {
+        if (patterns == null) {
+            return true;
+        }
+        if (tokenCount == 0) {
+            return false;
+        }
+        boolean[] found = new boolean[tokenCount];
+        int[] d = delta;
+        byte[] cls = classes;
+        int w = width;
+        int[][] outs = outputs;
+        int st = 0;
+        for (int i = 0, len = text.length(); i < len; i++) {
+            char c = text.charAt(i);
+            // no name contains a non-ASCII character: such a character leads back to the root
+            st = c < 128 ? d[st * w + cls[c]] : 0;
+            int[] o = outs[st];
+            if (o != null) {
+                boolean fresh = false;
+                for (int t : o) {
+                    if (!found[t]) {
+                        found[t] = true;
+                        fresh = true;
+                    }
+                }
+                if (fresh && satisfied(found)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean satisfied(boolean[] found) {
+        outer:
+        for (int[][] clauses : patterns) {
+            for (int[] alts : clauses) {
+                boolean any = false;
+                for (int t : alts) {
+                    if (found[t]) {
+                        any = true;
+                        break;
+                    }
+                }
+                if (!any) {
+                    continue outer;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+}
