@@ -1,0 +1,4 @@
+# Conformance inputs and bundled licence texts must stay byte-exact
+# (some inputs test encodings and CRLF line endings).
+spec/conformance/cases/** -text
+src/main/resources/META-INF/ciphersift/licenses/** -text
