@@ -1,0 +1,4 @@
+{"case": "common/binary", "findings": [
+  {"file": "bom.py", "line": 2, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"},
+  {"file": "latin1.py", "line": 3, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha1"}
+]}

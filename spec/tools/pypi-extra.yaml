@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+#
+# Hand-maintained additions to the PyPI crypto-package list (CipherSift, from public package docs).
+# Read only by spec/tools/convert_rules.py, which merges it into rules/dependencies/dep.pypi.yaml.
+packages:
+  - {package: tink, note: "Google Tink for Python"}
+  - {package: pysodium, note: "libsodium wrapper"}
+  - {package: libnacl, note: "libsodium wrapper"}
+  - {package: scrypt, note: "scrypt KDF bindings"}
+  - {package: py-bcrypt, note: "legacy bcrypt bindings"}
+  - {package: argon2-cffi-bindings, note: "low-level Argon2 bindings"}
+  - {package: blake3, note: "BLAKE3 hash"}
+  - {package: coincurve, note: "secp256k1 (libsecp256k1)"}
+  - {package: secp256k1, note: "secp256k1 bindings"}
+  - {package: ed25519, note: "Ed25519 signatures"}
+  - {package: pure25519, note: "pure-Python Curve25519/Ed25519"}
+  - {package: pyspx, note: "SPHINCS+ post-quantum signatures"}
+  - {package: liboqs-python, note: "Open Quantum Safe bindings (module oqs)"}
+  - {package: pqcrypto, note: "post-quantum primitives"}
+  - {package: josepy, note: "JOSE (ACME)"}
+  - {package: jwt, note: "the 'jwt' JOSE package (not PyJWT)"}
+  - {package: cryptojwt, note: "JOSE implementation"}
+  - {package: itsdangerous, note: "HMAC-signed tokens"}
+  - {package: pyotp, note: "HOTP/TOTP (HMAC)"}
+  - {package: python-gnupg, note: "GnuPG wrapper"}
+  - {package: pgpy, note: "OpenPGP implementation"}
+  - {package: asn1crypto, note: "ASN.1/X.509/PKCS structures"}
+  - {package: oscrypto, note: "OS crypto library bindings"}
+  - {package: certvalidator, note: "X.509 path validation"}
+  - {package: pyjks, note: "Java KeyStore files"}
+  - {package: signxml, note: "XML signatures"}
+  - {package: xmlsec, note: "XML security (libxmlsec1)"}
+  - {package: endesive, note: "PDF/e-mail signing"}
+  - {package: pyhanko, note: "PDF signing"}
+  - {package: python-pkcs11, note: "PKCS#11"}
+  - {package: pykcs11, note: "PKCS#11"}
+  - {package: service-identity, note: "TLS service identity verification"}
+  - {package: tgcrypto, note: "AES-IGE/CTR/CBC (Telegram)"}
+  - {package: cryptg, note: "AES-IGE (Telethon)"}
+  - {package: fastecdsa, note: "elliptic-curve signatures"}
+  - {package: py-ecc, note: "elliptic-curve and pairing crypto"}
+  - {package: hkdf, note: "HKDF"}
+  - {package: truststore, note: "OS trust store for ssl"}
+  - {package: certifi, note: "Mozilla CA bundle"}
+  - {package: pyopenssl-psk, note: "TLS-PSK for pyOpenSSL"}
+  - {package: ssh2-python, note: "libssh2 bindings"}

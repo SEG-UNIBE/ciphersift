@@ -1,0 +1,14 @@
+[project]
+name = "demo"
+version = "0.1.0"
+dependencies = [
+  "cryptography==42.0.5",
+  "pycryptodome @ https://example.org/pycryptodome-3.20.0.tar.gz",
+  "bcrypt @ git+https://github.com/pyca/bcrypt.git@4.1.2",
+]
+
+[project.optional-dependencies]
+extra = ["pynacl @ file:///tmp/pynacl-1.5.0.whl", "pyopenssl==24.1.0"]
+
+[dependency-groups]
+dev = ["asyncssh @ https://example.org/asyncssh.tar.gz", "paramiko"]

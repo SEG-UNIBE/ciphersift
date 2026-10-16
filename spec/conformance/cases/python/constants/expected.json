@@ -1,0 +1,9 @@
+{"case": "python/constants", "findings": [
+  {"file": "consts.py", "line": 11, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.new"},
+  {"file": "consts.py", "line": 12, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.new"},
+  {"file": "consts.py", "line": 19, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.new"},
+  {"file": "consts.py", "line": 31, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hmac.new"},
+  {"file": "consts.py", "line": 31, "rule": "python.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "hmac.new"},
+  {"file": "consts.py", "line": 32, "rule": "python.sym.aes.cbc", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": "CBC", "protocol": null, "version": null, "param": null, "name": "Crypto.Cipher.AES.new"},
+  {"file": "consts.py", "line": 38, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.new"}
+]}

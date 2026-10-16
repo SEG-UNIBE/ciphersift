@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Hand-written for CipherSift (from public project documentation); not generated.
+id: dep.maven
+kind: dependency
+ecosystem: maven
+name: Cryptographic Java libraries
+description: >-
+  Maven artifacts that implement or wrap cryptography (providers, TLS stacks, password hashing,
+  JOSE/JWT, SSH, signature formats, post-quantum), matched on groupId:artifactId in pom.xml,
+  Gradle build scripts and Gradle version catalogs. A "*" matches any run of characters.
+asset:
+  type: library
+packages:
+  # providers and general-purpose crypto
+  - {package: "org.bouncycastle:*", note: "Bouncy Castle (bcprov, bcpkix, bctls, bcpg, bcutil, bcfips, ...)"}
+  - {package: "com.google.crypto.tink:*", note: "Google Tink"}
+  - {package: "org.conscrypt:*", note: "Conscrypt (BoringSSL provider)"}
+  - {package: "software.amazon.cryptools:*", note: "Amazon Corretto Crypto Provider"}
+  - {package: "software.amazon.cryptography:*", note: "AWS Cryptographic Material Providers"}
+  - {package: "com.amazonaws:aws-encryption-sdk-java", note: "AWS Encryption SDK"}
+  - {package: "org.apache.commons:commons-crypto", note: "Apache Commons Crypto (OpenSSL)"}
+  - {package: "commons-codec:commons-codec", note: "DigestUtils / HmacUtils"}
+  - {package: "org.jasypt:*", note: "Jasypt"}
+  - {package: "org.apache.shiro:shiro-crypto*", note: "Apache Shiro crypto modules"}
+  - {package: "org.springframework.security:spring-security-crypto", note: "Spring Security Crypto"}
+  - {package: "com.goterl:lazysodium-java", note: "libsodium"}
+  - {package: "com.goterl:lazysodium-android", note: "libsodium"}
+  - {package: "org.abstractj.kalium:kalium", note: "libsodium"}
+  - {package: "net.i2p.crypto:eddsa", note: "Ed25519"}
+  - {package: "org.whispersystems:curve25519-java", note: "Curve25519"}
+  - {package: "org.signal:libsignal-*", note: "Signal protocol"}
+  - {package: "org.openquantumsafe:*", note: "liboqs-java (post-quantum)"}
+  - {package: "com.google.crypto:*", note: "Google crypto artifacts"}
+  # TLS stacks and native TLS bindings
+  - {package: "io.netty:netty-tcnative*", note: "Netty tcnative (OpenSSL/BoringSSL)"}
+  - {package: "org.wildfly.openssl:*", note: "WildFly OpenSSL"}
+  - {package: "org.openjsse:*", note: "OpenJSSE"}
+  # password hashing / KDF
+  - {package: "org.mindrot:jbcrypt", note: "jBCrypt"}
+  - {package: "at.favre.lib:bcrypt", note: "bcrypt"}
+  - {package: "de.svenkubiak:jBCrypt", note: "jBCrypt fork"}
+  - {package: "de.mkammerer:argon2-jvm*", note: "Argon2"}
+  - {package: "com.lambdaworks:scrypt", note: "scrypt"}
+  - {package: "com.password4j:password4j", note: "Password4j"}
+  # JOSE / JWT
+  - {package: "com.auth0:java-jwt", note: "Auth0 java-jwt"}
+  - {package: "com.auth0:jwks-rsa", note: "Auth0 JWKS"}
+  - {package: "io.jsonwebtoken:*", note: "JJWT"}
+  - {package: "com.nimbusds:nimbus-jose-jwt", note: "Nimbus JOSE+JWT"}
+  - {package: "org.bitbucket.b_c:jose4j", note: "jose4j"}
+  - {package: "io.fusionauth:fusionauth-jwt", note: "FusionAuth JWT"}
+  # SSH
+  - {package: "com.jcraft:jsch", note: "JSch"}
+  - {package: "com.github.mwiede:jsch", note: "JSch fork"}
+  - {package: "org.apache.sshd:*", note: "Apache MINA SSHD"}
+  - {package: "com.hierynomus:sshj", note: "sshj"}
+  # XML / document signatures, PKCS#11, PGP
+  - {package: "org.apache.santuario:xmlsec", note: "Apache Santuario XML Security"}
+  - {package: "org.apache.wss4j:*", note: "WSS4J (WS-Security)"}
+  - {package: "eu.europa.ec.joinup.sd-dss:*", note: "EU DSS (digital signatures)"}
+  - {package: "org.pgpainless:*", note: "PGPainless (OpenPGP)"}
+  - {package: "name.neuhalfen.projects.crypto.bouncycastle.openpgp:*", note: "BC OpenPGP wrapper"}
+  - {package: "org.xipki.iaik:*", note: "PKCS#11 wrapper"}
+  - {package: "com.github.marschall:*pkcs11*", note: "PKCS#11"}

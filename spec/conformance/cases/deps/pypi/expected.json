@@ -1,0 +1,23 @@
+{"case": "deps/pypi", "findings": [
+  {"file": "requirements-dev.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyopenssl", "version": "24.0.0"},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "argon2-cffi", "version": "23.1.0"},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "bcrypt", "version": "4.1.2"},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "42.0.5"},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "paramiko", "version": null},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pycryptodome", "version": "3.20.0"},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyjwt", "version": "2.8.0"},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": null},
+  {"file": "requirements/base.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "passlib", "version": "1.7.4"},
+  {"file": "svc/Pipfile.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "m2crypto", "version": "0.40.1"},
+  {"file": "svc/Pipfile.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "rsa", "version": "4.9"},
+  {"file": "svc/poetry.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "42.0.5"},
+  {"file": "svc/poetry.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": "1.5.0"},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "asyncssh", "version": "2.14.2"},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "bcrypt", "version": null},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": null},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "ecdsa", "version": "0.19.0"},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pycrypto", "version": "2.6.1"},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyjwt", "version": "2.8.0"},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": "1.5.0"},
+  {"file": "svc/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "tink", "version": "1.10.0"}
+]}

@@ -1,0 +1,4 @@
+{"case": "java/syntax-error", "findings": [
+  {"file": "src/e/Broken.java", "line": 7, "rule": "java.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "MD5"},
+  {"file": "src/e/Broken.java", "line": 15, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-256"}
+]}

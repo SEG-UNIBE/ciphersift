@@ -1,0 +1,6 @@
+{"case": "java/overrides", "findings": [
+  {"file": "src/o/Trust.java", "line": 15, "rule": "java.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/o/Trust.java", "line": 16, "rule": "java.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/o/Trust.java", "line": 17, "rule": "java.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/o/Trust.java", "line": 39, "rule": "java.cert.hostname_verification.disabled", "type": "related-crypto-material", "subtype": "hostname-verification-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null}
+]}

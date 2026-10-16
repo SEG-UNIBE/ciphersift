@@ -1,0 +1,15 @@
+{"case": "java/constant-args", "findings": [
+  {"file": "src/k/Keys.java", "line": 14, "rule": "java.key.hardcoded", "type": "key-material", "subtype": "hardcoded-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Keys.java", "line": 14, "rule": "java.sym.des", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "DES", "variant": null, "protocol": null, "version": null, "param": null, "name": "DES"},
+  {"file": "src/k/Keys.java", "line": 15, "rule": "java.key.hardcoded", "type": "key-material", "subtype": "hardcoded-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Keys.java", "line": 15, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "src/k/Keys.java", "line": 16, "rule": "java.key.hardcoded", "type": "key-material", "subtype": "hardcoded-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Keys.java", "line": 16, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "src/k/Keys.java", "line": 17, "rule": "java.key.hardcoded", "type": "key-material", "subtype": "hardcoded-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Keys.java", "line": 17, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "src/k/Keys.java", "line": 18, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "src/k/Keys.java", "line": 22, "rule": "java.sym.iv.static", "type": "related-crypto-material", "subtype": "static-iv", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Keys.java", "line": 23, "rule": "java.sym.iv.static", "type": "related-crypto-material", "subtype": "static-iv", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Keys.java", "line": 24, "rule": "java.kdf.password.hardcoded", "type": "key-material", "subtype": "hardcoded-password", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Keys.java", "line": 25, "rule": "java.kdf.pbkdf2", "type": "algorithm", "subtype": null, "primitive": "kdf", "family": "PBKDF2", "variant": null, "protocol": null, "version": null, "param": null, "name": "PBEKeySpec"}
+]}

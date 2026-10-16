@@ -1,0 +1,4 @@
+{"case": "common/test-files-excluded", "findings": [
+  {"file": "app/util.py", "line": 2, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"},
+  {"file": "src/main/java/t/Prod.java", "line": 4, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-256"}
+]}

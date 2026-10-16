@@ -1,0 +1,6 @@
+cryptography==42.0.0
+pycryptodome>=3.10
+requests==2.31.0
+pyjwt[crypto]==2.8.0
+# comment
+bcrypt

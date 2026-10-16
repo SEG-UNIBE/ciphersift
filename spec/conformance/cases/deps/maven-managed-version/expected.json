@@ -1,0 +1,5 @@
+{"case": "deps/maven-managed-version", "findings": [
+  {"file": "late/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcpkix-jdk18on", "version": "1.78"},
+  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "io.jsonwebtoken:jjwt-api", "version": null},
+  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": "1.78.1"}
+]}

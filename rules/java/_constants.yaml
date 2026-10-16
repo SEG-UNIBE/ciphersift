@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Values of well-known library string constants, used by Java string resolution
+# (SPEC.md 5.10 and 7.4). Keys are the simple class name; values are the
+# documented values of public API constants.
+id: java.constants
+kind: constants
+language: java
+constants:
+  MessageDigestAlgorithms:   # org.apache.commons.codec.digest.MessageDigestAlgorithms
+    MD2: MD2
+    MD5: MD5
+    SHA_1: SHA-1
+    SHA_224: SHA-224
+    SHA_256: SHA-256
+    SHA_384: SHA-384
+    SHA_512: SHA-512
+    SHA_512_224: SHA-512/224
+    SHA_512_256: SHA-512/256
+    SHA3_224: SHA3-224
+    SHA3_256: SHA3-256
+    SHA3_384: SHA3-384
+    SHA3_512: SHA3-512
+  HmacAlgorithms:            # org.apache.commons.codec.digest.HmacAlgorithms (enum; getName())
+    HMAC_MD5: HmacMD5
+    HMAC_SHA_1: HmacSHA1
+    HMAC_SHA_224: HmacSHA224
+    HMAC_SHA_256: HmacSHA256
+    HMAC_SHA_384: HmacSHA384
+    HMAC_SHA_512: HmacSHA512
+  KeyProperties:             # android.security.keystore.KeyProperties
+    KEY_ALGORITHM_AES: AES
+    KEY_ALGORITHM_RSA: RSA
+    KEY_ALGORITHM_EC: EC
+    KEY_ALGORITHM_3DES: DESede
+    KEY_ALGORITHM_XDH: XDH
+    KEY_ALGORITHM_HMAC_SHA1: HmacSHA1
+    KEY_ALGORITHM_HMAC_SHA224: HmacSHA224
+    KEY_ALGORITHM_HMAC_SHA256: HmacSHA256
+    KEY_ALGORITHM_HMAC_SHA384: HmacSHA384
+    KEY_ALGORITHM_HMAC_SHA512: HmacSHA512
+    BLOCK_MODE_ECB: ECB
+    BLOCK_MODE_CBC: CBC
+    BLOCK_MODE_CTR: CTR
+    BLOCK_MODE_GCM: GCM
+    ENCRYPTION_PADDING_NONE: NoPadding
+    ENCRYPTION_PADDING_PKCS7: PKCS7Padding
+    ENCRYPTION_PADDING_RSA_PKCS1: PKCS1Padding
+    ENCRYPTION_PADDING_RSA_OAEP: OAEPPadding

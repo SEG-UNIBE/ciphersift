@@ -1,0 +1,5 @@
+{"case": "deps/pyproject-direct-reference", "findings": [
+  {"file": "pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "42.0.5"},
+  {"file": "pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "paramiko", "version": null},
+  {"file": "pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyopenssl", "version": "24.1.0"}
+]}

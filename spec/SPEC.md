@@ -1,0 +1,2067 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright 2026 The CipherSift Authors -->
+
+# CipherSift — Behavioural Specification
+
+Version 1.0 of the specification (rule format version 1). Status: ready for implementation.
+
+CipherSift is an open-source (Apache-2.0) static scanner written in Java. It finds
+cryptographic assets in **Java** and **Python** source code and in **Maven/Gradle** and
+**PyPI** dependency manifests, and writes a **CycloneDX 1.6** Cryptography Bill of Materials
+(CBOM) as JSON.
+
+This document is the only description of the behaviour. It is written for an engineer who
+implements CipherSift from it, together with the rule files in `rules/` and the conformance
+suite in `spec/conformance/`. It describes behaviour, not an implementation; where it
+suggests a design, the suggestion is marked *(advice)* and may be replaced by anything with
+the same observable behaviour.
+
+The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
+
+## Contents
+
+1. Scope and terminology
+2. Architecture
+3. Command-line interface
+4. File collection and classification
+5. Rule format
+6. Parsing
+7. Java source analysis
+8. Python source analysis
+9. Dependency manifests
+10. Normalisation: findings to components
+11. CBOM output
+12. Determinism
+13. Error handling
+14. Performance
+15. Build, packaging and licensing
+16. Testing and conformance
+- Appendix A. Intentional differences from the reference tool
+- Appendix B. Known limitations (by design)
+- Appendix C. Tree-sitter node types and fields used
+
+---
+
+## 1. Scope and terminology
+
+### 1.1 In scope
+
+* Source-code discovery in files with the extension `.java` (Java) and `.py` (Python).
+  Detection is rule-driven: the cryptographic knowledge lives in rule files (section 5),
+  the scanner provides language analysis (name resolution, constant resolution, argument
+  analysis).
+* Dependency discovery in Maven `pom.xml`, Gradle `build.gradle`, `build.gradle.kts` and
+  version catalogs (`*.versions.toml`), and Python `requirements*.txt`, `pyproject.toml`,
+  `Pipfile.lock`, `poetry.lock`. Only packages on the crypto-library lists of the
+  dependency rules are reported.
+* Output: one CycloneDX 1.6 JSON document.
+
+### 1.2 Out of scope
+
+Go, Ruby, Kotlin and other languages; configuration files (nginx, sshd, …); parsing of
+certificate, key or keystore files; weakness / CVE assessment; data-flow analysis beyond
+the constant resolution described here; reading compiled code (jars, wheels).
+
+### 1.3 Terms
+
+| Term | Meaning |
+|---|---|
+| scan root | The directory given on the command line, after resolving it to an absolute, canonical path. |
+| relative path | The path of a file relative to the scan root, with `/` as separator, no leading `./`. All paths in the output are relative paths. |
+| rule | A YAML or JSON document of kind `source` or `dependency` (section 5). |
+| pattern | One element of a source rule's `match` list. A rule matches a code location if at least one of its patterns matches. |
+| anchor | The key of a pattern that says *what kind of code location* it looks at (`call`, `new`, `method`, `field`, `override`, `anyCall`, `assign`). |
+| condition | Any further key of a pattern that restricts the anchor (`firstString`, `kwargs`, …). All conditions of a pattern must hold. |
+| finding | One match: (file, line, rule, extra data). Produced by the extractors. |
+| component | A CycloneDX component. Findings with the same identity (section 10) form one component; each finding becomes one occurrence. |
+| reference tool | The Python tool CipherSift's behaviour was derived from (see `PROVENANCE.md`). Mentioned only to explain intentional differences (Appendix A). |
+
+Line numbers are 1-based. Line *n* starts after the (*n*−1)-th line-feed byte (`0x0A`) of
+the file; a carriage return alone does not start a line.
+
+---
+
+## 2. Architecture
+
+A scan runs five phases in this order. Phases 3 and 4 run per file and MAY run in parallel
+(section 14); all other phases are sequential.
+
+```
+  rules ──► (0) rule loading
+                 │
+  scan root ─► (1) file collection ─► (2) classification ─► (3) extraction ─► (4) normalisation ─► (5) CBOM writing
+                                         java / python /         per file:        findings →            JSON
+                                         manifest / ignored      findings         components
+```
+
+0. **Rule loading** (section 5): read all rule documents from the bundled rule set or from
+   `--rules DIR`, validate them, build the per-language indexes.
+1. **File collection** (section 4.1–4.4): walk the scan root, apply exclusions, size limit.
+2. **Classification** (section 4.5–4.7): decide for every collected file whether it is Java
+   source, Python source, a manifest of a known format, or ignored; detect test files;
+   detect binary content.
+3. **Extraction**: Java analysis (section 7), Python analysis (section 8), manifest parsing
+   (section 9). Each produces findings.
+4. **Normalisation** (section 10): group findings into components by identity; build
+   occurrences; deduplicate.
+5. **CBOM writing** (section 11): serialise components in a fixed order.
+
+### 2.1 Data model
+
+A **source finding** has: relative path, line, rule, *name* (the component name, section
+10.2), *symbol* (the API the finding is anchored on), *snippet* (source text, at most 500
+code points), *param* (optional parameter-set identifier, e.g. `2048` or `SECP256R1`), and
+the flag *test* (the file is a test file, section 4.7).
+
+A **dependency finding** has: relative path of the manifest, rule, ecosystem (`maven` or
+`pypi`), package (Maven `groupId:artifactId`, PyPI normalised name), version (or none),
+manifest format, snippet (the coordinate as text) and the *test* flag. It has no line.
+
+Asset properties (type, primitive, family, variant, …) are never stored in a finding; they
+come from the rule.
+
+---
+
+## 3. Command-line interface
+
+The jar's main class implements the command `ciphersift`. The distribution SHOULD contain
+a launcher script `bin/ciphersift` that runs
+`java --enable-native-access=ALL-UNNAMED -jar <jar> "$@"`.
+
+**Java runtime** *(DECISIONS F1)*. The launcher uses `$CIPHERSIFT_JAVA` (a `java` executable),
+else `$JAVA_HOME/bin/java`, else `java` on `PATH`. If the chosen runtime is older than Java 23,
+the next *explicitly configured* one (`CIPHERSIFT_JAVA`, then `JAVA_HOME`) is tried; the file
+system is never searched. Without a suitable runtime it prints one line,
+`ciphersift: error: CipherSift needs Java 23 or newer; found <version> (<path>); set CIPHERSIFT_JAVA or JAVA_HOME`,
+and exits with code 6. The jar's entry point is compiled for Java 8 and performs the same
+check itself, so `java -jar` on Java 8–22 gives the same message and exit code instead of an
+`UnsupportedClassVersionError`.
+
+### 3.1 Commands
+
+```
+ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
+                [--threads N] [--rules DIR] [--quiet | --verbose]
+ciphersift rules validate [--rules DIR]
+ciphersift rules export <dir>
+ciphersift --version
+ciphersift --help | ciphersift <command> --help
+```
+
+| Option | Meaning |
+|---|---|
+| `<dir>` | Scan root. Must be an existing directory; a missing path or a regular file is rejected with exit code 3. |
+| `-o, --output FILE` | Required. Output file; `-` writes to standard output. Parent directories are not created. The file is written atomically (temporary file in the same directory, then rename); on failure no partial file is left. |
+| `--exclude GLOB` | Repeatable. Exclude files and directories (section 4.2). |
+| `--include-tests` | Default. Test files are scanned; their occurrences carry `"test": true` (section 11.4). |
+| `--exclude-tests` | Test files (section 4.7) are not scanned and not reported. The two test options are mutually exclusive (usage error otherwise); the last one does not win. |
+| `--threads N` | Number of worker threads for phases 3–4. Default: the number of available processors, at most 8. `N` must be ≥ 1. The output does not depend on `N`. |
+| `--rules DIR` | Use the rule documents under `DIR` (recursively) **instead of** the bundled rules. To extend the bundled rules, run `rules export`, edit, and pass the directory. |
+| `--quiet` | Only errors on standard error. |
+| `--verbose` | Debug messages on standard error (one line per skipped file and the reason). |
+
+`rules validate` loads and validates the bundled rules (or `--rules DIR`), prints one line
+per rule kind and language with the count, and exits 0 or 4. `rules export <dir>` writes
+the bundled rule files, with their bundled relative paths, into `<dir>` (created if
+missing; existing files are overwritten).
+
+### 3.2 Standard error
+
+Log lines have the form `ciphersift: <level>: <message>` with level `error`, `warning`,
+`info` or `debug`. By default `info` and above are written. A successful `scan` ends with
+one info line:
+
+```
+ciphersift: info: scanned 9874 files (java 8120, python 12, manifests 310) in 41.2 s; 1532 findings, 214 components; 3 files skipped
+```
+
+Nothing but the CBOM is ever written to standard output.
+
+### 3.3 Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | Success. Files that could not be read or parsed are skipped with a warning; they do not change the exit code. |
+| 1 | Internal error (unexpected exception, native library cannot be loaded). |
+| 2 | Usage error (unknown option, missing `-o`, conflicting options, `--threads 0`). |
+| 3 | The scan root does not exist, is not a directory or cannot be read. |
+| 4 | Rule loading or validation failed (message names the file and the problem). |
+| 5 | The output cannot be written. |
+| 6 | No Java runtime of version 23 or newer (launcher, or the jar started on an older runtime; section 3). |
+
+---
+
+## 4. File collection and classification
+
+### 4.1 Walk
+
+The scan root is walked recursively. Within a directory, entries are visited in ascending
+order of their names compared as sequences of Unicode code points (this order is only used
+to make logging deterministic; the output order is defined in section 11.6).
+
+* Directories named `.git`, `.hg` or `.svn` are never entered.
+* Symbolic links are not followed and not scanned, whether they point to files or to
+  directories. (They are logged at debug level.)
+* Special files (devices, sockets, FIFOs) are ignored.
+* A directory that cannot be listed is skipped with a warning.
+
+### 4.2 Exclusion globs
+
+Each `--exclude GLOB` is matched against the relative path of every directory and file.
+If a directory matches, its whole subtree is skipped. Glob syntax:
+
+* `*` matches any sequence of characters except `/`; `?` matches one character except `/`;
+  `[abc]`, `[a-z]` and `[!abc]` match one character from (or not from) a set.
+* `**` as a whole path segment matches zero or more path segments: `vendor/**` matches
+  everything below `vendor`; `**/gen/*.py` matches `gen/x.py` and `a/b/gen/x.py`.
+* A glob without `/` is matched against the last segment (the base name) at any depth:
+  `*_pb2.py` excludes `x_pb2.py` and `a/b/x_pb2.py`; `node_modules` excludes every
+  directory of that name.
+* A glob with `/` is matched against the whole relative path. A leading `/` is ignored.
+  A trailing `/` restricts the glob to directories.
+* Matching is case-sensitive.
+
+### 4.3 Size limit
+
+Files larger than 10 MiB (10 485 760 bytes) are not read; they are skipped with a debug
+message and counted as skipped. The limit applies to source files and manifests.
+
+### 4.4 Reading and encoding
+
+A file is read completely as bytes. Text is decoded as UTF-8; a leading byte-order mark
+(`EF BB BF`) is removed; malformed or unmappable byte sequences are replaced by U+FFFD
+(each maximal invalid subsequence by one U+FFFD, as `CharsetDecoder` with
+`CodingErrorAction.REPLACE` does). Line numbers are unaffected because LF bytes are always
+valid. No other encoding is detected; Latin-1 and Windows-1252 files therefore work for
+everything that is ASCII.
+
+### 4.5 Classification
+
+Each collected file is classified by its relative path and name; the first matching row
+wins. Comparisons of extensions and names are case-insensitive.
+
+| Class | Condition |
+|---|---|
+| Java source | extension `.java` |
+| Python source | extension `.py` (including `setup.py`) |
+| Maven POM | name `pom.xml` |
+| Gradle build script | name `build.gradle` or `build.gradle.kts` |
+| Gradle version catalog | name ends with `.versions.toml` |
+| pip requirements | name matches `requirements*.txt`, or extension `.txt` and the parent directory is named `requirements` |
+| pyproject | name `pyproject.toml` |
+| Pipfile lock | name `Pipfile.lock` |
+| Poetry lock | name `poetry.lock` |
+| ignored | everything else |
+
+### 4.6 Binary detection
+
+Source files (Java and Python) are checked for binary content before parsing: take the
+first `n = min(8192, size)` bytes and count the bytes in the ranges `0x00–0x08` and
+`0x0E–0x1F`. If `count × 10 > n`, the file is binary; it is skipped with a debug message
+and counted as skipped. Empty files are not binary (and produce no findings). Manifests
+are not checked (their parsers reject garbage).
+
+### 4.7 Test files
+
+A file is a **test file** if its relative path satisfies at least one rule below. The
+directory rule matches case-insensitively; the file-name rules are case-*sensitive*, as in the
+Maven Surefire and pytest conventions (so `Latest.java` or `Contest.java` are not tests).
+
+1. *Directory rule (all classes).* A directory segment of the relative path (not the file
+   name) is one of: `test`, `tests`, `testing`, `__tests__`, `testdata`, `test-data`,
+   `testfixtures`, `test-fixtures`, `integrationtest`, `integration-test`,
+   `integration-tests`; or the segment is `it` and the segment before it is `src`
+   (Maven Failsafe layout `src/it/`).
+2. *Java file names* (case-sensitive). The base name matches `*Test.java`, `*Tests.java`,
+   `*TestCase.java`, `*IT.java`, or `Test*.java` where the character after `Test` is an
+   upper-case letter (`TestUtils.java` but not `Testament.java`).
+3. *Python file names* (case-sensitive). The base name matches `test_*.py`, `*_test.py`,
+   `tests.py` or `conftest.py`.
+
+With `--exclude-tests`, test files are dropped after collection, like excluded files (but
+see 7.4.5: Java constant lookup may still read them). With `--include-tests` (default) they
+are scanned and every occurrence from them is marked (section 11.4).
+
+---
+
+## 5. Rule format
+
+### 5.1 Documents and files
+
+The rule set is a directory tree. Every regular file under it with the extension `.yaml`,
+`.yml` or `.json` is one **rule document**; other files are ignored. YAML files MUST
+contain exactly one document; they are parsed with YAML 1.2 core-schema semantics
+(`yes`/`no`/`on`/`off` are strings, not booleans). A document is an object with a `kind`:
+
+| `kind` | Purpose | Section |
+|---|---|---|
+| `source` | detection rule for Java or Python source | 5.3–5.5 |
+| `dependency` | crypto-library list for one package ecosystem | 5.9 |
+| `constants` | values of well-known library constants used by Java string resolution | 5.10 |
+
+Every document has an `id`, unique across the rule set, matching
+`^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$`. By convention the file name is `<id>.yaml` and
+source-rule ids start with the language (`java.`, `python.`); dependency rule ids start
+with `dep.`. The JSON Schema `spec/rule-schema.json` is normative for the structure;
+section 5.8 lists the semantic checks the schema cannot express.
+
+The bundled rule set is the directory `rules/` of the repository, packaged into the jar
+under `/rules/`. It contains:
+
+| Directory | Documents |
+|---|---|
+| `rules/java/` | 88 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
+| `rules/python/` | 79 source rules (`python.*`) |
+| `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml` |
+
+Rules are processed in ascending order of `id` (code-point order) wherever order matters.
+Patterns are processed in the order they appear in the `match` list.
+
+### 5.2 Example
+
+```yaml
+# SPDX-License-Identifier: Apache-2.0
+id: java.sym.aes.gcm
+kind: source
+language: java
+name: AES-GCM usage in Java
+description: >-
+  Detects AES-GCM via JCA Cipher/GCMParameterSpec, BouncyCastle GCMBlockCipher, ...
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: AES
+  variant: GCM
+match:
+- call: javax.crypto.Cipher.getInstance
+  firstString: (AES(_(128|192|256))?|Rijndael)/GCM(/.*)?$
+- new: javax.crypto.spec.GCMParameterSpec
+- field: com.google.crypto.tink.aead.AeadKeyTemplates.AES128_GCM
+- new: org.springframework.security.crypto.encrypt.AesBytesEncryptor
+  argsTextContains: [GCM]
+```
+
+### 5.3 Source rule: top-level keys
+
+| Key | Required | Meaning |
+|---|---|---|
+| `id` | yes | Rule id, e.g. `python.hash.sha2`. Written to every occurrence. |
+| `kind` | yes | `source` |
+| `language` | yes | `java` or `python`. The rule is applied only to source files of that language. |
+| `name` | yes | Human-readable rule name. Not part of the output except as the component name of non-algorithm, non-protocol assets (10.2). |
+| `description` | no | Free text. |
+| `asset` | yes | What a match denotes (5.4). |
+| `match` | yes | Non-empty list of patterns (5.5 Java, 5.6 Python). |
+
+### 5.4 The `asset` block
+
+| Key | Values | Meaning |
+|---|---|---|
+| `type` | `algorithm`, `protocol`, `certificate`, `related-crypto-material`, `key-material` | Asset type. `key-material` is written to CycloneDX as `related-crypto-material` (11.3.3). |
+| `subtype` | string | Refinement, e.g. `hardcoded-key`, `static-iv`, `prng-insecure`, `cert-validation-disabled`, `rc4-cipher`, `pkcs1-v1_5-encrypt`. |
+| `primitive` | CycloneDX 1.6 primitive: `block-cipher`, `stream-cipher`, `hash`, `mac`, `signature`, `pke`, `kem`, `kdf`, `key-agree`, `ae`, `drbg`, `xof`, `combiner`, `other` | Algorithm primitive. Absent = unknown. |
+| `family` | string | Algorithm family, e.g. `AES`, `SHA2`, `RSA`, `EC`. Absent = unknown (the `*.unresolved` fallback rules). |
+| `variant` | string | Mode, padding or scheme variant, e.g. `GCM`, `OAEP`, `PKCS1v15`. |
+| `securityLevel` | integer | Classical security level in bits. |
+| `protocol` | `tls`, `ssh`, `ipsec`, `ike`, `sstp`, `wpa`, `other` | Required iff `type` is `protocol`. |
+| `version` | string | Protocol version, e.g. `1.2`. Only for protocols. |
+
+### 5.5 Java patterns
+
+A Java pattern has exactly one anchor:
+
+| Anchor | Value | Fires on |
+|---|---|---|
+| `call` | `pkg.Class.method` (fully qualified class, then member). A trailing `*` turns the member into a prefix: `org.apache.commons.codec.digest.DigestUtils.sha256*`. Nested classes are written with dots: `org.bouncycastle.crypto.params.Argon2Parameters.Builder.build`. | A method invocation whose method name equals (or starts with) the member and whose receiver denotes the class (7.3.2). |
+| `new` | `pkg.Class` | An object-creation expression of that class, including anonymous subclasses (`new Class() { … }`). No `*`. |
+| `method` | `name`, optional trailing `*` (prefix) | A method invocation with this name, whatever the receiver (the receiver's type is not known). |
+| `field` | `pkg.Class.FIELD`, optional trailing `*` on the member | A field access `X.FIELD` (static constant, enum constant) whose qualifier denotes the class, and that is not itself the receiver of a method invocation (7.2). |
+| `override` | `name`, optional trailing `*` | A method declaration with this name. |
+
+Conditions (all optional; all present conditions must hold):
+
+| Key | Value | Allowed with | Holds when |
+|---|---|---|---|
+| `firstString` | regex | call, new, method | The **first** element of the event's string list (7.4.6) exists and the regex matches at its start (`lookingAt`), case-insensitively. |
+| `anyString` | regex | call, new, method | Some element of the string list matches at its start, case-insensitively. |
+| `stringContains` | list of strings | call, new, method | Some element of the string list contains some listed string, case-insensitively. |
+| `argsText` | regex | call, new, method | The regex is found anywhere (`find`, case-sensitive) in the source text of the argument list — from `(` to `)` inclusive — after replacing every run of whitespace characters by one space. |
+| `argsTextContains` | list of strings | call, new, method | The raw source text of the argument list (from `(` to `)`) contains some listed string (case-sensitive). |
+| `constantArg` | integer *i* ≥ 0 | call, new, method | The event has more than *i* arguments and argument *i* (0-based) is constant bytes (7.4.7). |
+| `inType` | list of simple type names | override | The enclosing type extends or implements one of the names (7.6). |
+| `body` | regex | override | The regex is found (`find`, case-sensitive) in the method body text after removing comments, collapsing whitespace runs to one space and trimming (7.6). |
+| `param` | `{index: i}` | call, new, method | *Not a filter.* The resolved string of argument *i* is reported as the finding's param (7.8). Not used by the bundled Java rules. |
+
+A pattern that has a condition key other than `param` is **specific** (specificity 2); a
+pattern with only its anchor, or only its anchor and `param`, is **bare** (specificity 1):
+`param` is not a filter and does not make a pattern specific *(DECISIONS O2)*. Specificity
+drives rule selection (7.7.1).
+
+### 5.6 Python patterns
+
+A Python pattern has exactly one of `call`, `anyCall` or `assign`, or it has `method`
+without `call`:
+
+| Anchor | Value | Fires on |
+|---|---|---|
+| `call` | dotted name, e.g. `cryptography.hazmat.primitives.ciphers.Cipher` | A call whose resolved name (8.4) equals the value or starts with the value followed by `.`. `Crypto.Hash.MD5` fires on `Crypto.Hash.MD5.new`; `hashlib.sha1` does not fire on `hashlib.sha1x`. |
+| `method` | name or list of names | A call whose method name (8.4.3) is one of the names, whatever the receiver. May also be combined with `call` (then both must hold). |
+| `anyCall` | `true`; requires `kwargs` | Any call (e.g. `verify=False` on any function). |
+| `assign` | attribute name | An assignment `expr.NAME = value` or augmented assignment `expr.NAME op= value`. |
+
+Conditions:
+
+| Key | Value | Allowed with | Holds when |
+|---|---|---|---|
+| `firstString` | regex | call, method, anyCall | The first element of the call's string list (8.5.1) exists and the regex matches at its start, case-insensitively. |
+| `stringContains` | list | call, method, anyCall | Some element of the string list contains some listed string, case-insensitively. |
+| `anySymbol` | list of dotted names | call, method, anyCall | Some listed name *hits* the call's symbol set (8.5.2): it equals a symbol, or a symbol ends with `.` + name. |
+| `allSymbols` | list | call, method, anyCall | Every listed name hits the symbol set. |
+| `kwargs` | map keyword → regex | call, method, anyCall | For every entry, the call has that keyword argument and the regex is found (`find`, case-insensitive) in at least one of its value texts (8.5.3). |
+| `value` | regex | assign | The regex is found (case-insensitive) in at least one value text of the right-hand side (8.5.3). |
+| `valueContains` | list | assign | Some value text contains some listed string (case-insensitive). |
+| `param` | `{keyword: k, index: i}` (either or both) or `{self: true}` | call, method, anyCall | *Not a filter.* Names the argument reported as param (8.8). |
+| `reportAt` | list of method names | call, method, anyCall | *Not a filter.* Report the finding at the enclosing call to one of these methods (8.7). |
+
+`*` prefixes are not supported in Python patterns.
+
+### 5.7 Regular expressions
+
+Rule regexes are written in the common subset of `java.util.regex` and Python `re`: no
+named groups `(?P<…>)`, no `\Z`, no inline comments `(?#…)`, no possessive quantifiers, no
+`\p{…}` classes. Implementations compile them with `java.util.regex.Pattern`; case-insensitive
+modes use `CASE_INSENSITIVE | UNICODE_CASE`. "Matches at its start" means
+`Matcher.lookingAt()`; "is found" means `Matcher.find()`. `$` has Java's default meaning
+(end of input or before a final line terminator). The tool `spec/tools/regex_parity.py`
+checks all bundled regexes for identical behaviour in both engines (48 894 probes, no
+difference).
+
+### 5.8 Validation
+
+At load time, every document MUST validate against `spec/rule-schema.json` (draft 2020-12),
+and additionally:
+
+* ids are unique; a `source` rule's id starts with its `language` followed by `.`;
+* every regex compiles with `java.util.regex.Pattern`;
+* the rule set contains at most one `constants` document per language and at most one
+  `dependency` rule per ecosystem;
+* a Java pattern's `param` contains only `index`;
+* a Java `new` anchor does not end with `*` (5.5; the schema's `if`/`then` branch for `new`
+  rejects it as well); the message says so in words, "a new anchor names a class; "*" is not
+  allowed" *(DECISIONS O6)*.
+
+A rule directory given with `--rules` may itself be a symbolic link to a directory, but
+symbolic links inside it are not followed: each one is a rule error ("symbolic links are not
+allowed in a rule directory"), so that no rule is silently dropped or read from outside the
+directory *(DECISIONS O6)*. File names in rule paths are decoded as UTF-8 (section 12).
+
+The **bundled** rule set is validated in full when the jar is built; the build fails on any
+problem. At run time an implementation MAY skip the JSON-schema validation (and use
+pre-parsed documents recorded by that build step) for the bundled set if its files and the
+schema are byte-identical to the validated ones, verified by a digest recorded at build
+time *(DECISIONS F2)*. The semantic checks above and all checks of `--rules` directories and
+`rules validate --rules DIR` always run.
+
+A violation aborts the scan with exit code 4 and a message naming the file, the JSON pointer
+of the offending value and the problem. Unknown keys are errors (the schema forbids them).
+
+### 5.9 Dependency rules
+
+```yaml
+id: dep.maven
+kind: dependency
+ecosystem: maven            # maven | pypi
+name: Cryptographic Java libraries
+asset: {type: library}
+packages:
+  - {package: "org.bouncycastle:*", note: "Bouncy Castle"}
+  - {package: "com.google.crypto.tink:*"}
+```
+
+`package` is a pattern over the package key of the ecosystem: for Maven
+`groupId:artifactId`, for PyPI the normalised name (section 9.1). `*` matches any run of
+characters (including `.`, `-`, `:`); matching is case-insensitive and covers the whole key.
+A manifest entry is reported iff its key matches at least one pattern of the rule of its
+ecosystem. `note` is documentation only.
+
+### 5.10 Constants document
+
+```yaml
+id: java.constants
+kind: constants
+language: java
+constants:
+  MessageDigestAlgorithms:   # simple class name
+    SHA_256: SHA-256         # field name: string value
+```
+
+Used by Java string resolution (7.4): a reference `C.F`, where `C`'s simple name (the last
+segment of the qualifier as written) has an entry with field `F`, resolves to the listed
+string, regardless of imports. The bundled table covers commons-codec
+`MessageDigestAlgorithms` and `HmacAlgorithms` and Android `KeyProperties`.
+
+---
+
+## 6. Parsing
+
+### 6.1 Parser
+
+Source files are parsed with tree-sitter through **jtreesitter 0.26.1** (Maven
+`io.github.tree-sitter:jtreesitter:0.26.1`) using the grammars **tree-sitter-java 0.23.5**
+and **tree-sitter-python 0.25.0**. Packaging of the native libraries is specified in
+section 15.3.
+
+The decoded text (4.4) is passed to `Parser.parse(String)` (it returns `Optional<Tree>`;
+an empty result is a failure of that file, section 13), which converts it to UTF-8.
+All byte offsets in this specification are offsets into that UTF-8 encoding; source texts
+of nodes ("the text of a node") are the corresponding substrings of the decoded text.
+Rows reported by tree-sitter count LF characters and are used for line numbers
+(row + 1).
+
+A `Parser` instance is not thread-safe; use one per worker thread *(advice)*. Trees MUST be
+closed after the file has been analysed; retaining trees across files is not allowed for
+memory reasons (but see 7.4.5 for the cross-file constant cache).
+
+### 6.2 Error tolerance
+
+tree-sitter always returns a tree; syntax errors appear as `ERROR` or `MISSING` nodes.
+Analysis runs on the whole tree, including the children of `ERROR` nodes: every node of an
+expected type is analysed wherever it appears. A file with syntax errors therefore still
+yields the findings of its well-formed parts (conformance cases `java/syntax-error`,
+`python/fork-fixtures/broken/*`). Python 2 files are analysed the same way.
+
+### 6.3 Traversal
+
+All tree walks MUST be iterative (explicit stack) or otherwise safe for deeply nested
+trees: the conformance suite contains a Python expression nested 3 000 levels deep and a
+Java string concatenation of 4 000 operands. Recursive evaluators (constant resolution,
+symbol collection) have explicit depth limits, given where they are defined. In particular,
+for Python: `resolveDotted` follows at most **64** attribute levels (deeper → no
+candidates), `resolveName` follows at most **16** binding-chain steps, and `strings()` descends
+at most **12** levels of nested parentheses/lists/tuples in an argument (like Java `value`).
+Exceeding a limit yields "unresolved" for that expression, never an error, so results do not
+depend on the thread stack size. For `resolveName` "unresolved" means *no candidates*: a name
+whose binding chain needs more than 16 steps has no candidates, and neither has any name that
+is resolved through it (step 1 of 8.4.1); the fallback of step 3 (the name itself, star
+modules) does not apply to such names *(DECISIONS O4)*. A 20-step alias chain from
+`import hashlib` therefore gives no call name, not the name 16 steps up.
+
+"Pre-order" means: a node before its children, children left to right.
+
+The node types and field names the analysis relies on are listed in Appendix C.
+
+---
+
+## 7. Java source analysis
+
+### 7.1 Overview
+
+For each Java file:
+
+1. Build the **file context** (7.3): package, imports, declared classes, fields, reassigned
+   names.
+2. Enumerate **events** (7.2) in pre-order.
+3. For each event, look up candidate rules in the Java rule index (7.5), evaluate their
+   patterns (7.6) and select the reported rules (7.7.1).
+4. Drop nested duplicates (7.7.2).
+5. Emit one finding per remaining (event, rule) pair (7.8).
+
+### 7.2 Events
+
+| Event kind | Node | Name | Receiver | Line |
+|---|---|---|---|---|
+| `call` | `method_invocation` with a `name` field | text of `name` | see below | start row of the node + 1 |
+| `new` | `object_creation_expression` with a `type` field | last `.`-segment of the type text *T* | *T* | start row + 1 |
+| `field` | `field_access` with `object` and `field`, **unless** it is the `object` of its parent `method_invocation` | text of `field` | `object` text | start row + 1 |
+| `decl` | `method_declaration` with a `name` field | text of `name` | – | row of the `name` node + 1 (so a leading annotation does not shift the line) |
+
+Texts used as receivers and type names are the node text with **all whitespace removed**.
+For `new`, generic arguments are removed from *T* as well: repeatedly delete every innermost
+`<…>` group that contains no `<` or `>` until none is left (`java.util.HashMap<String,
+List<X>>` → `java.util.HashMap`; `HashMap<>` → `HashMap`).
+
+**Receivers of `call` events.**
+
+* If the `object` field is present and is an `identifier`, `field_access` or
+  `scoped_identifier`, the receiver is its text (whitespace removed), e.g. `Cipher`,
+  `javax.crypto.Cipher`, `Argon2Parameters.Builder`, `this.md`, `kpg`.
+* If the `object` field is present but of another type (a call `a.b().c()`, `this`,
+  `super`, a parenthesised expression, an array access, …), the event has **no receiver and
+  no static candidates**; it can only match `method` patterns.
+* If there is no `object` (an unqualified call `m(…)`), the event's **static candidates**
+  are: the class of the single-static import of `m` if there is one (7.3.1); otherwise all
+  classes imported with static wildcard imports, in import order.
+
+**Arguments.** The named children of the `arguments` node, excluding `line_comment` and
+`block_comment`. `field` and `decl` events have no arguments.
+
+**Display name.** Used as the component name when no string was matched (7.8):
+
+* `call` with receiver: (last `.`-segment of the receiver) + `.` + name, e.g.
+  `MessageDigest.getInstance`, `DigestUtils.md5Hex`;
+* `call` without object and with exactly one static candidate: (simple name of that class)
+  + `.` + name, e.g. `DigestUtils.sha256Hex`;
+* any other `call`: the method name;
+* `new`: *T* with its leading segments removed while more than one segment is left and the
+  first one does not start with an upper-case letter: `org.bouncycastle.crypto.params.Argon2Parameters.Builder`
+  → `Argon2Parameters.Builder`, `AESEngine` → `AESEngine`;
+* `field`: (last segment of the receiver) + `.` + name, e.g. `SignatureAlgorithm.RS256`;
+* `decl`: the method name.
+
+### 7.3 File context
+
+#### 7.3.1 Collected declarations
+
+One walk over the whole tree (all depths, including inside `ERROR` nodes) collects:
+
+* **package**: the text (whitespace removed) of the `scoped_identifier` or `identifier`
+  child of `package_declaration`; empty if there is none.
+* **imports** (`import_declaration`; *name* = text of its `scoped_identifier`/`identifier`
+  child, whitespace removed; *static* = has a `static` child; *wildcard* = has an
+  `asterisk` child):
+  * single-type import `import a.b.C;` → `imports[C] = a.b.C` (a later import of the same
+    simple name replaces an earlier one);
+  * type-import-on-demand `import a.b.*;` → append `a.b` to *wildcards*;
+  * single-static import `import static a.b.C.m;` → `staticImports[m] = a.b.C`;
+  * static-import-on-demand `import static a.b.C.*;` → append `a.b.C` to *staticWildcards*.
+* **local classes**: the `name` of every `class_declaration`, `interface_declaration`,
+  `enum_declaration`, `record_declaration` and `annotation_type_declaration` in the file,
+  at any nesting depth (simple names).
+* **fields**: for every `field_declaration` and `constant_declaration`, for each
+  `variable_declarator` child that has both `name` and `value`: append *(value node,
+  final)* to `fields[name]`, in walk order. *final* is true for a `constant_declaration`,
+  for a declaration whose `modifiers` contain the word `final`, and for any declaration
+  whose parent is an `interface_body`. Fields of all classes of the file share one table
+  (keyed by simple field name).
+* **reassigned names**: for every `assignment_expression` (any operator, `=` or compound):
+  if `left` is an `identifier`, its text; if `left` is a `field_access`, the text of its
+  `field`. Increments (`++`, `--`) do not count.
+
+#### 7.3.2 Does a class reference denote a class?
+
+`denotes(ref, C)` decides whether a class reference as written in the source (`ref`, e.g.
+`Cipher`, `javax.crypto.Cipher`, `Argon2Parameters.Builder`) denotes the class with the
+fully-qualified name `C`:
+
+1. Remove whitespace and generic arguments from `ref`. If `ref` is empty, false.
+2. If `ref == C`, true.
+3. Split `ref` into its first segment *F* and the rest *R* (possibly empty). If *F* is a
+   key of `imports`: true iff `imports[F]` (followed by `.R` if *R* is non-empty) equals `C`.
+4. If *F* is a local class, false. (A class declared in the file hides the API class.)
+5. If the first character of *F* is not an upper-case letter (`Character.isUpperCase`),
+   false. (A variable, or a package path that is not exactly `C`.)
+6. Otherwise true iff `C` ends with `.` + `ref`. (The class is assumed to come from a
+   wildcard import, the same package or `java.lang`.)
+
+### 7.4 Constant resolution
+
+#### 7.4.1 Values
+
+`value(e, ctx, d)` evaluates an expression node `e`, read in file context `ctx`, to a
+string or to *unresolved*. `d` is the depth, starting at 0; when `d > 12` the result is
+unresolved. Each rule below that evaluates a sub-expression does so at depth `d + 1`.
+
+| Node | Value |
+|---|---|
+| `string_literal` | the decoded literal (7.4.2) |
+| `decimal_integer_literal` | its text without a trailing `l`/`L` (`256`, `1_000` stays `1_000`) |
+| `character_literal` | its text with all leading and trailing `'` removed |
+| `parenthesized_expression` | value of its first named child |
+| `binary_expression` with operator `+` | value(left) concatenated with value(right); unresolved if either is unresolved. Other operators: unresolved |
+| `method_invocation` with an `object` and a name in {`getName`, `toString`, `name`, `trim`, `intern`} | value of the object (unchanged; `trim` does not trim) |
+| `identifier` | look the name up (7.4.3); if it yields *(initialiser, ctx′)* → `value(initialiser, ctx′)`; a constants-table hit yields its string |
+| `field_access` | look the access up (7.4.4), then as for `identifier` |
+| anything else | unresolved (ternaries, other calls, `String.format`, array access, …) |
+
+Integer literals in hexadecimal, octal or binary notation and all other literal kinds are
+unresolved.
+
+#### 7.4.2 String literals
+
+For an ordinary literal `"…"`: concatenate, in order, the texts of the `string_fragment`
+children and the decoded `escape_sequence` children; ignore the quote tokens.
+
+Escape sequences are decoded as in the JLS: `\b \t \n \f \r \s \" \' \\`, octal escapes
+`\0`–`\377`, and Unicode escapes `\uXXXX` (one or more `u`). An unknown escape keeps its
+text.
+
+**Text blocks** (literal starts with `"""`) are decoded per JLS §3.10.6 *(Appendix A, D4)*:
+take the raw text between the delimiters; drop everything up to and including the first
+line terminator; normalise `\r\n` and `\r` to `\n`; split into lines; the *incidental
+indentation* is the minimum count of leading whitespace characters over all non-blank
+lines, plus the last line if it consists only of whitespace (closing delimiter on its own
+line); remove that many leading characters from each non-blank line, remove trailing
+whitespace from every line, make blank lines empty; join with `\n`; then decode escape
+sequences (a `\` immediately before a line terminator removes both). Example:
+`"""⏎            DESede"""` → `DESede`.
+
+#### 7.4.3 Identifier lookup
+
+To look up identifier `N` at node `X` in context `ctx`, walk from `X` towards the root,
+keeping the child `c` through which the walk arrived at the current node `p`:
+
+* If `p` is a `block`, `switch_block_statement_group` or `constructor_body`: among the named
+  children of `p` that start before `c` starts, consider every `local_variable_declaration`
+  and its `variable_declarator`s named `N`; if there is any, use the **last** one:
+  * no initialiser → unresolved;
+  * the declaration is not `final` (its `modifiers` do not contain the word `final`) and `N`
+    is a reassigned name of `ctx` → unresolved;
+  * otherwise the result is *(its initialiser, ctx)*. Stop.
+* If `p` is a `method_declaration`, `constructor_declaration` or `lambda_expression` that has
+  a `parameters` field whose text contains `N` as a whole word (not preceded or followed by
+  `[A-Za-z0-9_]`) → unresolved (parameters shadow fields). Stop.
+* If `p` is an `enhanced_for_statement` whose `name` field text is `N` → unresolved. Stop.
+
+If the walk reaches the root without stopping:
+
+1. field lookup of `N` in `ctx` (7.4.4.1); if it yields an initialiser, that is the result;
+2. else, if `N` is a key of `ctx.staticImports` → static field (`staticImports[N]`, `N`)
+   (7.4.5);
+3. else, for each class of `ctx.staticWildcards` in order → static field (class, `N`); the
+   first that yields a result.
+
+Otherwise unresolved. (Reassignment is file-global and by simple name: a variable that is
+assigned anywhere in the file is not resolved unless it is declared `final`.)
+
+#### 7.4.4 Field-access lookup
+
+To look up `O.F` (a `field_access` with object `O` and field `F`) in `ctx`, let *Q* be the
+text of `O` without whitespace and *S* its last `.`-segment:
+
+1. if the constants table (5.10) has *S*.*F* → that string;
+2. if `O` is `this`, or *S* is a local class of `ctx` → field lookup of `F` in `ctx`;
+3. if *S* starts with an upper-case letter:
+   * if the first segment *G* of *Q* is a key of `ctx.imports` → static field
+     (`imports[G]` + the rest of *Q* after *G*, `F`);
+   * else if *Q* contains no `.` → try static field (`package.Q`, `F`) (only if the package
+     is non-empty), then static field (`w.Q`, `F`) for each wildcard import `w` in order;
+     the first that yields a result;
+   * else (*Q* is dotted) → static field (*Q*, `F`), *Q* taken as fully qualified;
+4. otherwise unresolved.
+
+##### 7.4.4.1 Field lookup in one file
+
+`fields[N]` of the context: no entry → no result. If there are several entries and their
+initialiser texts are not all identical → no result. Otherwise take the first entry; if it
+is not final and `N` is a reassigned name of that context → no result; else *(initialiser,
+that context)*.
+
+#### 7.4.5 Static fields and cross-file constants
+
+static field (`C`, `F`), evaluated on behalf of context `ctx`:
+
+1. if the constants table has (simple name of `C`).`F` → that string;
+2. locate the declaring file: the **source root** *R* is the directory of `ctx`'s file with
+   as many trailing directories removed as `ctx`'s package has segments (for the default
+   package, the file's own directory). If *R* is not the scan root or inside it, there is no
+   result *(Appendix A, D5)*. Split `C` into segments *s1 … sk*; for *i* = *k* down to 1, the
+   candidate is *R*/*s1*/…/*s(i−1)*/*si*`.java` (this finds nested classes: `a.b.Outer.Inner`
+   is looked for in `a/b/Outer/Inner.java`, then `a/b/Outer.java`). The first candidate that
+   is `ctx`'s own file, or an existing regular file (≤ 10 MiB) that can be read and parsed,
+   is the declaring file; candidates that do not exist or fail to read are skipped;
+3. field lookup of `F` in the declaring file's context.
+
+Cross-file lookup reads files regardless of `--exclude`, `--exclude-tests` and their
+classification, as long as they are inside the scan root. Contexts of other files are built
+on demand and cached for the whole scan, keyed by canonical path, including negative
+results. The cache MUST be safe for concurrent use; the result of a lookup MUST NOT depend
+on the order in which files are analysed.
+
+*(advice)* Do not keep tree-sitter trees in the cache. When a file context is built,
+convert each field initialiser into a small immutable expression form (string literal value,
+integer text, character text, `+` of two forms, parenthesis, identifier reference with its
+lookup position, field-access reference, accepted method call on a receiver form, array
+initialiser of forms, "other"), keep the import tables, local classes, fields and
+reassigned names, and close the tree. The rules of 7.4 can be evaluated on that form;
+identifier lookups inside a field initialiser always go to step 1 of 7.4.3's fallback,
+because field initialisers are not inside blocks.
+
+#### 7.4.6 String list of an event
+
+The string list of a `call` or `new` event is built from its arguments, in order:
+
+* an `array_creation_expression` with an `array_initializer` contributes the elements of
+  the initialiser; one without an initialiser contributes nothing;
+* an `array_initializer` contributes its elements;
+* an `identifier` or `field_access` whose lookup (7.4.3/7.4.4) yields an initialiser that is
+  an `array_initializer`, or an `array_creation_expression` with one, contributes that
+  initialiser's elements, evaluated in the declaring context *(Appendix A, D3)*;
+* any other argument contributes itself.
+
+Array elements that are integer literals (any notation), character literals, or
+`unary_expression` / `cast_expression` nodes are not contributed: a byte or char array is
+data, not a list of names *(Appendix A, D9)*. Each contributed element (and each non-array
+argument) is evaluated with `value`; resolved values are appended, unresolved ones are
+skipped. Hence the "first string" is the first *resolvable* argument, not
+necessarily argument 0: in `Cipher.getInstance(alg, "BC")` with unresolved `alg` it is
+`"BC"`. `field` and `decl` events have an empty string list.
+
+#### 7.4.7 Constant bytes
+
+`isConst(e, ctx, d, viaVar)` (start with `d = 0`, `viaVar = false`; false when `d > 12`):
+
+| Node | Result |
+|---|---|
+| constants-table hit | true |
+| `string_literal` | true |
+| `array_initializer` | true iff every named child other than a comment (`line_comment`, `block_comment`) has a type that ends with `literal` or is `cast_expression` or `unary_expression` (an empty initialiser is constant; `{1, /* x */ 2}` is constant, DECISIONS O3) |
+| `array_creation_expression` | with an initialiser: `isConst(initialiser)`; without: true iff `viaVar` is false and it has a `dimensions_expr` child (an inline `new byte[16]` is an all-zero constant; through a variable it is usually filled later) |
+| `parenthesized_expression`, `cast_expression` | `isConst` of the last named child |
+| `method_invocation` whose name is a *decoder* | true iff its object's `value` is resolved, or its first argument's `value` is resolved |
+| `identifier`, `field_access` | look up; if it yields *(initialiser, ctx′)* → `isConst(initialiser, ctx′, d+1, viaVar = true)` |
+| anything else | false |
+
+Decoders: `getBytes`, `toCharArray`, `decode`, `decodeHex`, `decodeBase64`,
+`parseHexBinary`, `parseBase64Binary`, `fromHexString`, `hexStringToByteArray`,
+`hexToBytes`, `fromHex`.
+
+### 7.5 Rule index
+
+Each pattern of each Java rule is indexed under a key:
+
+| Anchor | Key |
+|---|---|
+| `call: C.m` | (`call`, `m`) |
+| `new: C` | (`new`, last segment of `C`) |
+| `method: m` | (`call`, `m`) |
+| `field: C.F` | (`field`, `F`) |
+| `override: m` | (`decl`, `m`) |
+
+A key whose name ends with `*` is a prefix key. The candidate patterns of an event of kind
+*k* and name *n* are those under (*k*, *n*) and under every prefix key (*k*, *p*`*`) with *n*
+starting with *p*. Candidates are grouped by rule; within a rule, patterns keep their
+file order.
+
+### 7.6 Pattern evaluation
+
+**Anchors.**
+
+* `call: C.m` holds for a `call` event whose name equals `m` (or starts with it, for `m*`)
+  and: if the event has a receiver, `denotes(receiver, C)`; otherwise `C` is one of the
+  event's static candidates (exact string equality).
+* `new: C` holds for a `new` event with `denotes(T, C)`.
+* `method: m` holds for a `call` event whose name equals `m` (or starts with it).
+* `field: C.F` holds for a `field` event whose name equals `F` (or starts with it) and
+  `denotes(receiver, C)`.
+* `override: m` holds for a `decl` event whose name equals `m` (or starts with it).
+
+**Conditions** are evaluated as defined in 5.5, on the event's string list (7.4.6) and
+argument texts. In addition:
+
+* `inType`: find the nearest ancestor of the method declaration that is a `class_body` or
+  `enum_body` (an `interface_body` is passed over, so a method of an interface nested in a
+  class looks at that class); let *P* be that body's parent. If *P* is an `object_creation_expression`
+  (anonymous class), the *owner text* is the text of *P*'s `type` field; otherwise it is the
+  text of *P*'s `superclass` field and of its `interfaces` field, joined by a space (missing
+  fields are empty; no such ancestor → empty). The condition
+  holds iff some listed name occurs in the owner text as a whole word.
+* `body`: take the text of the declaration's `body` field (false if absent, e.g. abstract);
+  first replace every `/* … */` (shortest match, spanning lines), then every `//` up to (not
+  including) the end of the line, by one space — textually, without regard to string literals; replace every
+  whitespace run by one space; trim; then `find` the regex. Example: the body
+  `{ /* nothing */ }` becomes `{ }`.
+
+### 7.7 Selection
+
+#### 7.7.1 Specificity
+
+For each event and each candidate rule: evaluate the rule's candidate patterns. If none
+holds, the rule does not match. Otherwise the rule's specificity is the highest specificity
+(5.5) among the holding patterns, and its **chosen pattern** is the first holding pattern
+(in file order) with that specificity.
+
+The **matched string** of the chosen pattern is: if it has `firstString`, the first string;
+else if it has `stringContains`, the first string of the list that contains a needle; else if
+it has `anyString`, the first string of the list that matches; else none.
+
+Then group the matching rules by asset `type`; in each group, keep only the rules whose
+specificity equals the group's maximum. All kept rules are reported. Consequences:
+
+* the `java.jca.*.unresolved` fallbacks (bare `call` patterns) are reported only when no
+  specific algorithm rule of the same asset type matches the call;
+* `new SecretKeySpec(KEY, "AES")` yields both AES (`algorithm`) and a hard-coded key
+  (`key-material`): different asset types;
+* `setEnabledProtocols(new String[] {"TLSv1.1", "TLSv1.3"})` yields both TLS 1.1 and
+  TLS 1.3.
+
+#### 7.7.2 Nested duplicates
+
+After all events of the file have been selected, a selected (event, rule) pair is
+**dropped** if the rule has a `family` and some *expression ancestor* of the event's node
+has a selected rule with the same asset `type` and the same `family` (string equality).
+The expression ancestors of a node are its parent, the parent's parent, and so on, as long
+as each is one of: `argument_list`, `object_creation_expression`, `method_invocation`,
+`parenthesized_expression`, `cast_expression`, `array_initializer`,
+`array_creation_expression`, `binary_expression`; the chain ends at the first other node.
+Comparison is against selections *before* dropping.
+
+Examples: `new GCMBlockCipher(new AESEngine())` → AES-GCM only (the inner AES has family
+AES); `new HMac(new SHA256Digest())` → HMAC and SHA-2.
+
+### 7.8 Java findings
+
+Each kept (event, rule) pair yields one finding:
+
+| Field | Value |
+|---|---|
+| line | per 7.2 |
+| name | the matched string of the chosen pattern if there is one, else the display name |
+| symbol | `call`: `C` + `.` + the event's method name; `new`: `C`; `method`: the method name; `field`: `C` + `.` + the event's field name; `override`: the method name (`C` from the chosen pattern) |
+| snippet | the node text; for `decl` events, the text up to (not including) the first `{`, trimmed; at most 500 code points |
+| param | if the chosen pattern has `param.index` *i*: the `value` of argument *i*, if resolved; else none |
+
+---
+
+## 8. Python source analysis
+
+### 8.1 Overview
+
+For each Python file:
+
+1. One pre-order walk over the tree collects, with the scope each node belongs to (8.3):
+   import statements (8.2; their subtrees are not walked further), simple assignments,
+   function parameters, `call` nodes, and attribute assignments.
+2. Calls are matched in pre-order (8.6).
+3. Attribute assignments are matched in pre-order (8.9).
+
+Within one file, at most one finding is emitted per (rule, line) (calls and assignments
+share this set).
+
+### 8.2 Imports
+
+The import table maps a *local name* to a list of *targets* (insertion order, no
+duplicates); a second list holds *star modules*. Imports are collected from the whole file
+regardless of position (module level, inside functions, all branches of `try`/`except`
+and `if`).
+
+* `import a.b.c` (`dotted_name` child) → local `a`, target `a`.
+* `import a.b as x` (`aliased_import` with `name` and `alias`) → local `x`, target `a.b`.
+* `from M import …` (`import_from_statement`): *M* is the text of the `module_name` field;
+  if `module_name` is a `relative_import`, *M* is empty.
+  * with a `wildcard_import` child: if *M* is non-empty, append it to the star modules;
+  * for each `name` field child: a `dotted_name` *n* → local = last segment of *n*,
+    target = *M*`.`*n* (just *n* if *M* is empty); an `aliased_import` (*n* as *x*) → local
+    *x*, target *M*`.`*n*.
+
+Relative imports therefore stay unqualified (`from .local import md5` maps `md5` to `md5`).
+
+### 8.3 Scopes and bindings
+
+The module has a scope. Every `function_definition` and every `lambda` opens a new scope
+whose parent is the scope it appears in; the node's whole subtree (parameters, default
+values, body) belongs to the new scope. Class bodies and comprehensions do not open scopes.
+
+* **Assignments.** For every `assignment` node (not `augmented_assignment`) whose `left` is
+  an `identifier` and which has a `right`: append the `right` node to the binding list of
+  that name in the current scope (pre-order). Annotated assignments `x: T = v` count; tuple
+  targets do not.
+* **Parameters** *(Appendix A, D2)*. The parameter names of a `function_definition`
+  (`parameters` field) and of a `lambda` (`parameters` field) are bound in the new scope:
+  an `identifier` child; the `name` of a `default_parameter` or `typed_default_parameter`;
+  the `identifier` child of a `typed_parameter`, `list_splat_pattern` or
+  `dictionary_splat_pattern`.
+
+`bindings(N, s)`: starting at scope `s` and moving to the parents, find the first scope that
+binds `N` by assignment or as a parameter; return the list of right-hand sides assigned to
+`N` in *that* scope (possibly empty, e.g. for a parameter that is never assigned), each with
+that scope. If no scope binds `N`, the list is empty. Resolution is flow-insensitive: all
+assignments of the scope count, wherever they are.
+
+### 8.4 Name resolution
+
+#### 8.4.1 Names
+
+`resolveName(N, s)` returns a list of candidate fully-qualified names (at most 8):
+
+1. for each *(rhs, s′)* in `bindings(N, s)` where *rhs* is an `identifier` or `attribute`:
+   add `resolveDotted(rhs, s′)` (an alias such as `H = hashlib.sha1`);
+2. add the import targets of `N`;
+3. if nothing was added: `N` itself, then *M*`.`*N* for each star module *M*.
+
+Duplicates are removed keeping the first occurrence; the list is truncated to 8 entries.
+If step 1 reached the binding-step limit (6.3), the result is the empty list instead
+*(DECISIONS O4)*.
+Cycle guard: if `resolveName(N, s)` is called while the same (*s*, `N`) is already being
+resolved, step 1 is skipped for that inner call; steps 2 and 3 still apply (so in `a = b;
+b = a` without imports, `resolveName(a)` yields `[a]`: the inner call falls back to `a`
+itself).
+
+`resolveDotted(e, s)`: for an `identifier`, `resolveName`; for an `attribute` with object
+*O* and attribute *a*: `[b + "." + a for b in resolveDotted(O, s)]` truncated to 8, or
+nothing if *O* has no candidates; for any other node, nothing.
+
+`boundCalls(N, s)`: for each *(rhs, s′)* in `bindings(N, s)` where *rhs* is a `call`, add
+`callNames(rhs, s′)` (8.4.2); with its own cycle guard. (Example: `algo =
+algorithms.AES(k)` → `boundCalls(algo)` contains
+`cryptography.hazmat.primitives.ciphers.algorithms.AES`.)
+
+`constantValues(N, s)`: for each *rhs* in `bindings(N, s)`: its string value or integer
+value (8.5.1), if any; duplicates removed, in order.
+
+#### 8.4.2 Call names
+
+For a `call` with `function` *F*: `callNames = resolveDotted(F)`. If that is empty and *F*
+is an `attribute`, `callNames = [shape(F)]`, where
+
+* `shape(identifier)` = first element of `resolveName`;
+* `shape(attribute)` = (`shape(object)`, or `<expr>` if that is none) + `.` + attribute;
+* `shape(call)` = (`shape(function)`, or `<expr>`) + `()`;
+* `shape` of anything else, or beyond nesting depth 8, is none.
+
+So `priv.public_key().encrypt(…)` is named `priv.public_key().encrypt` and
+`random.SystemRandom().random()` is named `random.SystemRandom().random`. A call without
+call names (e.g. `handlers[k](…)`) is not analysed.
+
+#### 8.4.3 Method name
+
+If *F* is an `attribute`, the method name is the text of its `attribute`; otherwise it is the
+text of *F* (trimmed).
+
+### 8.5 Argument analysis
+
+Argument analysis is performed only for calls that have at least one candidate pattern
+(8.6).
+
+The **arguments** are the named children of the call's `arguments` node: `keyword_argument`
+nodes are keyword arguments (name = `name` field text, value = `value` field);
+`list_splat`, `dictionary_splat` and `comment` children are ignored; all others are
+positional. If `arguments` is a `generator_expression`, there are no positional or keyword
+arguments, the string list is empty and the symbol set is collected from the generator
+expression.
+
+#### 8.5.1 Literal values and the string list
+
+* **String value** of a `string` node: if the text of its first child (`string_start`, which
+  includes the prefix) contains `b` or `f` (case-insensitive), none. If it has an
+  `interpolation` child, none. Otherwise the concatenation of the texts of its
+  `string_content` children. Escape sequences are **not** interpreted (the raw text is
+  used). A `concatenated_string` has a value iff all its parts have one: the concatenation.
+* **Integer value** of an `integer` node: its text with `_` removed.
+
+`strings(e)`: a string value → that string; an `identifier` → its `constantValues` that do
+not consist of decimal digits only; a `list`, `tuple`, `set` or `parenthesized_expression` →
+`strings` of its named children, concatenated; anything else → nothing.
+
+The **string list** of a call is `strings` of each positional argument in order, followed by
+`strings` of each keyword-argument value in order.
+
+#### 8.5.2 Symbol set
+
+`collect(e, d)` adds symbols to the call's set; it stops when `d > 6`:
+
+* `identifier`: add `resolveDotted(e)` and `boundCalls(name)`;
+* `attribute`: add `resolveDotted(e)`; if its object is neither an `identifier` nor an
+  `attribute`, `collect(object, d+1)`;
+* `call`: add its `callNames`; if its function is neither `identifier` nor `attribute`,
+  `collect(function, d+1)`; `collect(arguments node, d+1)`;
+* `lambda`, `string`, `integer`, `float`, `comment`: nothing;
+* anything else: `collect(child, d+1)` for each named child.
+
+The symbol set is the union of `collect(a, 0)` over the positional arguments and keyword
+values. Example: `AES.new(k, AES.MODE_GCM)` with `from Crypto.Cipher import AES` has the
+symbols `k`, `Crypto.Cipher.AES.MODE_GCM`; `Cipher(algo, modes.GCM(iv))` with `algo =
+algorithms.AES(k)` has `algo`, `…algorithms.AES`, `…modes.GCM`, `iv`.
+
+#### 8.5.3 Value texts
+
+The value texts of an expression *e* are, in order: the text of *e*; its string value (if
+any); if *e* is an `identifier`, its `constantValues`; if *e* is an `identifier` or
+`attribute`, `resolveDotted(e)`; if *e* is a `call`, its `callNames`.
+
+### 8.6 Matching calls
+
+Calls are processed in pre-order. For a call with call names *names* (8.4.2) and method name
+*m*:
+
+**Candidates.** The candidate patterns, in this order, each pattern at most once:
+
+1. for each name *n* of *names* in order, for each prefix of *n* made of its first *k*
+   `.`-separated segments, *k* from the number of segments down to 1: the patterns whose
+   `call` equals the prefix (rules in id order, patterns in file order). The *name used* is
+   *n*;
+2. the patterns without `call` whose `method` contains *m* (rule order, file order); name
+   used: *names*[0];
+3. if at least one `anyCall` pattern requires a keyword (in `kwargs`) that the call has: all
+   `anyCall` patterns (rule order, file order); name used: *names*[0].
+
+If there are no candidates, the call is skipped without argument analysis.
+
+**Hits.** Go through the candidates in order; skip a candidate whose rule already has a hit
+on this call; otherwise evaluate its conditions (5.6; a `method` key on a `call` pattern is
+also checked). A holding pattern gives the hit *(rule, name used, pattern)*.
+
+**Refinement.** The *identity* of a rule is (asset type, primitive, family, protocol,
+subtype); a rule is *refined* if it has a `variant` or a `version`. Drop every hit whose rule
+is not refined if another hit's rule is refined and has the same identity.
+(`Cipher(algorithms.AES(k), modes.GCM(iv))` → AES-GCM, not also AES.)
+
+**Emission.** For each remaining hit, in hit order:
+
+1. *Nesting.* If the call node lies completely inside a recorded argument range of the same
+   rule, drop the hit (`bcrypt.hashpw(pw, bcrypt.gensalt())` and
+   `ec.generate_private_key(⏎ ec.SECP256R1())` are one finding each, even across lines).
+2. Record the byte range of the call's `arguments` node for the rule.
+3. *Report node*: if the pattern has `reportAt`, the enclosing operation call (8.7), if any;
+   otherwise the call itself.
+4. *Line*: if the report node's `function` is an `attribute`, the row of that attribute's
+   `attribute` identifier + 1 (the line of `encrypt` in `a.b().encrypt(`); otherwise the
+   report node's start row + 1.
+5. If (rule, line) was already emitted in this file, drop the hit; otherwise emit:
+
+| Field | Value |
+|---|---|
+| line | from step 4 |
+| name, symbol | the name used |
+| snippet | text of the report node, at most 500 code points |
+| param | 8.8 |
+
+### 8.7 Operation-call attribution (`reportAt`)
+
+Starting at the matched call *c*: let *x* = *c* and *p* = parent of *x*. While *p* is one of
+`argument_list`, `keyword_argument`, `call`, `parenthesized_expression`, `list`, `tuple`,
+`conditional_expression`:
+
+* if *p* is a `call`: if *x* is not inside *p*'s `arguments` node, stop with no result (the
+  walk came up through the callee or receiver); if *p*'s method name is in the `reportAt`
+  list, the result is *p*;
+* *x* = *p*, *p* = parent of *p*.
+
+No result if the loop ends. So `key.sign(m, padding.PSS(mgf=padding.MGF1(hashes.SHA256())),
+hashes.SHA256())` reports PSS and SHA-2 once each, at the line of `sign`; a padding object
+stored in a variable first (`pad = padding.OAEP(…)`) stays at its own line.
+
+### 8.8 Parameter extraction (`param`)
+
+* `{self: true}`: the last `.`-segment of the name used, if it contains a `.`; else none
+  (`ec.SECP256R1()` → `SECP256R1`).
+* Otherwise the argument node is: the value of keyword argument `keyword` if the call has
+  it; else positional argument `index` if given and present; else none. Its param is:
+  1. its integer value, else its string value, if any;
+  2. if it is an `identifier`: its first `constantValues` entry if there is one; otherwise
+     the candidates are `boundCalls`, or if that is empty, the `resolveName` candidates other
+     than the identifier itself;
+     if it is a `call`: its `callNames`; if it is an `attribute`: `resolveDotted`;
+     otherwise no candidates;
+  3. the last `.`-segment of the first candidate that contains a `.`; else none.
+
+Examples: `key_size=2048` → `2048`; `key_size=KEY_BITS` with `KEY_BITS = 3072` → `3072`;
+`ec.generate_private_key(ec.SECP384R1())` → `SECP384R1`; `ECC.generate(curve="P-256")` →
+`P-256`; a parameter passed through (`curve`) → none.
+
+### 8.9 Attribute assignments
+
+For every `assignment` or `augmented_assignment` whose `left` is an `attribute`, in
+pre-order: the field is the text of the left side's `attribute`; the value texts are those
+of `right` (8.5.3). For each rule (id order) that has `assign` patterns: the rule hits if
+one of its `assign` patterns names this field and its `value` / `valueContains` conditions
+hold. A hit is emitted with line = the assignment's start row + 1, unless (rule, line) was
+already emitted; name and symbol = the field name; snippet = the assignment text.
+
+---
+
+## 9. Dependency manifests
+
+Every manifest yields a set of *entries* (package key, version or none). An entry is
+reported iff its key matches the dependency rule of its ecosystem (5.9). Within one
+manifest, an entry key appears at most once. If a package is declared several times, a
+declaration with a resolved version beats one without; among declarations of the same kind,
+the **last** one (in the order defined per format below) determines the version. For Maven
+this means that a version from the same POM's `<dependencyManagement>` (or `<properties>`)
+applies to an unversioned dependency; parent POMs and BOM imports are not followed, and a
+dependency whose version stays unresolved is reported without version.
+A manifest that cannot be parsed (malformed XML/TOML/JSON) is skipped with a warning; it
+yields no entries.
+
+| Format | Ecosystem | Manifest label (11.4) |
+|---|---|---|
+| `pom.xml` | maven | `pom` |
+| `build.gradle`, `build.gradle.kts` | maven | `gradle` |
+| `*.versions.toml` | maven | `gradle-catalog` |
+| `requirements*.txt`, `requirements/*.txt` | pypi | `requirements` |
+| `pyproject.toml` | pypi | `pyproject` |
+| `Pipfile.lock` | pypi | `pipfile-lock` |
+| `poetry.lock` | pypi | `poetry-lock` |
+
+### 9.1 Package keys and versions
+
+* **Maven**: key `groupId:artifactId` as written (case preserved; rule matching is
+  case-insensitive).
+* **PyPI**: the PEP 503 normalised name: lower-case, every run of `-`, `_`, `.` replaced by
+  one `-` (`PyJWT` → `pyjwt`, `argon2_cffi` → `argon2-cffi`).
+* A **version** is a non-empty string with surrounding whitespace removed, or none. Version
+  ranges are never reported as versions (a lower bound is not a version).
+
+### 9.2 Python requirements files
+
+Lines are processed in order. A line ending in `\` is joined with the next line first.
+Then: remove a comment that starts with `#` at the beginning of the line or after
+whitespace; trim. Skip the line if it is empty, starts with `-` (options such as `-r`,
+`-e`, `--hash`, `-c`, `--index-url`), or contains `://`. Otherwise parse the start of the
+line as a PEP 508 requirement:
+
+```
+^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*(?:\(?\s*(===|==|~=|>=|<=|!=|>|<)\s*([^\s;,)]+))?
+```
+
+Group 1 is the name. If the operator (group 3) is `==` or `===` and the version (group 4)
+contains no `*`, the version is group 4; otherwise none. Text after the first specifier
+(further specifiers, environment markers, `--hash` options) is ignored. Lines that do not
+match are skipped. Included files (`-r other.txt`) are not followed; they are scanned on
+their own if they are classified as requirements files.
+
+### 9.3 pyproject.toml
+
+Parsed as TOML 1.0. Entries are taken from, in this order:
+
+1. `project.dependencies` (array of PEP 508 strings);
+2. `project.optional-dependencies.*` (tables in document order; arrays of PEP 508 strings);
+3. `dependency-groups.*` (PEP 735; string elements only; `{include-group = …}` tables are
+   ignored) *(Appendix A, D7)*;
+4. `tool.poetry.dependencies`, `tool.poetry.dev-dependencies`, then
+   `tool.poetry.group.*.dependencies` (groups in document order).
+
+PEP 508 strings are parsed as in 9.2 (without comment handling); as there, a string that
+contains `://` (a direct reference such as `pkg @ https://…`) is skipped *(DECISIONS O5)*. In Poetry tables, the key is
+the name (`python` is skipped) and the value is either a version-constraint string or a
+table with a `version` string (other forms: no version). The constraint is an exact version
+iff, after trimming, it matches `^=?=?\s*(\d[^\s,*]*)$`; the version is group 1 (`"1.5.0"`,
+`"==2.14.2"`). Carets, tildes, ranges and wildcards give no version.
+
+### 9.4 Pipfile.lock and poetry.lock
+
+* **Pipfile.lock** (JSON): the objects `default`, then `develop`; each key is a name; the
+  version is the entry's `version` string with all leading `=` removed (`"==4.9"` → `4.9`);
+  no `version` → none.
+* **poetry.lock** (TOML): every `[[package]]` table with a string `name`; version = its
+  `version` string *(Appendix A, D7)*.
+
+### 9.5 pom.xml
+
+Parsed as XML with namespace-unaware local names (the POM namespace is optional). The parser
+MUST NOT resolve DTDs or external entities (disable DOCTYPE declarations; treat any
+DOCTYPE as a parse error) *(security)*.
+
+* Every `dependency` element anywhere in the document (`dependencies`,
+  `dependencyManagement`, plugin `dependencies`, `profiles`, …), in document order, whose
+  direct children `groupId` and `artifactId` have non-empty trimmed text, is an entry.
+  Elements inside XML comments are not elements and are ignored.
+* The version is the trimmed text of the direct child `version`, with property references
+  `${name}` substituted (repeatedly, at most 10 rounds) from:
+  * the direct children of the root's `properties` element (name = element name, value =
+    trimmed text);
+  * `project.version` and `version` → the root's `version`, or else `parent/version`;
+    `project.groupId` → the root's `groupId`, or else `parent/groupId`;
+    `project.parent.version` → `parent/version`.
+
+  If a `${…}` remains after substitution, or there is no `version` child, the version is
+  none. Parent POMs, imported BOMs and profiles' properties are not consulted.
+* `scope`, `optional`, `type`, `classifier` are ignored (test-scoped dependencies are
+  reported).
+
+### 9.6 Gradle build scripts
+
+Gradle scripts are not evaluated; they are scanned textually:
+
+1. Remove comments: `//` to the end of the line and `/* … */`, except inside string
+   literals (single-quoted, double-quoted and triple-quoted strings are recognised so that
+   `"http://…"` is kept).
+2. Collect **string variables**: `(val|var|def)\s+NAME(\s*:\s*String)?\s*=\s*"…"` or `'…'`,
+   and `ext.NAME = "…"` / `'…'` (the literal must not contain `$`). Later definitions
+   replace earlier ones.
+3. **Coordinate strings.** For every single- or double-quoted string literal (not
+   triple-quoted), substitute `${NAME}` and `$NAME` from the string variables (an unknown
+   name stays). If the result matches
+   `^([A-Za-z0-9_.-]+):([A-Za-z0-9_.-]+)(?::([^:@\s]+))?(?::[^:@\s]+)?(?:@[A-Za-z0-9]+)?$`,
+   it is an entry with key `group1:group2` and version group 3, or none if group 3 is absent
+   or contains `$`. Strings whose group or artifact still contain `$` are not entries.
+4. **Map notation.** Every match of
+   `group\s*[:=]\s*(['"])(.+?)\1\s*,\s*name\s*[:=]\s*(['"])(.+?)\3(?:\s*,\s*version\s*[:=]\s*(['"])(.+?)\5)?`
+   (Groovy `group: 'g', name: 'a', version: 'v'`, Kotlin `group = "g", name = "a",
+   version = "v"`) is an entry, with the same variable substitution.
+
+Entries are ordered by their start offset in the comment-free text. Catalog accessors
+(`libs.jose4j`) are not resolved in the script; the catalog itself is scanned (9.7).
+
+### 9.7 Gradle version catalogs
+
+Parsed as TOML. `[versions]`: name → string, or a table from which `strictly`, then
+`require`, then `prefer` is taken. `[libraries]` (in document order): each value is
+
+* a string `"g:a:v"` or `"g:a"` (parsed like 9.6 step 3), or
+* a table with `module = "g:a"`, or with `group` and `name`; and a version given as
+  `version = "v"`, `version.ref = "name"` (looked up in `[versions]`), or a `version` table
+  with `ref`, `strictly`, `require` or `prefer`.
+
+Missing or unresolvable versions are none. `[bundles]` and `[plugins]` are ignored.
+
+---
+
+## 10. Normalisation: findings to components
+
+### 10.1 Component identity
+
+| Asset type (rule) | Component key |
+|---|---|
+| `algorithm` | (rule id, name, param) |
+| `protocol` | (rule id) |
+| `certificate` | (rule id) |
+| `related-crypto-material`, `key-material` | (rule id) |
+| `library` | (ecosystem, package key, version) |
+
+All findings with the same key form one component. Different algorithm strings behind the
+same API call are different components (`Cipher.getInstance("AES/GCM/NoPadding")` and
+`Cipher.getInstance("AES/GCM/PKCS5Padding")`), and so are different calls of one rule in
+Python (`hashlib.md5` and `hashlib.new` with `"md5"`). Findings are never merged across
+rules.
+
+### 10.2 Component name
+
+| Asset type | Name |
+|---|---|
+| `algorithm` | the finding's name: Java — the matched algorithm string (`AES/GCM/NoPadding`, `SHA-256`) or the display name (`GCMBlockCipher`, `Cipher.getInstance`); Python — the resolved call name (`cryptography.hazmat.primitives.ciphers.Cipher`, `hashlib.new`) |
+| `protocol` | upper-case protocol, then a space and the version if the rule has one: `TLS 1.2`, `SSL 3.0`, `TLS`, `SSH` |
+| others | the rule's `name` |
+| `library` | Maven: the artifactId (the groupId goes to `group`); PyPI: the normalised name |
+
+### 10.3 Occurrences
+
+Each finding becomes an occurrence of its component. Within a component, occurrences with
+the same (path, line) — for libraries, the same path — are one occurrence: sort them by
+(symbol, snippet) in code-point order and keep the first.
+
+---
+
+## 11. CBOM output
+
+### 11.1 Library choice
+
+CipherSift writes the JSON itself with Jackson's streaming `JsonGenerator` (fixed key order,
+two-space indentation, `\n` line ends, UTF-8 without BOM, a final newline). It does **not**
+use `org.cyclonedx:cyclonedx-core-java` for writing, because (a) byte-stable output needs
+full control over key order, number formatting and escaping, (b) only a small subset of the
+model is needed, and (c) the library adds dependencies to the fat jar. `cyclonedx-core-java`
+13.2.0 is used **in tests only**, to validate every produced document against the CycloneDX
+1.6 JSON schema (`JsonParser#validate(…, Version.VERSION_16)`).
+
+### 11.2 Document
+
+```
+bomFormat      "CycloneDX"
+specVersion    "1.6"
+serialNumber   "urn:uuid:<uuid>"           (11.6)
+version        1
+metadata       (11.2.1)
+components     [ … ]                       (11.3, 11.6; always present, possibly empty)
+dependencies   [ … ]                       (only if there is at least one library component)
+```
+
+#### 11.2.1 Metadata
+
+```
+timestamp   only if the environment variable SOURCE_DATE_EPOCH is a non-negative integer:
+            that instant, ISO-8601 UTC with seconds precision ("2026-01-01T00:00:00Z")
+tools       {"components": [{"type": "application", "name": "ciphersift", "version": "<version>"}]}
+component   {"type": "application", "bom-ref": "root", "name": "<last segment of the scan root>"}
+properties  ciphersift:rulesDigest   "sha256:<hex>" over the rule set (11.6)
+            ciphersift:testFiles     "included" | "excluded"
+            ciphersift:filesScanned  decimal count of files analysed (source + manifests)
+            ciphersift:filesSkipped  decimal count of files skipped (too large, binary, unreadable, failed)
+```
+
+### 11.3 Components
+
+Common shape of a cryptographic component:
+
+```
+type              "cryptographic-asset"
+bom-ref           "<assetType>:<16 hex digits>"            (11.6)
+name              (10.2)
+cryptoProperties  { assetType, <type-specific properties> }
+properties        [ {name, value}, … ]                     (11.3.4)
+evidence          { occurrences: [ … ] }                   (11.4)
+```
+
+#### 11.3.1 Algorithms
+
+`cryptoProperties.assetType` = `algorithm`; `algorithmProperties` with, in this order and
+only when they have a value:
+
+| Key | Value |
+|---|---|
+| `primitive` | the rule's `primitive`, or `unknown` |
+| `parameterSetIdentifier` | the param |
+| `mode` | from the variant (case-insensitive): `ECB`→`ecb`, `CBC`→`cbc`, `CCM`→`ccm`, `GCM`→`gcm`, `CFB`→`cfb`, `OFB`→`ofb`, `CTR`→`ctr`; `EAX`, `OCB`, `SIV`, `GCM-SIV`, `XTS`, `KW` → `other`; otherwise absent |
+| `padding` | `OAEP`→`oaep`, `PKCS1v15`→`pkcs1v15`, `PSS`→`other`; or `pkcs1v15` when the rule subtype is `pkcs1-v1_5-encrypt`; otherwise absent |
+| `classicalSecurityLevel` | the rule's `securityLevel` |
+
+CycloneDX 1.6 has no field for the algorithm family; it is a property (11.3.4).
+
+#### 11.3.2 Protocols
+
+`assetType` = `protocol`; `protocolProperties` = `{"type": <protocol>, "version": <version>}`
+(`version` only if the rule has one).
+
+#### 11.3.3 Certificates and related material
+
+* `certificate` rules: `assetType` = `certificate`, no further crypto properties.
+* `related-crypto-material` and `key-material` rules: `assetType` =
+  `related-crypto-material` and `relatedCryptoMaterialProperties` = `{"type": T}` with T from
+  the subtype: `hardcoded-key` → `secret-key`; `static-iv` → `initialization-vector`;
+  `hardcoded-password` → `password`; `jwt-none-algorithm` → `token`; every other subtype or
+  none → `other`. The rule's original asset type and subtype are properties.
+
+#### 11.3.4 Component properties
+
+In this order, each only if it has a value:
+
+| Name | Value |
+|---|---|
+| `ciphersift:ruleId` | rule id (all components of one key share it) |
+| `ciphersift:language` | `java` / `python` |
+| `ciphersift:assetType` | the rule's asset type when it differs from the CycloneDX one (`key-material`) |
+| `ciphersift:primitive` | the rule's primitive (absent if unknown) |
+| `ciphersift:family` | the rule's family |
+| `ciphersift:variant` | the rule's variant |
+| `ciphersift:subtype` | the rule's subtype |
+| `ciphersift:testOnly` | `true` if every occurrence is in a test file |
+
+#### 11.3.5 Libraries
+
+```
+type        "library"
+bom-ref     the purl
+group       Maven groupId (Maven only)
+name        (10.2)
+version     only if known
+purl        pkg:maven/<groupId>/<artifactId>[@<version>] or pkg:pypi/<name>[@<version>]
+            (percent-encode every character outside A-Z a-z 0-9 . - _ ~ in each part)
+properties  ciphersift:ruleId, ciphersift:ecosystem ("maven" / "pypi"), ciphersift:testOnly (if so)
+evidence    { occurrences: [ … ] }
+```
+
+`dependencies` = `[{"ref": "root", "dependsOn": [<library bom-refs in component order>]}]`.
+
+### 11.4 Occurrences
+
+```
+location           relative path (always "/"-separated)
+line               1-based line (absent for dependency findings: file-level)
+symbol             the finding's symbol (absent for dependency findings)
+additionalContext  a string holding compact JSON (no whitespace) with keys in this order:
+                   "ruleId"    rule id                                  (always)
+                   "snippet"   the snippet (dependencies: the coordinate, "g:a:v" / "name==v" / "name")
+                   "param"     the param, if any
+                   "manifest"  manifest label (9), dependency findings only
+                   "test"      true, only for findings in test files
+```
+
+The `additionalContext` JSON is serialised like the document (11.6) but without
+indentation. A normaliser therefore needs only `location`, `line` and
+`JSON.parse(additionalContext).ruleId` per occurrence, plus the component's properties.
+
+### 11.5 Example
+
+Input (scan root `demo/`):
+
+```
+demo/pom.xml                                 bcprov-jdk18on 1.78.1
+demo/src/main/java/demo/Crypto.java
+   7:  Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+   8:  MessageDigest md = MessageDigest.getInstance(alg);
+   9:  SecretKeySpec k = new SecretKeySpec("0123456789abcdef".getBytes(), "AES");
+  10:  SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+demo/tools/test_sign.py
+   4:  key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+```
+
+Output (`serialNumber` and `rulesDigest` shortened for the example; all other values are
+exact):
+
+```json
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:5c1f0d7e-…",
+  "version": 1,
+  "metadata": {
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "ciphersift",
+          "version": "1.0.0"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "root",
+      "name": "demo"
+    },
+    "properties": [
+      {"name": "ciphersift:rulesDigest", "value": "sha256:9e4…"},
+      {"name": "ciphersift:testFiles", "value": "included"},
+      {"name": "ciphersift:filesScanned", "value": "3"},
+      {"name": "ciphersift:filesSkipped", "value": "0"}
+    ]
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "algorithm:caf89428cf58e2f1",
+      "name": "MessageDigest.getInstance",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {"primitive": "hash"}
+      },
+      "properties": [
+        {"name": "ciphersift:ruleId", "value": "java.jca.messagedigest.unresolved"},
+        {"name": "ciphersift:language", "value": "java"},
+        {"name": "ciphersift:primitive", "value": "hash"}
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/main/java/demo/Crypto.java",
+            "line": 8,
+            "symbol": "java.security.MessageDigest.getInstance",
+            "additionalContext": "{\"ruleId\":\"java.jca.messagedigest.unresolved\",\"snippet\":\"MessageDigest.getInstance(alg)\"}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "related-crypto-material:0cc7bc8e6739667a",
+      "name": "Hard-coded symmetric key in Java",
+      "cryptoProperties": {
+        "assetType": "related-crypto-material",
+        "relatedCryptoMaterialProperties": {"type": "secret-key"}
+      },
+      "properties": [
+        {"name": "ciphersift:ruleId", "value": "java.key.hardcoded"},
+        {"name": "ciphersift:language", "value": "java"},
+        {"name": "ciphersift:assetType", "value": "key-material"},
+        {"name": "ciphersift:subtype", "value": "hardcoded-key"}
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/main/java/demo/Crypto.java",
+            "line": 9,
+            "symbol": "javax.crypto.spec.SecretKeySpec",
+            "additionalContext": "{\"ruleId\":\"java.key.hardcoded\",\"snippet\":\"new SecretKeySpec(\\\"0123456789abcdef\\\".getBytes(), \\\"AES\\\")\"}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "protocol:f9c01d353de6ce03",
+      "name": "TLS 1.2",
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {"type": "tls", "version": "1.2"}
+      },
+      "properties": [
+        {"name": "ciphersift:ruleId", "value": "java.prot.tls.v1_2"},
+        {"name": "ciphersift:language", "value": "java"}
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/main/java/demo/Crypto.java",
+            "line": 10,
+            "symbol": "javax.net.ssl.SSLContext.getInstance",
+            "additionalContext": "{\"ruleId\":\"java.prot.tls.v1_2\",\"snippet\":\"SSLContext.getInstance(\\\"TLSv1.2\\\")\"}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "algorithm:ad387c99838b1bb7",
+      "name": "AES",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {"primitive": "block-cipher"}
+      },
+      "properties": [
+        {"name": "ciphersift:ruleId", "value": "java.sym.aes"},
+        {"name": "ciphersift:language", "value": "java"},
+        {"name": "ciphersift:primitive", "value": "block-cipher"},
+        {"name": "ciphersift:family", "value": "AES"}
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/main/java/demo/Crypto.java",
+            "line": 9,
+            "symbol": "javax.crypto.spec.SecretKeySpec",
+            "additionalContext": "{\"ruleId\":\"java.sym.aes\",\"snippet\":\"new SecretKeySpec(\\\"0123456789abcdef\\\".getBytes(), \\\"AES\\\")\"}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "algorithm:310d0bda93ac2b84",
+      "name": "AES/GCM/NoPadding",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {"primitive": "block-cipher", "mode": "gcm"}
+      },
+      "properties": [
+        {"name": "ciphersift:ruleId", "value": "java.sym.aes.gcm"},
+        {"name": "ciphersift:language", "value": "java"},
+        {"name": "ciphersift:primitive", "value": "block-cipher"},
+        {"name": "ciphersift:family", "value": "AES"},
+        {"name": "ciphersift:variant", "value": "GCM"}
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/main/java/demo/Crypto.java",
+            "line": 7,
+            "symbol": "javax.crypto.Cipher.getInstance",
+            "additionalContext": "{\"ruleId\":\"java.sym.aes.gcm\",\"snippet\":\"Cipher.getInstance(\\\"AES/GCM/NoPadding\\\")\"}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "algorithm:4a7c8a2e3b5f84f9",
+      "name": "cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {"primitive": "signature", "parameterSetIdentifier": "2048"}
+      },
+      "properties": [
+        {"name": "ciphersift:ruleId", "value": "python.asym.rsa"},
+        {"name": "ciphersift:language", "value": "python"},
+        {"name": "ciphersift:primitive", "value": "signature"},
+        {"name": "ciphersift:family", "value": "RSA"},
+        {"name": "ciphersift:testOnly", "value": "true"}
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "tools/test_sign.py",
+            "line": 4,
+            "symbol": "cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key",
+            "additionalContext": "{\"ruleId\":\"python.asym.rsa\",\"snippet\":\"rsa.generate_private_key(public_exponent=65537, key_size=2048)\",\"param\":\"2048\",\"test\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:maven/org.bouncycastle/bcprov-jdk18on@1.78.1",
+      "group": "org.bouncycastle",
+      "name": "bcprov-jdk18on",
+      "version": "1.78.1",
+      "purl": "pkg:maven/org.bouncycastle/bcprov-jdk18on@1.78.1",
+      "properties": [
+        {"name": "ciphersift:ruleId", "value": "dep.maven"},
+        {"name": "ciphersift:ecosystem", "value": "maven"}
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "pom.xml",
+            "additionalContext": "{\"ruleId\":\"dep.maven\",\"snippet\":\"org.bouncycastle:bcprov-jdk18on:1.78.1\",\"manifest\":\"pom\"}"
+          }
+        ]
+      }
+    }
+  ],
+  "dependencies": [
+    {"ref": "root", "dependsOn": ["pkg:maven/org.bouncycastle/bcprov-jdk18on@1.78.1"]}
+  ]
+}
+```
+
+(The example is printed with some objects on one line for brevity; real output indents every
+object and array element on its own line, 11.6.)
+
+### 11.6 Ordering, references and serialisation
+
+* **Components**: all cryptographic components first, sorted by (rule id, name, param — none
+  sorts before any value); then library components sorted by (ecosystem, package key,
+  version — none first). All string comparisons in this document are by Unicode code points.
+* **Occurrences**: sorted by (location, line — absent first, symbol, snippet).
+* **Properties**: in the order of the tables above.
+* **bom-ref** of a cryptographic component: the CycloneDX asset type, `:`, and the first 16
+  lower-case hex digits of SHA-256 over the UTF-8 bytes of the compact JSON array
+  `["algorithm",<rule id>,<name>,<param or "">]`, or `[<assetType>,<rule id>]` for the
+  other asset types (`<assetType>` being the CycloneDX value, so `key-material` rules use
+  `related-crypto-material`). If two components of one document would get the same bom-ref,
+  both use all 64 hex digits instead. Libraries use their purl.
+* **serialNumber**: serialise the document with `serialNumber` omitted; take the SHA-256 of
+  those bytes; use the first 16 bytes as a UUID, set the version nibble to 8
+  (`byte[6] = (byte[6] & 0x0f) | 0x80`) and the variant bits to `10`
+  (`byte[8] = (byte[8] & 0x3f) | 0x80`); write it as `urn:uuid:` + the lower-case 8-4-4-4-12
+  form. Then serialise again with `serialNumber` in its place (after `specVersion`).
+* **rulesDigest**: SHA-256 over, for each rule file in code-point order of its path relative
+  to the rule directory: the path, a NUL byte, the file's bytes, a NUL byte.
+* **JSON**: two-space indentation, one key/value or array element per line, `": "` after
+  keys, no trailing spaces, `\n` line ends, final newline; strings escape `"`, `\` and
+  control characters (`\b \f \n \r \t`, others as `\u00XX`); `/` and non-ASCII characters
+  are not escaped; integers in decimal; `true`/`false`. Lone surrogates cannot occur (input
+  is decoded with replacement).
+
+---
+
+## 12. Determinism
+
+For the same scan root contents, rule set, options and CipherSift version, the output MUST
+be byte-identical, independent of: thread count, file-system enumeration order, file
+timestamps, the working directory, locale, default charset, time zone and the absolute
+location of the scan root (only its last path segment appears, as `metadata.component.name`).
+In particular: no random UUIDs, no timestamps unless `SOURCE_DATE_EPOCH` is set, no
+`HashMap` iteration order leaking into output (sort as in 11.6), no locale-sensitive case
+conversion (use `Locale.ROOT`).
+
+**File names** are decoded as UTF-8 (malformed bytes → U+FFFD) whatever the locale
+*(DECISIONS O1)*. The JVM decodes them with `sun.jnu.encoding`, which follows the locale and
+cannot be overridden; when that charset is not UTF-8, an implementation obtains the raw bytes
+of names with non-ASCII characters from `Path.toUri()` (which percent-encodes them) and
+decodes those. This covers the walk (4.1), the scan root's name, cross-file lookups (7.4.5)
+and rule paths. **Command-line arguments**, however, are decoded by the JVM with the
+locale's charset before CipherSift sees them; under a non-UTF-8 locale an argument with
+non-ASCII bytes (a scan root, `-o` file or `--exclude` glob) cannot be decoded, and
+CipherSift then prints a warning. The launcher and the Docker image therefore run the JVM
+with `LC_ALL=C.UTF-8` when the current locale is not UTF-8.
+
+---
+
+## 13. Error handling
+
+| Situation | Behaviour |
+|---|---|
+| File cannot be read (permissions, vanished, I/O error) | warning, file skipped, counted as skipped |
+| File larger than 10 MiB | debug message, skipped, counted |
+| Binary source file (4.6) | debug message, skipped, counted |
+| Invalid UTF-8 | replacement characters (4.4); analysis continues |
+| Syntax errors | best-effort analysis (6.2); debug message |
+| Exception or stack overflow while analysing one file | warning naming the file, the file's findings are discarded, counted as skipped (`failed`), scan continues |
+| Malformed manifest | warning, no entries |
+| Cross-file constant file unreadable or unparseable | treated as absent (7.4.5), no warning |
+| Native library cannot be loaded | error, exit 1 |
+| Java runtime older than 23 | one-line error, exit 6 (section 3) |
+| Rule file invalid | error naming file and pointer, exit 4 |
+| Output not writable | error, exit 5, no partial file |
+| Interrupt (SIGINT) | no output file is written; exit 130 is acceptable |
+
+A finding is never emitted from a file whose analysis failed.
+
+---
+
+## 14. Performance
+
+* **Guideline (non-binding).** Throughput of roughly **9 000 source lines per second** with
+  `--threads 1` on a current x86-64 machine, with a maximum heap of 2 GiB, is sufficient: the
+  largest benchmark projects (about 1 M lines) then take about 2 minutes. Speed is not an
+  acceptance criterion; correctness and determinism come first. There are no targets for
+  multi-threaded wall-clock time or start-up time.
+* **Design properties** (advice that keeps the guideline easy to meet).
+  * Every file is parsed once (cross-file constant files at most once more, then cached).
+  * Rules are indexed (7.5, 8.6); per event, only candidate rules are evaluated. Most events
+    and calls have no candidates; for them no string list, symbol set or value is computed.
+  * Regexes are compiled once at rule loading.
+  * String lists, symbol sets and resolution results are computed lazily and at most once
+    per event *(advice: memoise per file)*.
+  * Trees are closed after each file; only the compact constant contexts (7.4.5) are kept.
+  * Workers process files independently; the results are merged and sorted at the end.
+  * *(DECISIONS F3)* A source file in whose text no pattern can fire need not be parsed: every
+    anchor compares node texts with literal names of the pattern (the member, the simple class
+    name, Python call-name parts, keywords, attribute names), so if, for every pattern, one
+    of its required names does not occur in the file's text as a substring, the file's
+    findings are empty by construction. Such a file still counts as scanned (11.2.1). The
+    output is identical with and without this check.
+* **Reference points** (informational). The conformance suite (about 70 files) runs in a few
+  seconds including JVM start-up.
+
+---
+
+## 15. Build, packaging and licensing
+
+### 15.1 Project layout
+
+```
+pom.xml
+LICENSE  NOTICE
+bin/ciphersift                         launcher script
+Dockerfile
+native/
+  build-natives.sh                     builds the native libraries (15.3)
+  sources.lock                         pinned source URLs + SHA-256
+  vendor/                              downloaded, unpacked grammar/core sources (committed)
+src/main/java/...                      implementation
+src/main/resources/
+  rules/                               copy of the repository's rules/ (generated at build time)
+  META-INF/services/io.github.treesitter.jtreesitter.NativeLibraryLookup
+src/test/java/...                      unit tests + conformance runner
+target/native/<platform>/*.so|*.dylib|*.dll  built by native/build-natives.sh (15.3), not committed;
+                                       packaged into the jar under /native/<platform>/
+rules/  spec/                          as delivered
+```
+
+### 15.2 Maven build
+
+* Java: `maven.compiler.release` = **23**. jtreesitter 0.26.1 is compiled for Java 23 and
+  uses the Foreign Function & Memory API; the minimum runtime is therefore Java 23 (not
+  22). Build and test with JDK 25 (`/usr/lib/jvm/jdk-25.0.1` on the reference machine).
+* Coordinates: `groupId` **`ch.unibe.seg`**, `artifactId` `ciphersift`, version
+  `1.0.0-SNAPSHOT`. Java root package **`ch.unibe.seg.ciphersift`**. All versions below are
+  pinned exactly, for a reproducible build.
+* Runtime dependencies (all Apache-2.0 or MIT):
+  `io.github.tree-sitter:jtreesitter:0.26.1`,
+  `com.fasterxml.jackson.core:jackson-databind` and
+  `com.fasterxml.jackson.dataformat:jackson-dataformat-yaml` and
+  `jackson-dataformat-toml` (all **2.22.3**, managed with `jackson-bom:2.22.3`),
+  `info.picocli:picocli:4.7.7` (CLI),
+  `com.networknt:json-schema-validator:2.0.4` (rule validation against the schema; the same
+  version cyclonedx-core-java 13.2.0 uses, so there is no API clash on the test classpath).
+* Test dependencies: `org.junit.jupiter:junit-jupiter:6.1.3`,
+  `org.cyclonedx:cyclonedx-core-java:13.2.0` (output schema validation only).
+* Plugins: `maven-resources-plugin` copies `rules/` and `spec/rule-schema.json` into the jar;
+  `exec-maven-plugin` runs `native/build-natives.sh` in `generate-resources` when the
+  libraries for the build platform are missing from `target/native/`, and in
+  `process-classes` validates the bundled rules in full and records their digest (5.8,
+  DECISIONS F2); `maven-compiler-plugin` compiles the entry-point class for Java 8 (section 3)
+  and everything else for Java 23;
+  `maven-surefire-plugin` with `--enable-native-access=ALL-UNNAMED`;
+  `maven-shade-plugin` produces `target/ciphersift-<version>-all.jar` with manifest entries
+  `Main-Class` and `Enable-Native-Access: ALL-UNNAMED`, merging `META-INF/services`;
+  `license-maven-plugin` (com.mycila) checks headers (15.5).
+* `mvn verify` runs the unit tests and the conformance suite (16).
+
+### 15.3 Native libraries (tree-sitter core and grammars)
+
+jtreesitter does not ship native code. Three shared libraries are needed per platform:
+
+| Library | Source | Exported entry point |
+|---|---|---|
+| `libtree-sitter` | tree-sitter core **v0.26.10** — the `core` submodule of the `v0.26.1` tag of `tree-sitter/java-tree-sitter` points to commit `3fc4cd2` ("release v0.26.10"). ABI range 13–15 (`TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION` 13, `TREE_SITTER_LANGUAGE_VERSION` 15). | `ts_*` API |
+| `libtree-sitter-java` | `tree-sitter/tree-sitter-java` tag `v0.23.5` (ABI 14) | `tree_sitter_java` |
+| `libtree-sitter-python` | `tree-sitter/tree-sitter-python` tag `v0.25.0` (ABI 15) | `tree_sitter_python` |
+
+**Sources.** `native/sources.lock` lists, for each, the GitHub release tarball URL
+(`https://github.com/tree-sitter/<repo>/archive/refs/tags/<tag>.tar.gz`) and its SHA-256.
+`native/build-natives.sh fetch` downloads and verifies them and unpacks into
+`native/vendor/<repo>/` (e.g. `native/vendor/tree-sitter-java/`; the tag is recorded in
+`sources.lock`); the unpacked `src/` directories (core `lib/`) and the MIT
+licence files are committed, so a normal build needs no network.
+
+**Compilation** (Linux x86-64, gcc 12; the default and required platform):
+
+```sh
+CFLAGS="-O2 -fPIC -std=c11 -fvisibility=hidden -D_DEFAULT_SOURCE"
+gcc $CFLAGS -Ivendor/tree-sitter/lib/include -Ivendor/tree-sitter/lib/src \
+    -fvisibility=default -shared -o libtree-sitter.so vendor/tree-sitter/lib/src/lib.c
+for g in java python; do
+  srcs=vendor/tree-sitter-$g/src/parser.c
+  [ -f vendor/tree-sitter-$g/src/scanner.c ] && srcs="$srcs vendor/tree-sitter-$g/src/scanner.c"
+  gcc $CFLAGS -fvisibility=default -Ivendor/tree-sitter-$g/src -shared -o libtree-sitter-$g.so $srcs
+done
+strip --strip-unneeded *.so
+```
+
+Output: `target/native/linux-x86_64/` with the three files and a `SHA256SUMS` file; they
+are copied into the jar under `/native/linux-x86_64/`. Further platforms (`linux-aarch64`,
+`darwin-aarch64`, `darwin-x86_64`, `windows-x86_64`) MAY be added by cross-compiling (e.g.
+`zig cc -target …`) in CI and placing the results in `target/native/<platform>/` before
+packaging; the fat jar then contains all of them. Platform id: `os.name` mapped to `linux`,
+`darwin`, `windows`; `os.arch` mapped `amd64`/`x86_64` → `x86_64`, `aarch64`/`arm64` →
+`aarch64`.
+
+**Loading at run time.**
+
+1. Determine the platform id; if the jar has no `/native/<platform>/`, fail with exit 1
+   and a message listing the supported platforms.
+2. Extract the three files to `$XDG_CACHE_HOME/ciphersift/native/<sha256 of SHA256SUMS>/`
+   (default `~/.cache/…`), or, if that is not writable, to a fresh temporary directory
+   deleted on exit. Write to a temporary name and rename atomically; verify each file
+   against `SHA256SUMS` before use (also when already present).
+3. Provide the core library to jtreesitter through its service-provider interface
+   `io.github.treesitter.jtreesitter.NativeLibraryLookup` (method
+   `SymbolLookup get(Arena arena)`), returning
+   `SymbolLookup.libraryLookup(<extracted libtree-sitter path>, arena)`; register it in
+   `META-INF/services/io.github.treesitter.jtreesitter.NativeLibraryLookup`.
+4. Load each grammar with
+   `Language.load(SymbolLookup.libraryLookup(<path>, Arena.global()), "tree_sitter_java")`
+   (resp. `tree_sitter_python`). The arena must never be closed.
+5. Native access must be enabled: the jar manifest's `Enable-Native-Access: ALL-UNNAMED`
+   covers `java -jar`; the launcher also passes `--enable-native-access=ALL-UNNAMED`.
+
+`ciphersift --version` prints the CipherSift version, the jtreesitter version, and the ABI
+versions of both grammars (`Language.getAbiVersion()`).
+
+### 15.4 Docker
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM maven:3.9-eclipse-temurin-25 AS build
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+COPY . .
+RUN mvn -B -ntp verify
+
+FROM eclipse-temurin:25-jre
+RUN useradd --create-home --uid 10001 ciphersift
+COPY --from=build /src/target/ciphersift-*-all.jar /opt/ciphersift/ciphersift.jar
+USER ciphersift
+ENV XDG_CACHE_HOME=/tmp/ciphersift-cache \
+    LC_ALL=C.UTF-8
+WORKDIR /scan
+ENTRYPOINT ["java", "--enable-native-access=ALL-UNNAMED", "-jar", "/opt/ciphersift/ciphersift.jar"]
+CMD ["--help"]
+```
+
+Usage: `docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/scan:ro" -v "$PWD/out:/out" ciphersift scan /scan -o /out/cbom.cdx.json`
+*(DECISIONS O7)*. `--user` lets the container write into the host's `out/` directory (the
+image's own user, uid 10001, usually cannot); the output file gets the permissions of the
+umask, so the host user can read it. `LC_ALL=C.UTF-8` keeps non-ASCII command-line
+arguments decodable (section 12).
+
+### 15.5 Licensing
+
+* CipherSift is licensed under Apache-2.0; the repository root has `LICENSE` (the licence
+  text) and `NOTICE`.
+* Every source file (Java, shell, YAML rules, JSON schema, Python tools, Dockerfile, POM)
+  starts with:
+
+  ```
+  SPDX-License-Identifier: Apache-2.0
+  Copyright 2026 The CipherSift Authors
+  ```
+
+  in the file type's comment syntax (JSON files carry it in a `description` or `$comment`
+  member, or are exempted in the licence-plugin configuration). Conformance input files
+  under `spec/conformance/cases/*/input/` are test data and MUST NOT get headers (that would
+  shift line numbers); they are excluded from the header check.
+* `NOTICE` lists the bundled third-party components and their licences: tree-sitter core,
+  tree-sitter-java and tree-sitter-python (MIT; their copyright lines are reproduced),
+  jtreesitter (MIT), Jackson, picocli, json-schema-validator (Apache-2.0), SnakeYAML
+  (Apache-2.0, via jackson-dataformat-yaml), JSpecify (Apache-2.0, a runtime dependency of
+  jtreesitter), and every further transitive dependency that the shade plugin puts into the
+  fat jar (check with `mvn dependency:tree`).
+
+---
+
+## 16. Testing and conformance
+
+* **Unit tests** cover at least: glob matching (4.2), test-file detection (4.7), binary
+  detection (4.6), text-block decoding (7.4.2), PEP 508 parsing (9.2), purl encoding, bom-ref
+  and serial-number computation (11.6), rule-schema validation of every bundled rule.
+* **Conformance suite** (`spec/conformance/`, see its README): for each case, run
+  `ciphersift scan <case>/input -o <tmp>` with the case's options, convert the CBOM to the
+  normalised finding list with the procedure of the README (the reference implementation is
+  `spec/tools/conformance.py`), and compare it with `expected.json`. All cases MUST pass.
+  The JUnit conformance runner SHOULD implement the same comparison in Java.
+* **Schema validation**: every CBOM produced by the conformance runner is validated against
+  the CycloneDX 1.6 schema (11.1).
+* **Determinism test**: scan the conformance cases with `--threads 1` and `--threads 8`, and
+  from two different absolute locations whose last path segment is the same (it is
+  `metadata.component.name`); outputs MUST be byte-identical.
+* **Rule regex parity**: `spec/tools/regex_parity.py` (optional in CI; requires Python).
+
+---
+
+## Appendix A. Intentional differences from the reference tool
+
+The expected findings of the conformance suite were produced by running the reference tool
+and then applying the following differences (`spec/conformance/deviations.yaml`). Each is a
+bug or gap in the reference tool that CipherSift fixes on purpose.
+
+| Id | Behaviour in CipherSift | Reference tool | Section |
+|---|---|---|---|
+| D1 | `setup.py` is analysed as Python source. | Classified only as a manifest, never analysed. | 4.5 |
+| D2 | Function and lambda parameters shadow outer bindings in Python constant/alias resolution. | A parameter named like a module constant resolved to the constant (`def f(ALG): hashlib.new(ALG)` reported MD5). | 8.3 |
+| D3 | Java array initialisers reached through a constant (`static final String[] P = {…}; s.setEnabledProtocols(P)`) contribute their elements to the string list. | Only inline arrays were flattened. | 7.4.6 |
+| D4 | Java text blocks are decoded per the JLS (incidental indentation and the opening line break removed). | The raw content, including the leading line break and indentation, was used, so no regex matched. | 7.4.2 |
+| D5 | Binary files are skipped; cross-file constant lookup never leaves the scan root. | Binary `.py` files were parsed; the derived source root could lie outside the scan root. | 4.6, 7.4.5 |
+| D6 | `--exclude-tests` and test-file marking. | No test-file detection. | 4.7 |
+| D7 | PyPI manifests: `requirements*.txt`, `requirements/*.txt`, `poetry.lock`, PEP 735 `[dependency-groups]`. | Only files named exactly `requirements.txt`; no Poetry lock, no dependency groups. | 9 |
+| D8 | Maven and Gradle manifests with the CipherSift crypto-library list; versions from `<properties>`; dependencies without version are reported. | Different (third-party) pom support, not carried over. | 9.5–9.7 |
+| D9 | Integer and character elements of array arguments are not part of the Java string list, so `new SecretKeySpec(new byte[] {1, 2, …}, "DES")` has the first string `"DES"`. | The array's numbers became strings (`"1"`, `"2"`, …), so `firstString` saw `"1"` and the DES pattern did not match. | 7.4.6 |
+
+CBOM layout and component grouping (sections 10 and 11) are new designs and are not
+comparable with the reference tool's components (which, for example, merge Java algorithm
+names case-insensitively, key Python algorithms by call name and asset properties rather
+than by rule, and group related-crypto-material per file). The conformance suite therefore
+compares occurrences, not components.
+
+Smaller differences that no conformance case exercises: snippets are truncated to 500 code
+points for Java too; Java escape decoding follows the JLS exactly (`\s`); symbolic links are
+never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines ending in
+`\` are joined.
+
+## Appendix B. Known limitations (by design)
+
+* No data flow beyond constants. Java algorithms from parameters, configuration,
+  `String.format`, `StringBuilder` or ternaries give a `java.jca.*.unresolved` component;
+  Python attributes (`self.mode`), return values and cross-module constants are not
+  resolved, so `hashlib.new(name)` with unknown `name` gives nothing.
+* Receiver types are not inferred: `method` patterns are heuristics
+  (`setEnabledProtocols`, Python `sign`/`encrypt` with `padding.*`, `verify=False` on any
+  call).
+* Java simple names that are neither imported nor declared are assumed to be the API class
+  (7.3.2 step 6); a same-named class from the same package or a wildcard import is
+  mis-attributed. Reassignment is tracked by simple name across the whole file.
+* Java constants of a nested class in the same package written as `Outer.Inner.X` without
+  import are not resolved (the dotted qualifier is taken as fully qualified).
+* Java "first string" is the first *resolvable* string argument (7.4.6).
+* Python string literals are used raw (escape sequences are not interpreted); bytes and
+  f-strings are never strings.
+* Python resolution is flow-insensitive: all assignments of a scope count, and the first
+  one supplies the first string (`alg = "md5"; alg = "sha256"; hashlib.new(alg)` → MD5).
+* Python operation attribution only works when the padding / hash object is written inside
+  the operation call's arguments.
+* One algorithm per signature identifier in Java (`SHA1withRSA` → RSA only).
+* Dependency versions: no parent-POM, BOM or Gradle-plugin resolution; ranges give no
+  version.
+* Kotlin, Groovy and Scala sources are not analysed.
+* Test detection is path-based: library code that lives in directories named like tests
+  (e.g. `django/test/`, `numpy/testing/`) is marked as test code.
+
+## Appendix C. Tree-sitter node types and fields used
+
+**Java (tree-sitter-java 0.23.5).** `program`; `package_declaration`; `import_declaration`
+(children `static`, `asterisk`, `scoped_identifier`, `identifier`); `class_declaration`,
+`interface_declaration`, `enum_declaration`, `record_declaration`,
+`annotation_type_declaration` (field `name`; class: `superclass`, `interfaces`; enum:
+`interfaces`); `class_body`, `interface_body`, `enum_body`; `field_declaration`,
+`constant_declaration`, `local_variable_declaration` (child `modifiers`, children
+`variable_declarator` with fields `name`, `value`); `method_declaration` (fields `name`,
+`parameters`, `body`); `constructor_declaration` (`parameters`); `constructor_body`;
+`lambda_expression` (`parameters`); `enhanced_for_statement` (`name`); `block`;
+`switch_block_statement_group`; `method_invocation` (fields `object`, `name`, `arguments`);
+`object_creation_expression` (fields `type`, `arguments`; optional `class_body` child);
+`field_access` (fields `object`, `field`); `argument_list`; `assignment_expression` (field
+`left`); `binary_expression` (fields `left`, `operator`, `right`);
+`parenthesized_expression`; `cast_expression`; `unary_expression`; `array_initializer`;
+`array_creation_expression` (children `dimensions_expr`, `array_initializer`);
+`string_literal` (children `string_fragment`, `multiline_string_fragment`,
+`escape_sequence`); `decimal_integer_literal`; `character_literal`; `identifier`;
+`scoped_identifier`; `this`; `line_comment`; `block_comment`.
+
+**Python (tree-sitter-python 0.25.0).** `module`; `import_statement` (children
+`dotted_name`, `aliased_import` with fields `name`, `alias`); `import_from_statement`
+(fields `module_name` — `dotted_name` or `relative_import` — and `name`; child
+`wildcard_import`); `function_definition` (field `parameters`); `lambda` (field
+`parameters`); `parameters`, `lambda_parameters`, `default_parameter`,
+`typed_parameter`, `typed_default_parameter`, `list_splat_pattern`,
+`dictionary_splat_pattern`; `assignment` and `augmented_assignment` (fields `left`,
+`right`); `call` (fields `function`, `arguments`); `attribute` (fields `object`,
+`attribute`); `argument_list`; `generator_expression`; `keyword_argument` (fields `name`,
+`value`); `list_splat`; `dictionary_splat`; `string` (children `string_start`,
+`string_content`, `interpolation`); `concatenated_string`; `integer`; `float`; `list`;
+`tuple`; `set`; `parenthesized_expression`; `conditional_expression`; `identifier`;
+`comment`.
+
+An implementation SHOULD verify at start-up (or in a unit test) that every field name listed
+here exists in the loaded grammar (`Language.getFieldIdForName` returns non-zero), so that a
+grammar upgrade that renames a field fails loudly.

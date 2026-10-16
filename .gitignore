@@ -1,0 +1,5 @@
+.m2/
+target/
+__pycache__/
+*.pyc
+*.cdx.json

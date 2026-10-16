@@ -1,0 +1,4 @@
+{"case": "java/deep-nesting", "findings": [
+  {"file": "src/d/Deep.java", "line": 5, "rule": "java.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "MD5"},
+  {"file": "src/d/Deep.java", "line": 6, "rule": "java.jca.messagedigest.unresolved", "type": "algorithm", "subtype": null, "primitive": "hash", "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "MessageDigest.getInstance"}
+]}

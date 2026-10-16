@@ -1,0 +1,5 @@
+{"case": "python/deep-call-args", "findings": [
+  {"file": "deep.py", "line": 3, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.new"},
+  {"file": "deep.py", "line": 4, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.new"},
+  {"file": "deep.py", "line": 6, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5"}
+]}

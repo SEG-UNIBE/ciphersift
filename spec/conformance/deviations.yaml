@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+#
+# Intentional differences between CipherSift and the reference tool (the BF-CBOM
+# Crypsy fork). spec/tools/make_expected.py applies them, in the order remove, add,
+# change, after it has turned the reference tool's findings into expected.json.
+#
+# Every entry carries the id of the SPEC.md section that defines the behaviour
+# (field "spec") and a reason. "match" selects findings by equality on the given
+# fields; "finding" lists the fields of an added finding (asset properties are
+# filled in from the rule).
+#
+# Differences:
+#   D1  setup.py is Python source (reference tool: treated as a manifest only).
+#   D2  Python function/lambda parameters shadow outer bindings.
+#   D3  Java array initialisers reached through a constant are flattened like inline ones.
+#   D4  Java text blocks are decoded per the JLS (incidental indentation stripped).
+#   D5  Binary files are skipped.
+#   D6  --exclude-tests (the reference tool has no test-file detection).
+#   D7  More PyPI manifests: requirements*.txt, requirements/*.txt, poetry.lock,
+#       PEP 735 [dependency-groups].
+#   D9  Integer/char elements of Java array arguments are not strings.
+#   D8  Maven / Gradle manifests (the reference tool's pom.xml support is third-party
+#       work and not carried over; all Maven expectations are hand-written here).
+
+cases:
+  python/setup-py:
+    add:
+      - {spec: D1, reason: "setup.py is a Python file and is scanned like any other",
+         finding: {file: setup.py, line: 7, rule: python.hash.sha1, name: hashlib.sha1}}
+
+  python/constants:
+    remove:
+      - {spec: D2, reason: "MODULE_ALG is the function's parameter, not the module constant",
+         match: {file: consts.py, line: 23, rule: python.hash.md5}}
+
+  java/string-resolution:
+    add:
+      - {spec: D3, reason: "PROTOCOLS is a static final String[] initialised with literals",
+         finding: {file: src/strings/Strings.java, line: 37, rule: java.prot.tls.v1_0}}
+      - {spec: D3, reason: "PROTOCOLS is a static final String[] initialised with literals",
+         finding: {file: src/strings/Strings.java, line: 37, rule: java.prot.tls.v1_3}}
+      - {spec: D4, reason: "the text block's value is \"DESede\"; the reference tool kept the leading line break and indentation",
+         finding: {file: src/strings/Strings.java, line: 41, rule: java.sym.3des.ecb, name: DESede}}
+    remove:
+      - {spec: D4, reason: "replaced by the 3DES-ECB finding",
+         match: {file: src/strings/Strings.java, line: 41, rule: java.jca.cipher.unresolved}}
+
+  java/constant-args:
+    add:
+      - {spec: D9, reason: "the byte array's numbers are not strings; the first string is \"DES\"",
+         finding: {file: src/k/Keys.java, line: 14, rule: java.sym.des, name: DES}}
+
+  common/binary:
+    remove:
+      - {spec: D5, reason: "blob.py is mostly NUL bytes and is classified as binary",
+         match: {file: blob.py}}
+
+  common/test-files-excluded:
+    remove:
+      - {spec: D6, reason: "under src/test/", match: {file: src/test/java/t/ProdTest.java}}
+      - {spec: D6, reason: "file name test_*.py", match: {file: app/test_util.py}}
+      - {spec: D6, reason: "file name conftest.py", match: {file: app/conftest.py}}
+      - {spec: D6, reason: "directory tests/", match: {file: tests/helpers.py}}
+
+  deps/pypi:
+    add:
+      - {spec: D7, reason: "requirements*.txt", finding: {file: requirements-dev.txt, rule: dep.pypi, package: pyopenssl, version: "24.0.0"}}
+      - {spec: D7, reason: "*.txt inside a requirements/ directory", finding: {file: requirements/base.txt, rule: dep.pypi, package: passlib, version: "1.7.4"}}
+      - {spec: D7, reason: "poetry.lock", finding: {file: svc/poetry.lock, rule: dep.pypi, package: cryptography, version: "42.0.5"}}
+      - {spec: D7, reason: "poetry.lock", finding: {file: svc/poetry.lock, rule: dep.pypi, package: pynacl, version: "1.5.0"}}
+      - {spec: D7, reason: "PEP 735 dependency group", finding: {file: svc/pyproject.toml, rule: dep.pypi, package: tink, version: "1.10.0"}}
+
+  deps/maven:
+    add:
+      - {spec: D8, reason: "dependencyManagement, version from <properties>",
+         finding: {file: pom.xml, rule: dep.maven, package: "org.bouncycastle:bcprov-jdk18on", version: "1.78.1"}}
+      - {spec: D8, reason: "dependencyManagement, version from <properties>",
+         finding: {file: pom.xml, rule: dep.maven, package: "io.jsonwebtoken:jjwt-api", version: "0.12.5"}}
+      - {spec: D8, reason: "plugin dependency",
+         finding: {file: pom.xml, rule: dep.maven, package: "commons-codec:commons-codec", version: "1.16.1"}}
+      - {spec: D8, reason: "version managed by the parent; parents are not resolved",
+         finding: {file: app/pom.xml, rule: dep.maven, package: "org.bouncycastle:bcprov-jdk18on", version: null}}
+      - {spec: D8, reason: "unresolvable property",
+         finding: {file: app/pom.xml, rule: dep.maven, package: "org.bouncycastle:bcpkix-jdk18on", version: null}}
+      - {spec: D8, reason: "test scope is still a dependency",
+         finding: {file: app/pom.xml, rule: dep.maven, package: "org.mindrot:jbcrypt", version: "0.4"}}
+      - {spec: D8, reason: "Groovy string coordinate",
+         finding: {file: gradle/build.gradle, rule: dep.maven, package: "org.bouncycastle:bcprov-jdk18on", version: "1.77"}}
+      - {spec: D8, reason: "double-quoted coordinate",
+         finding: {file: gradle/build.gradle, rule: dep.maven, package: "com.nimbusds:nimbus-jose-jwt", version: "9.37.3"}}
+      - {spec: D8, reason: "map notation",
+         finding: {file: gradle/build.gradle, rule: dep.maven, package: "com.google.crypto.tink:tink", version: "1.12.0"}}
+      - {spec: D8, reason: "parenthesised coordinate",
+         finding: {file: gradle/build.gradle, rule: dep.maven, package: "org.conscrypt:conscrypt-openjdk-uber", version: "2.5.2"}}
+      - {spec: D8, reason: "coordinate without version",
+         finding: {file: gradle/build.gradle, rule: dep.maven, package: "com.auth0:java-jwt", version: null}}
+      - {spec: D8, reason: "Kotlin DSL, $variable resolved from a val in the same file",
+         finding: {file: kts/build.gradle.kts, rule: dep.maven, package: "org.apache.sshd:sshd-core", version: "2.12.1"}}
+      - {spec: D8, reason: "Kotlin DSL coordinate",
+         finding: {file: kts/build.gradle.kts, rule: dep.maven, package: "at.favre.lib:bcrypt", version: "0.10.2"}}
+      - {spec: D8, reason: "Kotlin DSL named arguments",
+         finding: {file: kts/build.gradle.kts, rule: dep.maven, package: "de.mkammerer:argon2-jvm", version: "2.11"}}
+      - {spec: D8, reason: "version catalog, module + version.ref",
+         finding: {file: kts/gradle/libs.versions.toml, rule: dep.maven, package: "org.bitbucket.b_c:jose4j", version: "0.9.6"}}
+      - {spec: D8, reason: "version catalog, group + name + version",
+         finding: {file: kts/gradle/libs.versions.toml, rule: dep.maven, package: "org.springframework.security:spring-security-crypto", version: "6.2.2"}}
+      - {spec: D8, reason: "version catalog, coordinate string",
+         finding: {file: kts/gradle/libs.versions.toml, rule: dep.maven, package: "com.password4j:password4j", version: "1.8.1"}}

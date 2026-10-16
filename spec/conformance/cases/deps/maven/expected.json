@@ -1,0 +1,19 @@
+{"case": "deps/maven", "findings": [
+  {"file": "app/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcpkix-jdk18on", "version": null},
+  {"file": "app/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": null},
+  {"file": "app/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.mindrot:jbcrypt", "version": "0.4"},
+  {"file": "gradle/build.gradle", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.auth0:java-jwt", "version": null},
+  {"file": "gradle/build.gradle", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.google.crypto.tink:tink", "version": "1.12.0"},
+  {"file": "gradle/build.gradle", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.nimbusds:nimbus-jose-jwt", "version": "9.37.3"},
+  {"file": "gradle/build.gradle", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": "1.77"},
+  {"file": "gradle/build.gradle", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.conscrypt:conscrypt-openjdk-uber", "version": "2.5.2"},
+  {"file": "kts/build.gradle.kts", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "at.favre.lib:bcrypt", "version": "0.10.2"},
+  {"file": "kts/build.gradle.kts", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "de.mkammerer:argon2-jvm", "version": "2.11"},
+  {"file": "kts/build.gradle.kts", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.apache.sshd:sshd-core", "version": "2.12.1"},
+  {"file": "kts/gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.password4j:password4j", "version": "1.8.1"},
+  {"file": "kts/gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bitbucket.b_c:jose4j", "version": "0.9.6"},
+  {"file": "kts/gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.springframework.security:spring-security-crypto", "version": "6.2.2"},
+  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "commons-codec:commons-codec", "version": "1.16.1"},
+  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "io.jsonwebtoken:jjwt-api", "version": "0.12.5"},
+  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": "1.78.1"}
+]}

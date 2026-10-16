@@ -1,0 +1,8 @@
+[versions]
+jose4j = "0.9.6"
+
+[libraries]
+jose4j = { module = "org.bitbucket.b_c:jose4j", version.ref = "jose4j" }
+spring-crypto = { group = "org.springframework.security", name = "spring-security-crypto", version = "6.2.2" }
+slf4j = "org.slf4j:slf4j-api:2.0.12"
+password4j = "com.password4j:password4j:1.8.1"

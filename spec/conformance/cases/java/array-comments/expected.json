@@ -1,0 +1,9 @@
+{"case": "java/array-comments", "findings": [
+  {"file": "src/k/Commented.java", "line": 9, "rule": "java.key.hardcoded", "type": "key-material", "subtype": "hardcoded-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Commented.java", "line": 9, "rule": "java.sym.des", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "DES", "variant": null, "protocol": null, "version": null, "param": null, "name": "DES"},
+  {"file": "src/k/Commented.java", "line": 10, "rule": "java.key.hardcoded", "type": "key-material", "subtype": "hardcoded-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Commented.java", "line": 10, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "src/k/Commented.java", "line": 11, "rule": "java.key.hardcoded", "type": "key-material", "subtype": "hardcoded-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/k/Commented.java", "line": 11, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "src/k/Commented.java", "line": 15, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"}
+]}

@@ -1,0 +1,10 @@
+{
+    "_meta": {"hash": {"sha256": "0"}, "pipfile-spec": 6, "requires": {}, "sources": []},
+    "default": {
+        "rsa": {"hashes": [], "version": "==4.9"},
+        "six": {"hashes": [], "version": "==1.16.0"}
+    },
+    "develop": {
+        "m2crypto": {"hashes": [], "version": "==0.40.1"}
+    }
+}

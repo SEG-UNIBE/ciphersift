@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ciphersift.example/schema/rule-1.json",
+  "title": "CipherSift rule document (format version 1)",
+  "description": "One YAML or JSON document per file. Semantics: SPEC.md, section 5 (Rule format). SPDX-License-Identifier: Apache-2.0",
+  "oneOf": [
+    {"$ref": "#/$defs/sourceRule"},
+    {"$ref": "#/$defs/dependencyRule"},
+    {"$ref": "#/$defs/constantsDoc"}
+  ],
+  "$defs": {
+    "ruleId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+$"
+    },
+    "regex": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A regular expression in the common subset of java.util.regex and Python re (SPEC.md 5.7)."
+    },
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "stringList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/nonEmptyString"}
+    },
+    "stringOrList": {
+      "oneOf": [{"$ref": "#/$defs/nonEmptyString"}, {"$ref": "#/$defs/stringList"}]
+    },
+    "javaQualifiedName": {
+      "type": "string",
+      "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)+\\*?$"
+    },
+    "pythonDottedName": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
+    },
+    "identifierOrPrefix": {
+      "type": "string",
+      "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*\\*?$"
+    },
+
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["algorithm", "protocol", "certificate", "related-crypto-material", "key-material"]},
+        "subtype": {"$ref": "#/$defs/nonEmptyString"},
+        "primitive": {"enum": ["block-cipher", "stream-cipher", "hash", "mac", "signature", "pke", "kem", "kdf", "key-agree", "ae", "drbg", "xof", "combiner", "other"]},
+        "family": {"$ref": "#/$defs/nonEmptyString"},
+        "variant": {"$ref": "#/$defs/nonEmptyString"},
+        "securityLevel": {"type": "integer", "minimum": 0},
+        "protocol": {"enum": ["tls", "ssh", "ipsec", "ike", "sstp", "wpa", "other"]},
+        "version": {"$ref": "#/$defs/nonEmptyString"}
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": "protocol"}}},
+         "then": {"required": ["protocol"]},
+         "else": {"not": {"anyOf": [{"required": ["protocol"]}, {"required": ["version"]}]}}}
+      ]
+    },
+
+    "javaPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "call": {"$ref": "#/$defs/javaQualifiedName"},
+        "new": {"$ref": "#/$defs/javaQualifiedName"},
+        "method": {"$ref": "#/$defs/identifierOrPrefix"},
+        "field": {"$ref": "#/$defs/javaQualifiedName"},
+        "override": {"$ref": "#/$defs/identifierOrPrefix"},
+        "firstString": {"$ref": "#/$defs/regex"},
+        "anyString": {"$ref": "#/$defs/regex"},
+        "stringContains": {"$ref": "#/$defs/stringList"},
+        "argsText": {"$ref": "#/$defs/regex"},
+        "argsTextContains": {"$ref": "#/$defs/stringList"},
+        "constantArg": {"type": "integer", "minimum": 0},
+        "inType": {"$ref": "#/$defs/stringList"},
+        "body": {"$ref": "#/$defs/regex"},
+        "param": {"$ref": "#/$defs/param"}
+      },
+      "oneOf": [
+        {"required": ["call"]}, {"required": ["new"]}, {"required": ["method"]},
+        {"required": ["field"]}, {"required": ["override"]}
+      ],
+      "allOf": [
+        {"if": {"anyOf": [{"required": ["inType"]}, {"required": ["body"]}]},
+         "then": {"required": ["override"]}},
+        {"if": {"required": ["override"]},
+         "then": {"not": {"anyOf": [
+           {"required": ["firstString"]}, {"required": ["anyString"]}, {"required": ["stringContains"]},
+           {"required": ["argsText"]}, {"required": ["argsTextContains"]}, {"required": ["constantArg"]},
+           {"required": ["param"]}]}}},
+        {"if": {"required": ["field"]},
+         "then": {"not": {"anyOf": [
+           {"required": ["firstString"]}, {"required": ["anyString"]}, {"required": ["stringContains"]},
+           {"required": ["argsText"]}, {"required": ["argsTextContains"]}, {"required": ["constantArg"]},
+           {"required": ["param"]}]}}},
+        {"if": {"required": ["new"]},
+         "then": {"properties": {"new": {"pattern": "[^*]$"}}}}
+      ]
+    },
+
+    "pythonPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "call": {"$ref": "#/$defs/pythonDottedName"},
+        "method": {
+          "oneOf": [
+            {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+            {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}}
+          ]
+        },
+        "anyCall": {"const": true},
+        "assign": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+        "firstString": {"$ref": "#/$defs/regex"},
+        "stringContains": {"$ref": "#/$defs/stringList"},
+        "anySymbol": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pythonDottedName"}},
+        "allSymbols": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pythonDottedName"}},
+        "kwargs": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+          "additionalProperties": {"$ref": "#/$defs/regex"}
+        },
+        "value": {"$ref": "#/$defs/regex"},
+        "valueContains": {"$ref": "#/$defs/stringList"},
+        "param": {"$ref": "#/$defs/param"},
+        "reportAt": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}}
+      },
+      "allOf": [
+        {"description": "exactly one of call / anyCall / assign; method may stand alone or (not used today) accompany call",
+         "oneOf": [
+           {"required": ["call"], "not": {"anyOf": [{"required": ["anyCall"]}, {"required": ["assign"]}]}},
+           {"required": ["method"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["anyCall"]}, {"required": ["assign"]}]}},
+           {"required": ["anyCall", "kwargs"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["assign"]}]}},
+           {"required": ["assign"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}]}}
+         ]},
+        {"if": {"required": ["assign"]},
+         "then": {"not": {"anyOf": [
+           {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
+           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["param"]}, {"required": ["reportAt"]}]}},
+         "else": {"not": {"anyOf": [{"required": ["value"]}, {"required": ["valueContains"]}]}}}
+      ]
+    },
+
+    "param": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "self": {"const": true},
+        "keyword": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+        "index": {"type": "integer", "minimum": 0}
+      },
+      "if": {"required": ["self"]},
+      "then": {"not": {"anyOf": [{"required": ["keyword"]}, {"required": ["index"]}]}}
+    },
+
+    "sourceRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "language", "name", "asset", "match"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"},
+        "kind": {"const": "source"},
+        "language": {"enum": ["java", "python"]},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "description": {"type": "string"},
+        "asset": {"$ref": "#/$defs/asset"},
+        "match": {"type": "array", "minItems": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"language": {"const": "java"}}},
+         "then": {"properties": {"id": {"pattern": "^java\\."}, "match": {"items": {"$ref": "#/$defs/javaPattern"}}}}},
+        {"if": {"properties": {"language": {"const": "python"}}},
+         "then": {"properties": {"id": {"pattern": "^python\\."}, "match": {"items": {"$ref": "#/$defs/pythonPattern"}}}}}
+      ]
+    },
+
+    "dependencyRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "ecosystem", "name", "asset", "packages"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"},
+        "kind": {"const": "dependency"},
+        "ecosystem": {"enum": ["maven", "pypi"]},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "description": {"type": "string"},
+        "asset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {"type": {"const": "library"}}
+        },
+        "packages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["package"],
+            "properties": {
+              "package": {"$ref": "#/$defs/nonEmptyString"},
+              "note": {"type": "string"}
+            }
+          }
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"ecosystem": {"const": "maven"}}},
+         "then": {"properties": {"id": {"pattern": "^dep\\."}, "packages": {"items": {"properties": {"package": {"pattern": "^[A-Za-z0-9_.*-]+:[A-Za-z0-9_.*-]+$"}}}}}}},
+        {"if": {"properties": {"ecosystem": {"const": "pypi"}}},
+         "then": {"properties": {"id": {"pattern": "^dep\\."}, "packages": {"items": {"properties": {"package": {"pattern": "^[a-z0-9*]([a-z0-9*-]*[a-z0-9*])?$"}}}}}}}
+      ]
+    },
+
+    "constantsDoc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "language", "constants"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"},
+        "kind": {"const": "constants"},
+        "language": {"const": "java"},
+        "description": {"type": "string"},
+        "constants": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"},
+          "additionalProperties": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {"pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"},
+            "additionalProperties": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+{"case": "common/exclude", "findings": [
+  {"file": "app/main.py", "line": 2, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"}
+]}

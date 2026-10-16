@@ -1,0 +1,10 @@
+{"case": "java/cross-file", "findings": [
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 16, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-384"},
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 17, "rule": "java.sym.aes.cbc", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": "CBC", "protocol": null, "version": null, "param": null, "name": "AES/CBC/NoPadding"},
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 18, "rule": "java.asym.ecdsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA256withECDSA"},
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 19, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "HmacSHA512"},
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 20, "rule": "java.kdf.pbkdf2", "type": "algorithm", "subtype": null, "primitive": "kdf", "family": "PBKDF2", "variant": null, "protocol": null, "version": null, "param": null, "name": "PBKDF2WithHmacSHA512"},
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 21, "rule": "java.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "EC"},
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 22, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "HmacSHA512"},
+  {"file": "src/main/java/com/acme/core/Service.java", "line": 23, "rule": "java.jca.messagedigest.unresolved", "type": "algorithm", "subtype": null, "primitive": "hash", "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "MessageDigest.getInstance"}
+]}
