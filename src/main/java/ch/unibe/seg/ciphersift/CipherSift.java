@@ -26,7 +26,7 @@ public final class CipherSift {
         return p;
     }
 
-    /** CipherSift version, e.g. {@code 1.0.0-SNAPSHOT}. */
+    /** CipherSift version, e.g. {@code 1.1.1}. */
     public static String version() {
         return PROPS.getProperty("version", "unknown");
     }
