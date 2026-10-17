@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.bcrypt
+kind: source
+language: go
+name: bcrypt password hashing in Go
+description: >-
+  Detects golang.org/x/crypto/bcrypt.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: bcrypt
+match:
+- call: golang.org/x/crypto/bcrypt.GenerateFromPassword
+- call: golang.org/x/crypto/bcrypt.CompareHashAndPassword
+- call: golang.org/x/crypto/bcrypt.Cost

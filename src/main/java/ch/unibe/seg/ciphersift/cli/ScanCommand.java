@@ -129,9 +129,11 @@ public final class ScanCommand implements Callable<Integer> {
         byte[] doc = CbomWriter.write(meta, result.components());
         write(out, doc);
         double secs = (System.nanoTime() - start) / 1e9;
+        // "go N" only when Go files were scanned, so that the line of a Java/Python scan is unchanged
         Log.info(String.format(Locale.ROOT,
-                "scanned %d files (java %d, python %d, manifests %d) in %.1f s; %d findings, %d components; %d files skipped",
-                result.scanned(), result.javaFiles(), result.pythonFiles(), result.manifests(), secs, result.findings(),
+                "scanned %d files (java %d, python %d%s, manifests %d) in %.1f s; %d findings, %d components; %d files skipped",
+                result.scanned(), result.javaFiles(), result.pythonFiles(),
+                result.goFiles() == 0 ? "" : ", go " + result.goFiles(), result.manifests(), secs, result.findings(),
                 result.components().size(), result.skipped()));
         return ExitCodes.OK;
     }

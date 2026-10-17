@@ -66,7 +66,7 @@ build() {
   local cc="${CC:-gcc}"
   local ext=so
   case "$platform" in darwin-*) ext=dylib ;; windows-*) ext=dll ;; esac
-  for d in tree-sitter tree-sitter-java tree-sitter-python; do
+  for d in tree-sitter tree-sitter-java tree-sitter-python tree-sitter-go; do
     if [ ! -d "$VENDOR/$d" ]; then
       echo "build-natives: $VENDOR/$d missing; run '$0 fetch' first" >&2
       exit 1
@@ -77,7 +77,7 @@ build() {
   echo "build $platform -> $out"
   "$cc" $cflags -I"$VENDOR/tree-sitter/lib/include" -I"$VENDOR/tree-sitter/lib/src" \
       -shared -o "$out/libtree-sitter.$ext" "$VENDOR/tree-sitter/lib/src/lib.c"
-  for g in java python; do
+  for g in java python go; do
     local srcs="$VENDOR/tree-sitter-$g/src/parser.c"
     [ -f "$VENDOR/tree-sitter-$g/src/scanner.c" ] && srcs="$srcs $VENDOR/tree-sitter-$g/src/scanner.c"
     # shellcheck disable=SC2086
@@ -86,7 +86,7 @@ build() {
   if [ "$ext" = so ] && command -v strip >/dev/null 2>&1; then
     strip --strip-unneeded "$out"/*.so
   fi
-  ( cd "$out" && for f in libtree-sitter.$ext libtree-sitter-java.$ext libtree-sitter-python.$ext; do
+  ( cd "$out" && for f in libtree-sitter.$ext libtree-sitter-java.$ext libtree-sitter-python.$ext libtree-sitter-go.$ext; do
       printf '%s  %s\n' "$(sha256 "$f")" "$f"; done > SHA256SUMS )
   cat "$out/SHA256SUMS"
 }
@@ -95,7 +95,7 @@ ensure() {
   local platform="${PLATFORM:-$(detect_platform)}"
   local out="${OUT:-$ROOT/target/native/$platform}"
   if [ -f "$out/SHA256SUMS" ] && [ -n "$(ls "$out"/libtree-sitter* 2>/dev/null)" ] \
-     && [ "$(wc -l < "$out/SHA256SUMS")" -ge 3 ]; then
+     && [ "$(wc -l < "$out/SHA256SUMS")" -ge 4 ]; then
     echo "native libraries for $platform present in $out"
   else
     build

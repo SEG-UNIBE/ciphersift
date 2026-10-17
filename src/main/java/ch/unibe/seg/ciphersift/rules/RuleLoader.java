@@ -346,6 +346,7 @@ public final class RuleLoader {
         Map<String, String> depByEcosystem = new HashMap<>();
         List<SourceRule> javaRules = new ArrayList<>();
         List<SourceRule> pythonRules = new ArrayList<>();
+        List<SourceRule> goRules = new ArrayList<>();
         Map<String, DependencyRule> deps = new LinkedHashMap<>();
         Map<String, Map<String, String>> constants = new HashMap<>();
         int constantsDocs = 0;
@@ -367,9 +368,17 @@ public final class RuleLoader {
                         problems.add(file + ": /id: a " + lang + " source rule id must start with \"" + lang + ".\"");
                         continue;
                     }
-                    SourceRule r = "java".equals(lang) ? javaRule(file, doc, problems) : pythonRule(file, doc, problems);
+                    SourceRule r = switch (lang) {
+                        case "java" -> javaRule(file, doc, problems);
+                        case "go" -> goRule(file, doc, problems);
+                        default -> pythonRule(file, doc, problems);
+                    };
                     if (r != null) {
-                        ("java".equals(lang) ? javaRules : pythonRules).add(r);
+                        (switch (lang) {
+                            case "java" -> javaRules;
+                            case "go" -> goRules;
+                            default -> pythonRules;
+                        }).add(r);
                     }
                 }
                 case "dependency" -> {
@@ -417,7 +426,11 @@ public final class RuleLoader {
         for (int i = 0; i < pythonRules.size(); i++) {
             pythonRules.get(i).order = i;
         }
-        return new RuleSet(javaRules, pythonRules, deps, Map.copyOf(constants), digest(files), constantsDocs);
+        goRules.sort((a, b) -> Texts.compareCodePoints(a.id(), b.id()));
+        for (int i = 0; i < goRules.size(); i++) {
+            goRules.get(i).order = i;
+        }
+        return new RuleSet(javaRules, pythonRules, goRules, deps, Map.copyOf(constants), digest(files), constantsDocs);
     }
 
     // ------------------------------------------------------------------ parsing
@@ -671,6 +684,54 @@ public final class RuleLoader {
                     strings(p.get("inType"), false),
                     regex(file, ptr + "/body", p.get("body"), 0, problems),
                     paramIndex, hasCondition));
+        }
+        return problems.size() == before ? rule : null;
+    }
+
+    /** Compiles a Go source rule (SPEC 17.3). */
+    private static SourceRule goRule(String file, JsonNode doc, List<String> problems) {
+        List<GoPattern> patterns = new ArrayList<>();
+        SourceRule rule = new SourceRule(doc.get("id").asText(), "go", doc.get("name").asText(),
+                asset(doc.get("asset")), patterns, file, text(doc, "indicator"));
+        int before = problems.size();
+        JsonNode match = doc.get("match");
+        for (int i = 0; i < match.size(); i++) {
+            JsonNode p = match.get(i);
+            String ptr = "/match/" + i;
+            GoPattern.Anchor anchor;
+            String key;
+            if (p.has("call")) {
+                anchor = GoPattern.Anchor.CALL;
+                key = "call";
+            } else if (p.has("ref")) {
+                anchor = GoPattern.Anchor.REF;
+                key = "ref";
+            } else if (p.has("composite")) {
+                anchor = GoPattern.Anchor.COMPOSITE;
+                key = "composite";
+            } else {
+                anchor = GoPattern.Anchor.ASSIGN;
+                key = "assign";
+            }
+            String value = p.get(key).asText();
+            boolean prefix = value.endsWith("*");
+            String name = prefix ? value.substring(0, value.length() - 1) : value;
+            String path = null;
+            if (anchor != GoPattern.Anchor.ASSIGN) {
+                int dot = name.lastIndexOf('.');
+                path = dot <= 0 ? "" : name.substring(0, dot);
+                if (path.isEmpty()) {
+                    problems.add(file + ": " + ptr + "/" + key + ": the import path before the last \".\" is empty");
+                }
+            }
+            JsonNode param = p.get("param");
+            patterns.add(new GoPattern(rule, i, anchor, name, prefix, path,
+                    strings(p.get("anySymbol"), false),
+                    regex(file, ptr + "/value", p.get("value"), CI, problems),
+                    strings(p.get("valueContains"), true),
+                    param != null && param.has("index") ? param.get("index").asInt() : null,
+                    param != null && param.has("self") && param.get("self").asBoolean(),
+                    param == null ? null : text(param, "value")));
         }
         return problems.size() == before ? rule : null;
     }

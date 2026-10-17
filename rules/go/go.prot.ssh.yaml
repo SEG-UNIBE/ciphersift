@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.prot.ssh
+kind: source
+language: go
+name: SSH protocol usage in Go
+description: >-
+  Detects golang.org/x/crypto/ssh clients, servers, configurations, signers and known_hosts handling.
+asset:
+  type: protocol
+  protocol: ssh
+match:
+- call: golang.org/x/crypto/ssh.Dial
+- call: golang.org/x/crypto/ssh.NewClient
+- call: golang.org/x/crypto/ssh.NewClientConn
+- call: golang.org/x/crypto/ssh.NewServerConn
+- call: golang.org/x/crypto/ssh.NewSignerFromKey
+- call: golang.org/x/crypto/ssh.NewSignerFromSigner
+- call: golang.org/x/crypto/ssh.NewPublicKey
+- call: golang.org/x/crypto/ssh.PublicKeys
+- composite: golang.org/x/crypto/ssh.ClientConfig
+- composite: golang.org/x/crypto/ssh.ServerConfig
+- call: golang.org/x/crypto/ssh/knownhosts.New

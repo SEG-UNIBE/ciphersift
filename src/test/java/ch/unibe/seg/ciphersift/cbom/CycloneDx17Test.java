@@ -50,6 +50,7 @@ class CycloneDx17Test {
     private static List<SourceRule> sourceRules() {
         List<SourceRule> all = new ArrayList<>(rules.javaRules());
         all.addAll(rules.pythonRules());
+        all.addAll(rules.goRules());
         return all;
     }
 

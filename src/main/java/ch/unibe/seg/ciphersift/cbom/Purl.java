@@ -22,6 +22,22 @@ public final class Purl {
         return "pkg:pypi/" + encode(name) + (version == null ? "" : "@" + encode(version));
     }
 
+    /**
+     * {@code pkg:golang/<module path>[@<version>]}: each {@code /}-separated segment of the module path
+     * encoded on its own (SPEC 17.10).
+     */
+    public static String golang(String modulePath, String version) {
+        StringBuilder b = new StringBuilder("pkg:golang/");
+        String[] seg = modulePath.split("/", -1);
+        for (int i = 0; i < seg.length; i++) {
+            if (i > 0) {
+                b.append('/');
+            }
+            b.append(encode(seg[i]));
+        }
+        return b + (version == null ? "" : "@" + encode(version));
+    }
+
     /** Percent-encodes every character outside {@code A-Z a-z 0-9 . - _ ~} (UTF-8, upper-case hex). */
     public static String encode(String s) {
         StringBuilder b = new StringBuilder(s.length());

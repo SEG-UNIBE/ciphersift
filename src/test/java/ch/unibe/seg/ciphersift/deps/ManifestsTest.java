@@ -42,6 +42,30 @@ class ManifestsTest {
     }
 
     @Test
+    void goMod() {
+        String mod = "module example.com/m // the module itself\r\ngo 1.23\nrequire golang.org/x/crypto v0.31.0\n"
+                + "require (\n\t\"filippo.io/age\" v1.2.1 // indirect\n\n\t`github.com/x/y` v0.0.0-2024+incompatible\n)\n"
+                + "replace golang.org/x/crypto => ../crypto\nexclude (\n\tgo.step.sm/crypto v0.1.0\n)\n"
+                + "require golang.org/x/crypto v0.32.0\nrequire broken\n";
+        assertEquals("golang.org/x/crypto@v0.31.0 filippo.io/age@v1.2.1 github.com/x/y@v0.0.0-2024+incompatible "
+                + "golang.org/x/crypto@v0.32.0", keys(GoManifests.goMod(mod)));
+        assertEquals("golang.org/x/crypto@v0.32.0", DependencyScanner.deduplicate(GoManifests.goMod(mod)).get(0).key()
+                + "@" + DependencyScanner.deduplicate(GoManifests.goMod(mod)).get(0).version());
+        assertEquals("filippo.io/age@v1.2.1", GoManifests.goMod(mod).get(1).snippet());
+    }
+
+    @Test
+    void goSum() {
+        String sum = "a.io/m v1.0.0 h1:x=\na.io/m v1.0.0/go.mod h1:y=\nb.io/n v2.0.0/go.mod h1:z=\n\na.io/m v1.1.0 h1:w=\n";
+        assertEquals("a.io/m@v1.0.0 a.io/m@v1.1.0", keys(GoManifests.goSum(sum)));
+        assertEquals("pkg:golang/golang.org/x/crypto@v0.31.0",
+                ch.unibe.seg.ciphersift.cbom.Purl.golang("golang.org/x/crypto", "v0.31.0"));
+        assertEquals("pkg:golang/github.com/x/y@v0.0.0-2024%2Bincompatible",
+                ch.unibe.seg.ciphersift.cbom.Purl.golang("github.com/x/y", "v0.0.0-2024+incompatible"));
+        assertEquals("pkg:golang/a%20b/c", ch.unibe.seg.ciphersift.cbom.Purl.golang("a b/c", null));
+    }
+
+    @Test
     void requirementsFile() {
         String text = "# comment\ncryptography==1 # trailing\n-r other.txt\n--hash=x\nfoo @ https://x/y.whl\n"
                 + "pyjwt\\\n==2.0\nurl#frag==3\n\n";

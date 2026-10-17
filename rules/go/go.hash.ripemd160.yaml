@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.ripemd160
+kind: source
+language: go
+name: RIPEMD-160 hash usage in Go
+description: >-
+  Detects golang.org/x/crypto/ripemd160 and crypto.RIPEMD160.
+asset:
+  type: algorithm
+  primitive: hash
+  family: RIPEMD160
+  securityLevel: 80
+match:
+- call: golang.org/x/crypto/ripemd160.New
+- ref: crypto.RIPEMD160

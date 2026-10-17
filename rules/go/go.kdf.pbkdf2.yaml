@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.kdf.pbkdf2
+kind: source
+language: go
+name: PBKDF2 key derivation in Go
+description: >-
+  Detects crypto/pbkdf2 (Go 1.24) and golang.org/x/crypto/pbkdf2.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: PBKDF2
+match:
+- call: crypto/pbkdf2.Key
+- call: golang.org/x/crypto/pbkdf2.Key

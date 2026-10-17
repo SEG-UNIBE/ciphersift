@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.twofish
+kind: source
+language: go
+name: Twofish usage in Go
+description: >-
+  Detects golang.org/x/crypto/twofish.NewCipher.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: Twofish
+match:
+- call: golang.org/x/crypto/twofish.NewCipher

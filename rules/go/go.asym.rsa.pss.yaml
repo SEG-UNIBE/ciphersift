@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.rsa.pss
+kind: source
+language: go
+name: RSA-PSS signatures in Go
+description: >-
+  Detects crypto/rsa SignPSS / VerifyPSS, PSSOptions and the crypto/x509 *WithRSAPSS signature algorithms.
+asset:
+  type: algorithm
+  primitive: signature
+  family: RSA
+  variant: PSS
+match:
+- call: crypto/rsa.SignPSS
+- call: crypto/rsa.VerifyPSS
+- composite: crypto/rsa.PSSOptions
+- ref: crypto/x509.SHA256WithRSAPSS
+- ref: crypto/x509.SHA384WithRSAPSS
+- ref: crypto/x509.SHA512WithRSAPSS

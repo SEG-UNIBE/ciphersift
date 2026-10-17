@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.rsa
+kind: source
+language: go
+name: RSA key generation / usage in Go
+description: >-
+  Detects RSA key generation (crypto/rsa.GenerateKey, GenerateMultiPrimeKey; the key size is reported as
+  parameter when it is a constant) and the x509.RSA public-key algorithm.
+asset:
+  type: algorithm
+  primitive: signature
+  family: RSA
+match:
+- call: crypto/rsa.GenerateKey
+  param:
+    index: 1
+- call: crypto/rsa.GenerateMultiPrimeKey
+  param:
+    index: 2
+- ref: crypto/x509.RSA

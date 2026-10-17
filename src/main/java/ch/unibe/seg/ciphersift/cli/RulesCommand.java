@@ -44,9 +44,11 @@ public final class RulesCommand implements Callable<Integer> {
             PrintStream o = System.out;
             o.println("source java: " + r.javaRules().size());
             o.println("source python: " + r.pythonRules().size());
+            o.println("source go: " + r.goRules().size());
             o.println("constants java: " + r.constantsDocuments());
             o.println("dependency maven: " + (r.dependencyRule("maven") == null ? 0 : 1));
             o.println("dependency pypi: " + (r.dependencyRule("pypi") == null ? 0 : 1));
+            o.println("dependency golang: " + (r.dependencyRule("golang") == null ? 0 : 1));
             o.flush();
             return ExitCodes.OK;
         }

@@ -14,6 +14,7 @@ import ch.unibe.seg.ciphersift.files.FileCollector;
 import ch.unibe.seg.ciphersift.files.FileCollector.CollectedFile;
 import ch.unibe.seg.ciphersift.files.Glob;
 import ch.unibe.seg.ciphersift.files.SourceText;
+import ch.unibe.seg.ciphersift.lang.go.GoAnalyzer;
 import ch.unibe.seg.ciphersift.lang.java.JavaAnalyzer;
 import ch.unibe.seg.ciphersift.lang.java.JavaContexts;
 import ch.unibe.seg.ciphersift.lang.python.PythonAnalyzer;
@@ -49,29 +50,33 @@ public final class Scanner {
     }
 
     /** What happened to one file. */
-    enum Outcome { JAVA, PYTHON, MANIFEST, SKIPPED }
+    enum Outcome { JAVA, PYTHON, GO, MANIFEST, SKIPPED }
 
     private record FileResult(Outcome outcome, FileFindings findings) {}
 
     /** The result of a scan. */
-    public record Result(List<Component> components, int javaFiles, int pythonFiles, int manifests, int skipped,
-            int findings) {
+    public record Result(List<Component> components, int javaFiles, int pythonFiles, int goFiles, int manifests,
+            int skipped, int findings) {
         public int scanned() {
-            return javaFiles + pythonFiles + manifests;
+            return javaFiles + pythonFiles + goFiles + manifests;
         }
     }
 
     private final Options options;
     private final Language javaLanguage;
     private final Language pythonLanguage;
+    private final Language goLanguage;
     private final List<Parser> parsers = Collections.synchronizedList(new ArrayList<>());
     private final ThreadLocal<Parser> javaParser;
     private final ThreadLocal<Parser> pythonParser;
+    private final ThreadLocal<Parser> goParser;
     private final JavaAnalyzer javaAnalyzer;
     private final PythonAnalyzer pythonAnalyzer;
+    private final GoAnalyzer goAnalyzer;
     private final DependencyScanner dependencyScanner;
     private final AnchorPrefilter javaFilter;
     private final AnchorPrefilter pythonFilter;
+    private final AnchorPrefilter goFilter;
 
     /**
      * System property that disables the anchor pre-filter (every source file is parsed and analysed).
@@ -84,15 +89,19 @@ public final class Scanner {
         Grammars g = Grammars.get();
         this.javaLanguage = g.java();
         this.pythonLanguage = g.python();
+        this.goLanguage = g.go();
         this.javaParser = ThreadLocal.withInitial(() -> newParser(javaLanguage));
         this.pythonParser = ThreadLocal.withInitial(() -> newParser(pythonLanguage));
+        this.goParser = ThreadLocal.withInitial(() -> newParser(goLanguage));
         JavaContexts contexts = new JavaContexts(options.root(), javaLanguage, javaParser::get);
         this.javaAnalyzer = new JavaAnalyzer(options.rules(), contexts);
         this.pythonAnalyzer = new PythonAnalyzer(options.rules());
+        this.goAnalyzer = new GoAnalyzer(options.rules());
         this.dependencyScanner = new DependencyScanner(options.rules());
         boolean filter = !Boolean.getBoolean(NO_PREFILTER);
         this.javaFilter = filter ? AnchorPrefilter.java(options.rules().javaRules()) : AnchorPrefilter.ALL;
         this.pythonFilter = filter ? AnchorPrefilter.python(options.rules().pythonRules()) : AnchorPrefilter.ALL;
+        this.goFilter = filter ? AnchorPrefilter.go(options.rules().goRules()) : AnchorPrefilter.ALL;
     }
 
     /**
@@ -110,6 +119,7 @@ public final class Scanner {
                 Grammars g = Grammars.get();
                 SyntaxTrees.warmUp(g.java());
                 SyntaxTrees.warmUp(g.python());
+                SyntaxTrees.warmUp(g.go());
             } catch (RuntimeException | LinkageError ex) {
                 // reported later by Grammars.get() on the scanning thread
             }
@@ -178,6 +188,7 @@ public final class Scanner {
 
         int java = 0;
         int python = 0;
+        int go = 0;
         int manifests = 0;
         int skipped = 0;
         List<SourceFinding> source = new ArrayList<>();
@@ -186,6 +197,7 @@ public final class Scanner {
             switch (r.outcome()) {
                 case JAVA -> java++;
                 case PYTHON -> python++;
+                case GO -> go++;
                 case MANIFEST -> manifests++;
                 case SKIPPED -> skipped++;
                 default -> throw new IllegalStateException();
@@ -204,7 +216,7 @@ public final class Scanner {
         for (Component c : components) {
             occurrences += c.occurrences().size();
         }
-        return new Result(components, java, python, manifests, skipped, occurrences);
+        return new Result(components, java, python, go, manifests, skipped, occurrences);
     }
 
     private static final FileResult SKIP = new FileResult(Outcome.SKIPPED, FileFindings.EMPTY);
@@ -233,6 +245,9 @@ public final class Scanner {
                     return SKIP;
                 }
                 String text = SourceText.decode(bytes);
+                if (fc == FileClass.GO) {
+                    return goFile(text, rel, f.test());
+                }
                 boolean java = fc == FileClass.JAVA;
                 // setup.py is Python source and may also declare requirements (SPEC 9.8)
                 boolean setupPy = !java && SetupManifests.isSetupPy(rel) && SetupManifests.maybeDeclaresRequirements(text);
@@ -269,6 +284,18 @@ public final class Scanner {
             Log.warning("analysis of " + rel + " failed (" + message(ex) + "); file skipped");
             return SKIP;
         }
+    }
+
+    /** A Go source file (SPEC 17); failures are handled by the caller like for the other languages. */
+    private FileResult goFile(String text, String rel, boolean test) {
+        if (!goFilter.mayMatch(text)) {
+            return new FileResult(Outcome.GO, FileFindings.EMPTY);
+        }
+        SyntaxTrees.Parsed parsed = SyntaxTrees.parseChecked(goParser.get(), goLanguage, text);
+        if (parsed.hasError()) {
+            Log.debug("syntax errors in " + rel + "; analysing the well-formed parts");
+        }
+        return new FileResult(Outcome.GO, FileFindings.ofSource(goAnalyzer.analyze(parsed.root(), rel, test)));
     }
 
     private static String message(Throwable ex) {

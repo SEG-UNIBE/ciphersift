@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.kdf.hkdf
+kind: source
+language: go
+name: HKDF key derivation in Go
+description: >-
+  Detects crypto/hkdf (Go 1.24) and golang.org/x/crypto/hkdf.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: HKDF
+match:
+- call: crypto/hkdf.Key
+- call: crypto/hkdf.Extract
+- call: crypto/hkdf.Expand
+- call: golang.org/x/crypto/hkdf.New
+- call: golang.org/x/crypto/hkdf.Extract
+- call: golang.org/x/crypto/hkdf.Expand

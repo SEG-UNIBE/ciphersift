@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.cert.x509
+kind: source
+language: go
+name: X.509 certificate operations in Go
+description: >-
+  Detects crypto/x509 certificate, CSR and CRL parsing and creation, certificate pools and templates,
+  verification options, and crypto/tls key-pair loading.
+asset:
+  type: algorithm
+  subtype: x509
+match:
+- call: crypto/x509.ParseCertificate
+- call: crypto/x509.ParseCertificates
+- call: crypto/x509.CreateCertificate
+- call: crypto/x509.CreateCertificateRequest
+- call: crypto/x509.ParseCertificateRequest
+- call: crypto/x509.CreateRevocationList
+- call: crypto/x509.ParseRevocationList
+- call: crypto/x509.ParseCRL
+- call: crypto/x509.ParseDERCRL
+- call: crypto/x509.NewCertPool
+- call: crypto/x509.SystemCertPool
+- composite: crypto/x509.Certificate
+- composite: crypto/x509.CertificateRequest
+- composite: crypto/x509.RevocationList
+- composite: crypto/x509.VerifyOptions
+- call: crypto/tls.LoadX509KeyPair
+- call: crypto/tls.X509KeyPair

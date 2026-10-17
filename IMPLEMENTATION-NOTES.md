@@ -53,7 +53,8 @@ Root package `ch.unibe.seg.ciphersift` (groupId `ch.unibe.seg`, artifactId `ciph
 | `lang.java.JavaAnalyzer` | events, rule index lookup, pattern evaluation, specificity selection, nested duplicates, findings (7.2, 7.5–7.8) |
 | `lang.java.JavaContext`, `JExpr`, `JavaResolver`, `JavaStrings`, `JavaContexts`, `JavaRuleIndex` | file context, compact expression form, `value` / lookups / string lists / `isConst`, literal and text-block decoding, cross-file context cache (7.3, 7.4) |
 | `lang.python.PythonAnalyzer`, `PythonRuleIndex` | collection walk, scopes and bindings, name resolution, argument analysis, matching of calls and bare references, attribution, params, attribute assignments (8) |
-| `deps.DependencyScanner`, `PythonManifests`, `MavenManifests`, `SetupManifests`, `ManifestEntry` | all manifest formats (`setup.py` from its syntax tree, `setup.cfg`), per-manifest de-duplication, rule matching (9) |
+| `lang.go.GoAnalyzer`, `GoRuleIndex`, `rules.GoPattern` | Go: imports and local names, declarations and bindings, events (call / reference / composite / assign), constant values, bound names, symbol sets, Java-style selection and nested duplicates, params (17) |
+| `deps.DependencyScanner`, `PythonManifests`, `MavenManifests`, `SetupManifests`, `GoManifests`, `ManifestEntry` | all manifest formats (`setup.py` from its syntax tree, `setup.cfg`, `go.mod`, `go.sum`), per-manifest de-duplication, rule matching (9, 17.10) |
 | `model.*` | source and dependency findings (2.1) |
 | `cbom.Normaliser`, `Component`, `CbomWriter`, `Purl` | components and occurrences, ordering, bom-refs, serial number, JSON (10, 11) |
 | `cbom.CycloneDxVersion`, `CryptoRegistry` | output version (`--cyclonedx-version`), CycloneDX 1.7 registry mapping: `algorithmFamily`, `ellipticCurve` (11.3.1, DECISIONS C1) |
@@ -444,3 +445,18 @@ conformance suite updated.
 * **Runtime image**: a jlink'ed runtime with `java.base,java.desktop,java.sql,jdk.zipfs,jdk.unsupported`
   (~57 MB) runs the conformance suite (46/46) and gives byte-identical output to the full JDK;
   BF-CBOM's CipherSift worker uses it.
+
+## Go support (2026-10-17)
+
+SPEC section 17, DECISIONS G1–G16. `lang.go.GoAnalyzer` runs two iterative walks per file: the
+first collects import specs, declared names and bindings (declarations bind in their function
+scope; plain assignments are attached afterwards to the scope that declares the name), the second
+enumerates events in pre-order. Candidate patterns come from `GoRuleIndex` (exact names and the
+few prefix anchors per event kind), selection reuses Java's rules, and nested duplicates are
+dropped against the selections of the Go expression ancestors. Values, bound names and symbol
+sets are evaluated lazily, with depth limits (12 / 12 / 6) and a cycle guard, so pathological
+nesting yields "unresolved", never a stack overflow (`GoAnalysisTest.deepNestingDoesNotCrash`).
+The pre-filter requires, per pattern, the import path (it occurs in the import spec) and the
+member. Tests: `GoAnalysisTest`, additions to `RuleLoaderTest`, `FilesTest`, `ManifestsTest`,
+`NativesTest`, `AnchorPrefilterTest` (soundness over the Go conformance inputs too),
+`CycloneDx17Test` (Go families in the registry table), `CliIT`; nine conformance cases.

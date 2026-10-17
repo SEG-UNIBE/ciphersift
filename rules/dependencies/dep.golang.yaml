@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the modules' public documentation (pkg.go.dev, project
+# READMEs); see spec/PROVENANCE.md and SPEC.md section 17.10.
+id: dep.golang
+kind: dependency
+ecosystem: golang
+name: Cryptographic Go modules
+description: >-
+  Go modules that implement or wrap cryptography, matched by module path in go.mod (require) and go.sum.
+  A trailing * also covers major-version suffixes (/v2, /v3, ...) and submodules.
+asset:
+  type: library
+packages:
+- package: golang.org/x/crypto
+  note: Go supplementary cryptography (ssh, chacha20poly1305, argon2, bcrypt, ...)
+- package: filippo.io/age
+- package: filippo.io/edwards25519
+- package: filippo.io/nistec
+- package: filippo.io/bigmod
+- package: filippo.io/mlkem768
+- package: github.com/cloudflare/circl
+- package: github.com/ProtonMail/go-crypto
+  note: OpenPGP (fork of x/crypto/openpgp)
+- package: github.com/golang-jwt/jwt*
+- package: github.com/dgrijalva/jwt-go*
+- package: github.com/go-jose/go-jose*
+- package: gopkg.in/square/go-jose.v2
+- package: gopkg.in/go-jose/go-jose.v2
+- package: github.com/lestrrat-go/jwx*
+- package: go.step.sm/crypto
+  note: smallstep crypto toolkit (old module path)
+- package: github.com/smallstep/crypto
+- package: github.com/google/tink/go
+- package: github.com/tink-crypto/tink-go*
+- package: github.com/miekg/pkcs11
+- package: github.com/ThalesIgnite/crypto11
+- package: github.com/youmark/pkcs8
+- package: software.sslmate.com/src/go-pkcs12
+- package: github.com/decred/dcrd/dcrec/secp256k1*
+- package: github.com/btcsuite/btcd/btcec*
+- package: github.com/emmansun/gmsm
+  note: Chinese SM2/SM3/SM4
+- package: github.com/tjfoc/gmsm
+- package: github.com/zeebo/blake3
+- package: lukechampine.com/blake3
+- package: github.com/minio/sha256-simd
+- package: github.com/open-quantum-safe/liboqs-go
+- package: github.com/refraction-networking/utls
+  note: TLS ClientHello mimicry
+- package: github.com/pion/dtls*
+- package: github.com/gtank/cryptopasta
+- package: github.com/keybase/go-crypto
+- package: github.com/sigstore/sigstore

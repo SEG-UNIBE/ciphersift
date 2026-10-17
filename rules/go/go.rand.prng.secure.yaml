@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.rand.prng.secure
+kind: source
+language: go
+name: Cryptographically secure PRNG usage in Go
+description: >-
+  Detects crypto/rand (Read, Int, Prime, Text and the Reader).
+asset:
+  type: algorithm
+  subtype: prng-secure
+match:
+- call: crypto/rand.Read
+- call: crypto/rand.Int
+- call: crypto/rand.Prime
+- call: crypto/rand.Text
+- ref: crypto/rand.Reader

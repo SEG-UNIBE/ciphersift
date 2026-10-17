@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.blake2
+kind: source
+language: go
+name: BLAKE2 hash usage in Go
+description: >-
+  Detects golang.org/x/crypto/blake2b and blake2s and the crypto.BLAKE2* constants.
+asset:
+  type: algorithm
+  primitive: hash
+  family: BLAKE2
+match:
+- call: golang.org/x/crypto/blake2b.New
+- call: golang.org/x/crypto/blake2b.New256
+- call: golang.org/x/crypto/blake2b.New384
+- call: golang.org/x/crypto/blake2b.New512
+- call: golang.org/x/crypto/blake2b.Sum256
+- call: golang.org/x/crypto/blake2b.Sum384
+- call: golang.org/x/crypto/blake2b.Sum512
+- call: golang.org/x/crypto/blake2b.NewXOF
+- call: golang.org/x/crypto/blake2s.New128
+- call: golang.org/x/crypto/blake2s.New256
+- call: golang.org/x/crypto/blake2s.Sum256
+- call: golang.org/x/crypto/blake2s.NewXOF
+- ref: crypto.BLAKE2s_256
+- ref: crypto.BLAKE2b_256
+- ref: crypto.BLAKE2b_384
+- ref: crypto.BLAKE2b_512

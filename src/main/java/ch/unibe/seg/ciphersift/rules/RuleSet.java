@@ -11,15 +11,18 @@ import java.util.Map;
 public final class RuleSet {
     private final List<SourceRule> javaRules;
     private final List<SourceRule> pythonRules;
+    private final List<SourceRule> goRules;
     private final Map<String, DependencyRule> dependencyRules;
     private final Map<String, Map<String, String>> javaConstants;
     private final String digest;
     private final int constantsDocuments;
 
-    RuleSet(List<SourceRule> javaRules, List<SourceRule> pythonRules, Map<String, DependencyRule> dependencyRules,
-            Map<String, Map<String, String>> javaConstants, String digest, int constantsDocuments) {
+    RuleSet(List<SourceRule> javaRules, List<SourceRule> pythonRules, List<SourceRule> goRules,
+            Map<String, DependencyRule> dependencyRules, Map<String, Map<String, String>> javaConstants, String digest,
+            int constantsDocuments) {
         this.javaRules = List.copyOf(javaRules);
         this.pythonRules = List.copyOf(pythonRules);
+        this.goRules = List.copyOf(goRules);
         this.dependencyRules = Map.copyOf(dependencyRules);
         this.javaConstants = javaConstants;
         this.digest = digest;
@@ -34,7 +37,12 @@ public final class RuleSet {
         return pythonRules;
     }
 
-    /** Dependency rule of an ecosystem ({@code maven}, {@code pypi}) or {@code null}. */
+    /** Go source rules (SPEC 17), in ascending id order. */
+    public List<SourceRule> goRules() {
+        return goRules;
+    }
+
+    /** Dependency rule of an ecosystem ({@code maven}, {@code pypi}, {@code golang}) or {@code null}. */
     public DependencyRule dependencyRule(String ecosystem) {
         return dependencyRules.get(ecosystem);
     }

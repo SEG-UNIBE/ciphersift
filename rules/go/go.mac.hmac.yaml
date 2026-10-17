@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.mac.hmac
+kind: source
+language: go
+name: HMAC usage in Go
+description: >-
+  Detects crypto/hmac.New (the hash function is reported by the hash rules) and golang.org/x/crypto/nacl/auth
+  (HMAC-SHA-512-256).
+asset:
+  type: algorithm
+  primitive: mac
+  family: HMAC
+match:
+- call: crypto/hmac.New
+- call: golang.org/x/crypto/nacl/auth.Sum
+- call: golang.org/x/crypto/nacl/auth.Verify

@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.mode.ctr
+kind: source
+language: go
+name: CTR block-cipher mode in Go (cipher not determined)
+description: >-
+  Fallback: a crypto/cipher NewCTR call whose block cipher is not known statically. Reported only when no
+  cipher-specific rule matches the call.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  variant: CTR
+match:
+- call: crypto/cipher.NewCTR

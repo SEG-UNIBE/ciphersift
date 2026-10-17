@@ -1,0 +1,16 @@
+{"case": "go/references", "findings": [
+  {"file": "refs.go", "line": 17, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto.SHA256"},
+  {"file": "refs.go", "line": 25, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.New"},
+  {"file": "refs.go", "line": 25, "rule": "go.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/hmac.New"},
+  {"file": "refs.go", "line": 26, "rule": "go.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha1.New"},
+  {"file": "refs.go", "line": 26, "rule": "go.kdf.pbkdf2", "type": "algorithm", "subtype": null, "primitive": "kdf", "family": "PBKDF2", "variant": null, "protocol": null, "version": null, "param": null, "name": "golang.org/x/crypto/pbkdf2.Key"},
+  {"file": "refs.go", "line": 27, "rule": "go.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto.SHA1"},
+  {"file": "refs.go", "line": 36, "rule": "go.prot.tls.v1_2", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.2", "param": null, "name": null},
+  {"file": "refs.go", "line": 38, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"},
+  {"file": "refs.go", "line": 41, "rule": "go.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "refs.go", "line": 41, "rule": "go.prot.tls.rc4", "type": "protocol", "subtype": "rc4-cipher", "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "refs.go", "line": 42, "rule": "go.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "refs.go", "line": 45, "rule": "go.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": "P-384", "name": "crypto/tls.CurveP384"},
+  {"file": "refs.go", "line": 45, "rule": "go.asym.x25519", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "Curve25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/tls.X25519"},
+  {"file": "refs.go", "line": 45, "rule": "go.pqc.mlkem", "type": "algorithm", "subtype": null, "primitive": "kem", "family": "ML-KEM", "variant": null, "protocol": null, "version": null, "param": "ML-KEM-768", "name": "crypto/tls.X25519MLKEM768"}
+]}

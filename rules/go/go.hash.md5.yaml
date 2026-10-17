@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.md5
+kind: source
+language: go
+name: MD5 hash usage in Go
+description: >-
+  Detects crypto/md5 and crypto.MD5.
+asset:
+  type: algorithm
+  primitive: hash
+  family: MD5
+  securityLevel: 64
+match:
+- call: crypto/md5.New
+- call: crypto/md5.Sum
+- ref: crypto.MD5

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.cast5
+kind: source
+language: go
+name: CAST5 usage in Go
+description: >-
+  Detects golang.org/x/crypto/cast5.NewCipher.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: CAST5
+match:
+- call: golang.org/x/crypto/cast5.NewCipher

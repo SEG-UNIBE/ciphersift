@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.prot.tls.rc4
+kind: source
+language: go
+name: RC4 TLS cipher suite in Go
+description: >-
+  Detects the crypto/tls RC4 cipher-suite constants.
+asset:
+  type: protocol
+  subtype: rc4-cipher
+  protocol: tls
+match:
+- ref: crypto/tls.TLS_RSA_WITH_RC4_128_SHA
+- ref: crypto/tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+- ref: crypto/tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA

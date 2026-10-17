@@ -43,7 +43,11 @@ public sealed interface Component {
         }
 
         public String purl() {
-            return "maven".equals(ecosystem) ? Purl.maven(group(), name(), version) : Purl.pypi(packageKey, version);
+            return switch (ecosystem) {
+                case "maven" -> Purl.maven(group(), name(), version);
+                case "golang" -> Purl.golang(packageKey, version);
+                default -> Purl.pypi(packageKey, version);
+            };
         }
     }
 }

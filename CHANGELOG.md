@@ -5,6 +5,34 @@
 
 ## 1.0.0 (unreleased)
 
+### Go support (DECISIONS G1–G16, SPEC section 17)
+
+* New language **Go**: `.go` files are parsed with tree-sitter-go **v0.25.0** (ABI 15; pinned with
+  its SHA-256 in `native/sources.lock`, built by `native/build-natives.sh`, MIT licence in
+  `NOTICE`); `--version` also prints its ABI.
+* Import paths, aliases, default package names (`/vN` suffixes), dot and blank imports; in-file
+  constant resolution (consts, variables assigned once, function scopes, plain assignments bound
+  where declared); bound names of local variables (`block, _ := aes.NewCipher(k)`); calls,
+  references (function values, constants; not in comparisons, `switch` cases, map keys),
+  composite literals and `new(T)`, field assignments; Java-style selection with nested-duplicate
+  folding.
+* Rule format: `language: go` with the anchors `call`, `ref`, `composite`, `assign` and the
+  conditions `anySymbol`, `value`, `valueContains`, `param` (schema branch `goPattern`;
+  additive, the rule format version stays 1).
+* 66 bundled Go rules (`rules/go/`) for the standard library `crypto/...` and
+  `golang.org/x/crypto`, including the Go 1.24 packages (`crypto/hkdf`, `crypto/pbkdf2`,
+  `crypto/sha3`, `crypto/mlkem`), TLS versions, suites and groups, `InsecureSkipVerify`, x509,
+  SSH; `math/rand` as weakness indicator (off by default).
+* New ecosystem **`golang`**: `go.mod` (`require`) and `go.sum` (modules whose code is built)
+  with the module list `rules/dependencies/dep.golang.yaml` (36 patterns); purl
+  `pkg:golang/<module path>@<version>`.
+* `*_test.go` files are test files (case-sensitive), like `testdata/` directories.
+* The scan summary shows `go N` when Go files were scanned (unchanged
+  otherwise); `rules validate` prints the Go and golang counts.
+* Conformance: nine new cases (`go/*`, `deps/golang`; 157 findings), 55 cases and 1178
+  findings in total. Java and Python results are unchanged (byte-identical CBOMs apart from the
+  rule digest and the serial number derived from it).
+
 ### CycloneDX 1.7 output (DECISIONS C1)
 
 * Output is CycloneDX **1.7** by default (`specVersion` `"1.7"`, schema of specification release

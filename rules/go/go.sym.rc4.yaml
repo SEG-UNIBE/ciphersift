@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.rc4
+kind: source
+language: go
+name: RC4 usage in Go
+description: >-
+  Detects the RC4 stream cipher via crypto/rc4.NewCipher.
+asset:
+  type: algorithm
+  primitive: stream-cipher
+  family: RC4
+match:
+- call: crypto/rc4.NewCipher

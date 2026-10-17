@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.nacl.box
+kind: source
+language: go
+name: NaCl Box (Curve25519-XSalsa20-Poly1305) usage in Go
+description: >-
+  Detects golang.org/x/crypto/nacl/box key generation, sealing and opening (also anonymous boxes).
+asset:
+  type: algorithm
+  primitive: key-agree
+  family: Curve25519
+  variant: XSalsa20Poly1305
+  securityLevel: 128
+match:
+- call: golang.org/x/crypto/nacl/box.GenerateKey
+- call: golang.org/x/crypto/nacl/box.Seal
+- call: golang.org/x/crypto/nacl/box.Open
+- call: golang.org/x/crypto/nacl/box.Precompute
+- call: golang.org/x/crypto/nacl/box.SealAfterPrecomputation
+- call: golang.org/x/crypto/nacl/box.OpenAfterPrecomputation
+- call: golang.org/x/crypto/nacl/box.SealAnonymous
+- call: golang.org/x/crypto/nacl/box.OpenAnonymous

@@ -1,0 +1,12 @@
+filippo.io/age v1.2.1 h1:aaaa=
+filippo.io/age v1.2.1/go.mod h1:aaaa=
+github.com/ProtonMail/go-crypto v1.0.0/go.mod h1:bbbb=
+github.com/cloudflare/circl v1.3.7 h1:cccc=
+github.com/cloudflare/circl v1.3.7/go.mod h1:cccc=
+github.com/cloudflare/circl v1.5.0 h1:dddd=
+github.com/cloudflare/circl v1.5.0/go.mod h1:dddd=
+github.com/golang-jwt/jwt/v5 v5.2.1 h1:eeee=
+github.com/golang-jwt/jwt/v5 v5.2.1/go.mod h1:eeee=
+github.com/stretchr/testify v1.9.0 h1:ffff=
+golang.org/x/crypto v0.31.0 h1:gggg=
+golang.org/x/crypto v0.31.0/go.mod h1:gggg=

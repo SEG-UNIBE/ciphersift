@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-46 cases, 1021 expected findings. A conforming implementation produces exactly the expected
+55 cases, 1178 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -63,6 +63,15 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/oid-table` | 2 | 144 | every OID of the built-in table (SPEC 5.11) through BouncyCastle `ASN1ObjectIdentifier`; JCA factories with OIDs (literal, constant, `OID.` prefix); unknown and non-OID strings; deferred `final` local stays unresolved (E15) |
 | `python/oid-table` | 2 | 120 | every table OID through pyca `x509.ObjectIdentifier` (none for OIDs without a Python rule); `x509.oid.ObjectIdentifier`, asn1crypto, pyasn1, a constant, a curve parameter, unknown OIDs (E15) |
 | `java/shiro` | 2 | 22 | Apache Shiro 1.x and 2.x public crypto API: hash classes, `SimpleHash`, `HashedCredentialsMatcher` / `setHashAlgorithmName` (also via `ALGORITHM_NAME`), Argon2 / bcrypt, cipher services, `SecureRandomNumberGenerator`; a same-named class of another library (E16) |
+| `go/api-battery` | 1 | 61 | one Go standard-library or `golang.org/x/crypto` API per line (SPEC 17.11): ciphers, AEADs, NaCl, RSA schemes, DSA, curves, ECDSA/ECDH/X25519/Ed25519, ML-KEM, MACs, hashes, KDFs, CSPRNG, keys, certificates, `crypto.Hash` and `x509` constants; non-algorithm members give nothing |
+| `go/names` | 3 | 11 | import aliases, default names with `/vN`, blank imports, variables named like packages, a different package with the same name, dot imports (only undeclared exported names), a multi-line selector, a file the pre-filter skips (SPEC 17.4) |
+| `go/constants` | 1 | 18 | `const` groups, variables assigned once / twice (also from `init`), parameters, `:=` pairs, `++`, hexadecimal, parentheses, closures, curves through variables and as function values (SPEC 17.6, 17.9) |
+| `go/modes` | 1 | 14 | AES-GCM/CTR/CBC/OFB/XTS through variables, aliases and inline calls; mode fallbacks for parameters and DES; flow-insensitive bindings (SPEC 17.7, 17.8) |
+| `go/references` | 1 | 14 | function values, `crypto.Hash` constants, TLS versions, cipher suites and groups; nothing in comparisons, switch cases and map keys (SPEC 17.5, DECISIONS G6) |
+| `go/tls-x509-ssh` | 1 | 22 | `tls.Config` literals and `new(tls.Config)`, `InsecureSkipVerify` (literal, constant, variable, assignment), x509 templates and keys, `rsa.PSSOptions`, SSH configs and `InsecureIgnoreHostKey` |
+| `go/test-files` | 4 | 4 | `_test.go` and `testdata/` marking; the file-name rule is case-sensitive (SPEC 17.1) |
+| `go/syntax-error` | 1 | 2 | findings before and after a Go syntax error |
+| `deps/golang` | 5 | 11 | `go.mod` (single and block `require`, quoted paths, `replace`/`exclude`/`retract` ignored, last declaration wins), `go.sum` (`/go.mod` lines skipped, last version wins), major-version module paths (SPEC 17.10) |
 | `deps/setup-files` | 5 | 16 | `setup.py` `install_requires` / `extras_require` (inline, through names, URL skipped), `setuptools.setup`, `setup.cfg`, `org.apache.shiro.crypto:*`, `electrum-ecc`, `pyaes`, `pysha3` (E10) |
 
 ## Format of expected.json
@@ -93,9 +102,9 @@ Source findings:
 | `name` | component name (SPEC 10.2) for `algorithm` findings, `null` for other types |
 | `test` | present and `true` only for findings in test files (SPEC 4.7) |
 
-Dependency findings: `file`, `line` (always `null`), `rule` (`dep.maven` / `dep.pypi`),
-`type` (`library`), `ecosystem`, `package` (Maven `groupId:artifactId`, PyPI normalised
-name), `version` (or `null`), and `test` as above.
+Dependency findings: `file`, `line` (always `null`), `rule` (`dep.maven` / `dep.pypi` /
+`dep.golang`), `type` (`library`), `ecosystem`, `package` (Maven `groupId:artifactId`, PyPI
+normalised name, Go module path), `version` (or `null`), and `test` as above.
 
 Snippets, symbols, bom-refs and the CBOM layout are not part of the comparison; they are
 covered by SPEC.md section 11 and by unit tests.
@@ -109,7 +118,7 @@ covered by SPEC.md section 11 and by unit tests.
    * `rule` = `ruleId` from the JSON in the occurrence's `additionalContext`,
    * `test` = `true` if that JSON has `"test": true`,
    * for libraries: `type` = `library`, `ecosystem` = property `ciphersift:ecosystem`,
-     `package` = `group:name` (Maven) or `name` (PyPI), `version` = component `version`;
+     `package` = `group:name` (Maven) or `name` (PyPI, Go), `version` = component `version`;
    * for cryptographic assets: `type` = property `ciphersift:assetType` if present, else
      `cryptoProperties.assetType`; `subtype`, `primitive`, `family`, `variant` = the
      properties `ciphersift:<field>`; `protocol`, `version` = `protocolProperties.type` /
@@ -155,6 +164,13 @@ its 8 findings), `common/weakness-indicators-enabled` (formerly `-excluded`) pas
 `--weakness-indicators`, both `fork-fixtures` cases pass it too, and `common/test-files` loses one
 finding (D15). The new cases `java/oid-table`, `python/oid-table` (E15) and `java/shiro` (E16)
 are hand-written; their per-OID lines are derived from the table of SPEC 5.11.
+
+The nine Go cases (Go support, `../DECISIONS.md` G1–G16) are hand-written: every line of a Go input
+that has findings ends with a `// want: <rule> <name or -> [<param>]` comment (several separated by
+`|`), and `expected.json` was derived mechanically from those comments and the rules' asset blocks
+(the test flag from SPEC 4.7 / 17.1); `deps/golang/expected.json` was written directly. The
+comments were written from SPEC section 17 and the rules before the implementation was run on the
+cases.
 
 Every finding was then checked by hand against the comment at the end of its source line
 (inputs written for this suite carry the expected line number and result as a trailing

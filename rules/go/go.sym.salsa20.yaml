@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.salsa20
+kind: source
+language: go
+name: Salsa20 stream cipher usage in Go
+description: >-
+  Detects golang.org/x/crypto/salsa20 and its salsa core package (XORKeyStream, HSalsa20).
+asset:
+  type: algorithm
+  primitive: stream-cipher
+  family: Salsa20
+match:
+- call: golang.org/x/crypto/salsa20.XORKeyStream
+- call: golang.org/x/crypto/salsa20/salsa.XORKeyStream
+- call: golang.org/x/crypto/salsa20/salsa.HSalsa20

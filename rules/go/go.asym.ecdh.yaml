@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.ecdh
+kind: source
+language: go
+name: ECDH key agreement in Go
+description: >-
+  Detects the crypto/ecdh NIST curves and the crypto/tls NIST key-exchange groups (curve as parameter).
+asset:
+  type: algorithm
+  primitive: key-agree
+  family: EC
+match:
+- call: crypto/ecdh.P256
+  param:
+    value: P-256
+- call: crypto/ecdh.P384
+  param:
+    value: P-384
+- call: crypto/ecdh.P521
+  param:
+    value: P-521
+- ref: crypto/tls.CurveP256
+  param:
+    value: P-256
+- ref: crypto/tls.CurveP384
+  param:
+    value: P-384
+- ref: crypto/tls.CurveP521
+  param:
+    value: P-521

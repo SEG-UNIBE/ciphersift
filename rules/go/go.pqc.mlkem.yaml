@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.pqc.mlkem
+kind: source
+language: go
+name: ML-KEM usage in Go
+description: >-
+  Detects crypto/mlkem (Go 1.24) keys and the crypto/tls hybrid ML-KEM key-exchange groups (parameter set as
+  parameter).
+asset:
+  type: algorithm
+  primitive: kem
+  family: ML-KEM
+match:
+- call: crypto/mlkem.GenerateKey768
+  param:
+    value: ML-KEM-768
+- call: crypto/mlkem.NewDecapsulationKey768
+  param:
+    value: ML-KEM-768
+- call: crypto/mlkem.NewEncapsulationKey768
+  param:
+    value: ML-KEM-768
+- call: crypto/mlkem.GenerateKey1024
+  param:
+    value: ML-KEM-1024
+- call: crypto/mlkem.NewDecapsulationKey1024
+  param:
+    value: ML-KEM-1024
+- call: crypto/mlkem.NewEncapsulationKey1024
+  param:
+    value: ML-KEM-1024
+- ref: crypto/tls.X25519MLKEM768
+  param:
+    value: ML-KEM-768
+- ref: crypto/tls.SecP256r1MLKEM768
+  param:
+    value: ML-KEM-768
+- ref: crypto/tls.SecP384r1MLKEM1024
+  param:
+    value: ML-KEM-1024

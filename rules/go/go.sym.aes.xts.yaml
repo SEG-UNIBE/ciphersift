@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.aes.xts
+kind: source
+language: go
+name: AES-XTS usage in Go
+description: >-
+  Detects golang.org/x/crypto/xts.NewCipher with crypto/aes.NewCipher as the cipher function.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: AES
+  variant: XTS
+match:
+- call: golang.org/x/crypto/xts.NewCipher
+  anySymbol:
+  - crypto/aes.NewCipher

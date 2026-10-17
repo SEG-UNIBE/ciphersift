@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.aes.cbc
+kind: source
+language: go
+name: AES-CBC usage in Go
+description: >-
+  Detects AES in CBC mode: a crypto/cipher NewCBCEncrypter/NewCBCDecrypter call whose block cipher comes from
+  crypto/aes.NewCipher (directly or through a variable).
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: AES
+  variant: CBC
+match:
+- call: crypto/cipher.NewCBCEncrypter
+  anySymbol:
+  - crypto/aes.NewCipher
+- call: crypto/cipher.NewCBCDecrypter
+  anySymbol:
+  - crypto/aes.NewCipher

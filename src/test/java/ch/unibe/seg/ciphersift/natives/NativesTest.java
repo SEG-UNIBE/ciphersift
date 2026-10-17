@@ -28,7 +28,8 @@ class NativesTest {
     @Test
     void librariesAreExtractedAndVerified() throws Exception {
         NativeLibraries libs = NativeLibraries.get();
-        for (String l : new String[] {NativeLibraries.CORE, NativeLibraries.JAVA, NativeLibraries.PYTHON}) {
+        for (String l : new String[] {NativeLibraries.CORE, NativeLibraries.JAVA, NativeLibraries.PYTHON,
+                NativeLibraries.GO}) {
             assertTrue(Files.isRegularFile(libs.library(l)), l);
         }
         assertEquals(3, NativeLibraries.parseSums("aa  a.so\nbb *b.so\n\ncc c.so\n").size());
@@ -44,6 +45,10 @@ class NativesTest {
         }
         for (String f : Grammars.PYTHON_FIELDS) {
             assertNotEquals(0, g.python().getFieldIdForName(f), f);
+        }
+        assertEquals(15, g.go().getAbiVersion());
+        for (String f : Grammars.GO_FIELDS) {
+            assertNotEquals(0, g.go().getFieldIdForName(f), f);
         }
     }
 

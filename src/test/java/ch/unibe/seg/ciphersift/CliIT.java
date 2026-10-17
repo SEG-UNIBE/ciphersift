@@ -144,6 +144,8 @@ class CliIT {
         assertEquals(0, v.exit(), v.stderr());
         assertTrue(v.out().contains("source java: 103"), v.out());
         assertTrue(v.out().contains("source python: 87"), v.out());
+        assertTrue(v.out().contains("source go: 66"), v.out());
+        assertTrue(v.out().contains("dependency golang: 1"), v.out());
         Path exp = tmp.resolve("exported");
         JarRunner.Run e = JarRunner.run("rules", "export", exp.toString());
         assertEquals(0, e.exit(), e.stderr());
@@ -167,6 +169,7 @@ class CliIT {
         assertTrue(v.out().contains("jtreesitter 0.26.1"));
         assertTrue(v.out().contains("tree-sitter-java ABI 14"));
         assertTrue(v.out().contains("tree-sitter-python ABI 15"));
+        assertTrue(v.out().contains("tree-sitter-go ABI 15"));
         assertEquals(0, JarRunner.run("--help").exit());
         assertEquals(0, JarRunner.run("scan", "--help").exit());
     }

@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.prot.ssl.v3
+kind: source
+language: go
+name: SSL 3.0 explicitly configured in Go
+description: >-
+  Detects the crypto/tls constant VersionSSL30 (e.g. as MinVersion / MaxVersion), except in comparisons and
+  switch cases.
+asset:
+  type: protocol
+  protocol: tls
+  version: '3.0'
+match:
+- ref: crypto/tls.VersionSSL30

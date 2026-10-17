@@ -4,6 +4,7 @@
  */
 package ch.unibe.seg.ciphersift.scan;
 
+import ch.unibe.seg.ciphersift.rules.GoPattern;
 import ch.unibe.seg.ciphersift.rules.JavaPattern;
 import ch.unibe.seg.ciphersift.rules.PythonPattern;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
@@ -37,6 +38,10 @@ import java.util.Map;
  *       identifier parts of one (of all) listed names occur as well. A {@code kwargs} keyword is the
  *       text of a keyword-argument name, and a {@code dictItems} key is the string value of a
  *       dictionary key (escapes are not interpreted, so it is a substring of the text).
+ *   <li>Go {@code call} / {@code ref} / {@code composite: path.M} (SPEC 17.3–17.5): a name
+ *       {@code path.M} exists only through an import spec whose literal content is {@code path}
+ *       (escapes are not interpreted), and {@code M} (or the prefix) is the text of the selector's
+ *       field, of the dot-imported identifier or of the type name; {@code assign}: the field name.
  * </ul>
  *
  * A file passes if, for some pattern, all of its required names occur as substrings anywhere in the
@@ -162,6 +167,26 @@ final class AnchorPrefilter {
                 } else {
                     pats.add(clauses);
                 }
+            }
+        }
+        return build(pats);
+    }
+
+    /** The filter for the Go rules (SPEC 17). */
+    static AnchorPrefilter go(List<SourceRule> rules) {
+        List<List<List<String>>> pats = new ArrayList<>();
+        for (SourceRule r : rules) {
+            for (GoPattern p : r.goPatterns()) {
+                List<List<String>> clauses = new ArrayList<>();
+                if (p.anchor == GoPattern.Anchor.ASSIGN) {
+                    clauses.add(List.of(p.name));
+                } else {
+                    clauses.add(List.of(p.path));
+                    if (!p.member().isEmpty()) {
+                        clauses.add(List.of(p.member()));
+                    }
+                }
+                pats.add(clauses);
             }
         }
         return build(pats);

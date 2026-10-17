@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.argon2
+kind: source
+language: go
+name: Argon2 password hashing in Go
+description: >-
+  Detects golang.org/x/crypto/argon2 Key (Argon2i) and IDKey (Argon2id).
+asset:
+  type: algorithm
+  primitive: kdf
+  family: Argon2
+match:
+- call: golang.org/x/crypto/argon2.Key
+- call: golang.org/x/crypto/argon2.IDKey

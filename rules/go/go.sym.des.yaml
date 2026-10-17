@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.des
+kind: source
+language: go
+name: DES usage in Go
+description: >-
+  Detects single DES via crypto/des.NewCipher.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: DES
+match:
+- call: crypto/des.NewCipher

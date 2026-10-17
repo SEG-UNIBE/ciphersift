@@ -79,3 +79,29 @@ $BUNDLE/venv/bin/python -I spec/tools/make_expected.py --registry $BUNDLE/crypis
 ```
 
 (`check_rules.py` needs PyYAML and jsonschema; `regex_parity.py` needs PyYAML and a JDK.)
+
+## Go support (2026-10-17)
+
+Added by the CipherSift implementer under the same clean-room process (this repository's own
+specification, code and rules only). **No Crypsy / Crypistry material was consulted** for any part
+of the Go support: not the reference tool or its fork, not its Go rules, not the Näther & Hirsch
+paper's rule appendix or supplement, not the BF-CBOM results of any Crypsy run. Neither were the
+Go rule sets or sources of other scanners (cbomkit / sonar-cryptography, xgrep, CipherRadar,
+pqcheck, Q-DARPAN, CryptoScan, SCANOSS, semgrep rules, OQS, qScan, …).
+
+| Input | Used for | Copied? |
+|---|---|---|
+| Go standard library and `golang.org/x/crypto` public API documentation (pkg.go.dev package indexes; the API is also known to the implementer) | The API names in `rules/go/` (packages, functions, constants, types) and their meaning (which family, mode, scheme) | API names only (facts) |
+| The Go language specification (go.dev/ref/spec): import declarations, exported identifiers, scoping, constants, composite literals, string-literal escapes | SPEC 17.4–17.6 | No |
+| Go modules reference (go.dev/ref/mod): `go.mod` directives, `go.sum` lines, major-version suffixes | SPEC 17.4, 17.10 | No |
+| Package URL specification, type `golang` | purl of 11.3.5 / 17.10 | No |
+| tree-sitter-go v0.25.0 (MIT), `src/node-types.json` | node types and fields (Appendix C); the grammar is vendored unchanged in `native/vendor/tree-sitter-go/` | Grammar sources vendored (MIT) |
+| Public documentation of the Go modules in `dep.golang.yaml` | module paths | Module paths only |
+| CipherSift's own `SPEC.md`, `DECISIONS.md`, Java/Python rules and code | conventions reused for Go (rule ids, asset blocks, selection, CBOM mapping) | — |
+
+Written new: `SPEC.md` section 17 and the Go parts of sections 1–16 and Appendices B/C,
+`DECISIONS.md` G1–G16, `rules/go/` (66 rules), `rules/dependencies/dep.golang.yaml`, the Go
+conformance cases (inputs and expectations), `lang/go/`, `deps/GoManifests.java` and the tests.
+The BF-CBOM benchmark corpora (`corpus-native/`, including `micro-go` and its ground truth) were
+not read before the implementation and the rules were frozen; see `DECISIONS.md` for any change
+made after the evaluation (marked "benchmark-informed").

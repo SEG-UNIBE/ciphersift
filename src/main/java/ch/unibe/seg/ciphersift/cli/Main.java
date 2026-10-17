@@ -26,7 +26,7 @@ public final class Main {
 
     /** The root command {@code ciphersift}. */
     @Command(name = "ciphersift", mixinStandardHelpOptions = true, versionProvider = VersionProvider.class,
-            description = "Finds cryptographic assets in Java and Python sources and dependency manifests "
+            description = "Finds cryptographic assets in Java, Python and Go sources and dependency manifests "
                     + "and writes a CycloneDX 1.7 (or 1.6) CBOM.",
             subcommands = {ScanCommand.class, RulesCommand.class})
     public static final class Root implements Runnable {
@@ -50,6 +50,7 @@ public final class Main {
                 Grammars g = Grammars.get();
                 l.add("tree-sitter-java ABI " + g.java().getAbiVersion());
                 l.add("tree-sitter-python ABI " + g.python().getAbiVersion());
+                l.add("tree-sitter-go ABI " + g.go().getAbiVersion());
             } catch (NativeLoadException | LinkageError ex) {
                 l.add("native libraries: not available (" + ex.getMessage() + ")");
             }

@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.rsa.pkcs1v15.encrypt
+kind: source
+language: go
+name: 'RSA PKCS#1 v1.5 encryption in Go'
+description: >-
+  Detects crypto/rsa EncryptPKCS1v15 / DecryptPKCS1v15 / DecryptPKCS1v15SessionKey and PKCS1v15DecryptOptions.
+asset:
+  type: algorithm
+  subtype: pkcs1-v1_5-encrypt
+  primitive: pke
+  family: RSA
+  variant: PKCS1v15
+match:
+- call: crypto/rsa.EncryptPKCS1v15
+- call: crypto/rsa.DecryptPKCS1v15
+- call: crypto/rsa.DecryptPKCS1v15SessionKey
+- composite: crypto/rsa.PKCS1v15DecryptOptions

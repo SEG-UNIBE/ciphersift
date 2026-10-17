@@ -58,6 +58,19 @@ class FilesTest {
     void classification() {
         assertEquals(FileClass.JAVA, FileClass.of("a/B.JAVA"));
         assertEquals(FileClass.PYTHON, FileClass.of("setup.py"));
+        assertEquals(FileClass.GO, FileClass.of("cmd/main.go"));
+        assertEquals(FileClass.GO, FileClass.of("x_test.GO"));
+        assertEquals(FileClass.GO_MOD, FileClass.of("a/go.mod"));
+        assertEquals(FileClass.GO_SUM, FileClass.of("go.sum"));
+        assertEquals(FileClass.IGNORED, FileClass.of("go.work"));
+        assertEquals("golang", FileClass.GO_MOD.ecosystem());
+        assertEquals("go-sum", FileClass.GO_SUM.label());
+        assertTrue(FileClass.GO.isSource());
+        assertTrue(TestFiles.isTest("pkg/sum_test.go"));
+        assertTrue(TestFiles.isTest("internal/testdata/fixture.go"));
+        assertFalse(TestFiles.isTest("pkg/sum_Test.go"), "case-sensitive (SPEC 17.1)");
+        assertFalse(TestFiles.isTest("pkg/test.go"));
+        assertFalse(TestFiles.isTest("pkg/TestMain.go"), "the Java Test* rule does not apply to Go");
         assertEquals(FileClass.POM, FileClass.of("x/POM.xml"));
         assertEquals(FileClass.GRADLE, FileClass.of("build.gradle"));
         assertEquals(FileClass.GRADLE, FileClass.of("m/build.gradle.kts"));

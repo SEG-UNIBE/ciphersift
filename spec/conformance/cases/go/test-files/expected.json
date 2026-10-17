@@ -1,0 +1,6 @@
+{"case": "go/test-files", "findings": [
+  {"file": "internal/testdata/fixture.go", "line": 5, "rule": "go.sym.rc4", "type": "algorithm", "subtype": null, "primitive": "stream-cipher", "family": "RC4", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rc4.NewCipher", "test": true},
+  {"file": "pkg/contest_Test.go", "line": 6, "rule": "go.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha1.Sum"},
+  {"file": "pkg/sum.go", "line": 5, "rule": "go.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/md5.Sum"},
+  {"file": "pkg/sum_test.go", "line": 8, "rule": "go.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha1.Sum", "test": true}
+]}

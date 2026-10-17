@@ -44,6 +44,8 @@ public final class DependencyScanner {
                 case PIPFILE_LOCK -> PythonManifests.pipfileLock(SourceText.decode(bytes));
                 case POETRY_LOCK -> PythonManifests.poetryLock(SourceText.decode(bytes));
                 case SETUP_CFG -> SetupManifests.setupCfg(SourceText.decode(bytes));
+                case GO_MOD -> GoManifests.goMod(SourceText.decode(bytes));
+                case GO_SUM -> GoManifests.goSum(SourceText.decode(bytes));
                 default -> throw new IllegalArgumentException("not a manifest: " + fc);
             };
         } catch (IOException ex) {

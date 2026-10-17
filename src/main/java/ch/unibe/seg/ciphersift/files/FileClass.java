@@ -6,10 +6,11 @@ package ch.unibe.seg.ciphersift.files;
 
 import java.util.Locale;
 
-/** File classes (SPEC 4.5) with the manifest label of SPEC 9 and 11.4. */
+/** File classes (SPEC 4.5, 17.1) with the manifest label of SPEC 9, 11.4 and 17.10. */
 public enum FileClass {
     JAVA(null, null),
     PYTHON(null, null),
+    GO(null, null),
     POM("maven", "pom"),
     GRADLE("maven", "gradle"),
     GRADLE_CATALOG("maven", "gradle-catalog"),
@@ -18,6 +19,8 @@ public enum FileClass {
     PIPFILE_LOCK("pypi", "pipfile-lock"),
     POETRY_LOCK("pypi", "poetry-lock"),
     SETUP_CFG("pypi", "setup-cfg"),
+    GO_MOD("golang", "go-mod"),
+    GO_SUM("golang", "go-sum"),
     IGNORED(null, null);
 
     private final String ecosystem;
@@ -29,14 +32,14 @@ public enum FileClass {
     }
 
     public boolean isSource() {
-        return this == JAVA || this == PYTHON;
+        return this == JAVA || this == PYTHON || this == GO;
     }
 
     public boolean isManifest() {
         return ecosystem != null;
     }
 
-    /** {@code maven} or {@code pypi} for manifests. */
+    /** {@code maven}, {@code pypi} or {@code golang} for manifests. */
     public String ecosystem() {
         return ecosystem;
     }
@@ -62,6 +65,9 @@ public enum FileClass {
         if (n.endsWith(".py")) {
             return PYTHON;
         }
+        if (n.endsWith(".go")) {
+            return GO;
+        }
         if (n.equals("pom.xml")) {
             return POM;
         }
@@ -86,6 +92,12 @@ public enum FileClass {
         }
         if (n.equals("setup.cfg")) {
             return SETUP_CFG;
+        }
+        if (n.equals("go.mod")) {
+            return GO_MOD;
+        }
+        if (n.equals("go.sum")) {
+            return GO_SUM;
         }
         return IGNORED;
     }

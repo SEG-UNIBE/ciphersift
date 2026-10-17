@@ -6,13 +6,14 @@
 CipherSift is a clean-room reimplementation of the approach of **Crypsy** by Christian Näther and
 Eduard Hirsch ([*Hidden Ciphers and Where to Find Them: Static Discovery and Assessment of
 Cryptographic Assets in Software*](https://arxiv.org/abs/2608.04857), arXiv 2608.04857), which
-scans Go and Ruby. CipherSift covers Java and Python instead. It was written from a behavioural
-specification, without Crypsy's source code; the process is documented in
+scans Go and Ruby. CipherSift covers Java, Python and Go. It was written from a behavioural
+specification, without Crypsy's source code (the Go support as well: its rules were written from the
+Go API documentation, without Crypsy's Go rules); the process is documented in
 [`spec/PROVENANCE.md`](spec/PROVENANCE.md).
 
 CipherSift is a static scanner that finds cryptographic assets (algorithms, protocols,
-certificates, keys and related material, crypto libraries) in **Java** and **Python** source code
-and in **Maven/Gradle** and **PyPI** dependency manifests. It writes a **CycloneDX 1.7**
+certificates, keys and related material, crypto libraries) in **Java**, **Python** and **Go** source
+code and in **Maven/Gradle**, **PyPI** and **Go module** (`go.mod`, `go.sum`) dependency manifests. It writes a **CycloneDX 1.7**
 Cryptography Bill of Materials (CBOM) as JSON (CycloneDX 1.6 on request). Detection is rule-driven: the cryptographic
 knowledge lives in YAML rule files, and the scanner provides the language analysis (name
 resolution, constant resolution, argument analysis).
@@ -30,7 +31,7 @@ mvn verify            # natives if missing, bundled-rule validation, unit tests,
 ls target/ciphersift-1.0.0-SNAPSHOT-all.jar
 ```
 
-`native/build-natives.sh` compiles the tree-sitter core and the Java and Python grammars from
+`native/build-natives.sh` compiles the tree-sitter core and the Java, Python and Go grammars from
 the sources vendored under `native/vendor/` (`build-natives.sh fetch` re-downloads them from the
 URLs and SHA-256 sums pinned in `native/sources.lock`). Maven runs it automatically in
 `generate-resources` when `target/native/<platform>/` is missing. The libraries are packaged
@@ -75,7 +76,7 @@ Extra JVM options can be passed in `CIPHERSIFT_JAVA_OPTS` (e.g. `-Xmx4g`).
 |---|---|
 | `-o FILE` | Output file (required); `-` writes the CBOM to standard output. Written atomically. |
 | `--exclude GLOB` | Skip files/directories. `*`, `?`, `[a-z]`, `[!x]`; `**` matches whole segments. A glob without `/` matches the base name anywhere (`*_pb2.py`, `node_modules`); one with `/` matches the relative path (`vendor/**`, `**/gen/*.py`). A trailing `/` restricts it to directories. |
-| `--include-tests` / `--exclude-tests` | Test files are scanned and marked (default), or skipped. Test files: a directory named `test`, `tests`, `testing`, `__tests__`, `testdata`, `test-data`, `testfixtures`, `test-fixtures`, `integrationtest`, `integration-test(s)` or `src/it` (case-insensitive); Java `*Test.java`, `*Tests.java`, `*TestCase.java`, `*IT.java`, `Test*.java` followed by an upper-case letter (`TestUtils.java`); Python `test_*.py`, `*_test.py`, `tests.py`, `conftest.py` (case-sensitive). |
+| `--include-tests` / `--exclude-tests` | Test files are scanned and marked (default), or skipped. Test files: a directory named `test`, `tests`, `testing`, `__tests__`, `testdata`, `test-data`, `testfixtures`, `test-fixtures`, `integrationtest`, `integration-test(s)` or `src/it` (case-insensitive); Java `*Test.java`, `*Tests.java`, `*TestCase.java`, `*IT.java`, `Test*.java` followed by an upper-case letter (`TestUtils.java`); Python `test_*.py`, `*_test.py`, `tests.py`, `conftest.py`; Go `*_test.go` (case-sensitive). |
 | `--threads N` | Worker threads (default: processors, at most 8). The output does not depend on it. |
 | `--rules DIR` | Use the rules under `DIR` instead of the bundled ones (`rules export` gives you a copy to edit). |
 | `--weakness-indicators` | Also report *weakness indicators* (see below), e.g. non-cryptographic random generators. Off by default; all other findings are exactly those of a default scan. |
@@ -129,7 +130,8 @@ properties `ciphersift:rulesDigest`, `ciphersift:testFiles`, `ciphersift:filesSc
   certificates and related material;
 * `name`: Java — the matched algorithm string (`AES/GCM/NoPadding`, `SHA-256`) or the API
   (`GCMBlockCipher`, `MessageDigest.getInstance`); Python — the resolved call
-  (`cryptography.hazmat.primitives.ciphers.Cipher`, `hashlib.new`); protocols — `TLS 1.2`, `SSH`;
+  (`cryptography.hazmat.primitives.ciphers.Cipher`, `hashlib.new`); Go — the import path and
+  member of the API (`crypto/aes.NewCipher`, `crypto.SHA256`); protocols — `TLS 1.2`, `SSH`;
   other types — the rule name;
 * `cryptoProperties`: `assetType` and `algorithmProperties` (`primitive`, `algorithmFamily`,
   `parameterSetIdentifier`, `ellipticCurve`, `mode`, `padding`, `classicalSecurityLevel`), `protocolProperties` (`type`, `version`) or
@@ -153,15 +155,16 @@ RSA key generation, EC key generation without a primitive, PBE, ConcatKDF, X9.63
 own family stays in the property `ciphersift:family`, in both versions.
 
 **Library components** (`"type": "library"`): `bom-ref` = `purl`
-(`pkg:maven/<group>/<artifact>[@<version>]`, `pkg:pypi/<name>[@<version>]`), Maven `group`,
+(`pkg:maven/<group>/<artifact>[@<version>]`, `pkg:pypi/<name>[@<version>]`,
+`pkg:golang/<module path>[@<version>]`), Maven `group`,
 `name`, `version` (only if known), properties `ciphersift:ruleId`, `ciphersift:ecosystem`,
 `ciphersift:testOnly`; occurrences have `location` and `additionalContext`
 (`{"ruleId":…,"snippet":"g:a:v","manifest":"pom"}`), no line.
 
 **Weakness indicators.** Some rules do not detect a cryptographic asset but a sign of a possible
 weakness: today the non-cryptographic random generators (`java.util.Random`, `Math.random`,
-`ThreadLocalRandom`, Python `random.*`; rules `java.rand.prng.insecure` and
-`python.rand.prng.insecure`). They would be reported wherever they occur, also for jitter,
+`ThreadLocalRandom`, Python `random.*`, Go `math/rand`; rules `java.rand.prng.insecure`,
+`python.rand.prng.insecure` and `go.rand.prng.insecure`). They would be reported wherever they occur, also for jitter,
 shuffling or test data, so most of them are harmless; they are therefore **not reported by
 default**. Scan with `--weakness-indicators` to get them: their components then carry the
 property `ciphersift:indicator` = `weakness`, and the metadata has
@@ -184,6 +187,22 @@ names): `Sha256Hash`/`Sha384Hash`/`Sha512Hash`/`Md5Hash`/`Sha1Hash`, `SimpleHash
 `Sha256Hash.ALGORITHM_NAME`), the Shiro 2 Argon2 and bcrypt hashes, `AesCipherService`,
 `BlowfishCipherService`, `DefaultBlockCipherService` with `AES`/`Blowfish`, and
 `SecureRandomNumberGenerator`.
+
+**Go.** The rules `go.*` (SPEC section 17) cover the standard library `crypto/...` packages —
+`aes` and the `cipher` modes (AES-GCM/CBC/CTR/CFB/OFB when the block comes from `aes.NewCipher`,
+also through a variable; a mode-only component otherwise), `des`, `rc4`, `rsa` (key size as
+parameter; OAEP, PKCS #1 v1.5, PSS), `dsa`, `ecdsa`, `ecdh`, `elliptic` (curves as `P-256` …),
+`ed25519`, `hmac`, `md5`, `sha1`, `sha256`, `sha512`, `sha3`, `hkdf`, `pbkdf2`, `mlkem`, `rand`,
+`tls` (configurations, versions, cipher suites, key-exchange groups, `InsecureSkipVerify: true`),
+`x509` (certificates, templates, key parsing, signature algorithms) and the `crypto.Hash`
+constants — and `golang.org/x/crypto` (`chacha20`, `chacha20poly1305`, `poly1305`, `salsa20`,
+`nacl/box`, `nacl/secretbox`, `nacl/sign`, `nacl/auth`, `curve25519`, `ed25519`, `scrypt`,
+`argon2`, `bcrypt`, `hkdf`, `pbkdf2`, `sha3`, `blake2b`, `blake2s`, `md4`, `ripemd160`,
+`blowfish`, `cast5`, `twofish`, `xts`, `pkcs12`, `ssh`). Functions passed as values count as uses
+(`hmac.New(sha256.New, k)` reports HMAC and SHA-2); TLS constants in comparisons and `switch`
+cases do not. `go.mod` and `go.sum` report the modules of `rules/dependencies/dep.golang.yaml`
+(`golang.org/x/crypto`, `filippo.io/age`, `github.com/cloudflare/circl`, JWT/JOSE libraries, …).
+`vendor/` directories are scanned like any other; pass `--exclude vendor` to skip vendored modules.
 
 **Debatable library entries.** The dependency lists also contain packages that support
 cryptography without implementing it, e.g. `certifi` (a CA bundle) and `commons-codec`
@@ -218,7 +237,7 @@ A source rule:
 # SPDX-License-Identifier: Apache-2.0
 id: java.sym.aes.gcm            # unique; starts with the language
 kind: source
-language: java                  # java | python
+language: java                  # java | python | go
 name: AES-GCM usage in Java
 asset:                          # what a match denotes
   type: algorithm               # algorithm | protocol | certificate | related-crypto-material | key-material
@@ -257,7 +276,17 @@ clauses; `ref: dotted.name` matches only such uncalled references, also as an op
 members like `pkcs11.Mechanism.SHA256_RSA_PKCS`, classes like `algorithms.AES`). A rule's top-level
 `indicator: weakness` marks its findings as weakness indicators.
 
-Selection: in Java, patterns with conditions beat bare patterns of the same asset type, so the
+**Go anchors** (SPEC 17.3) name the API by import path and member, split at the last `.`:
+`call: crypto/aes.NewCipher` (the import's local name, alias or dot import is resolved; a trailing
+`*` makes the member a prefix, `math/rand.*` is every member), `ref: crypto/tls.VersionTLS12` (a
+member used as a value), `composite: crypto/tls.Config` (`tls.Config{…}`, `&…{…}`, `new(…)`),
+`assign: InsecureSkipVerify` (a field set in a composite literal or by assignment). **Go
+conditions**: `anySymbol` (APIs referenced in the arguments, also through local variables:
+`block, _ := aes.NewCipher(k); cipher.NewGCM(block)`), `value`/`valueContains` (for `assign`);
+`param: {index: i}`, `{self: true}`, `{value: fixed}` are not filters. A `call` pattern without
+`anySymbol` also matches the function used as a value. Go uses the Java selection below.
+
+Selection: in Java (and Go), patterns with conditions beat bare patterns of the same asset type, so the
 `java.jca.*.unresolved` fallbacks only appear when no specific rule matched; a match nested in
 another match of the same family (`new GCMBlockCipher(new AESEngine())`) is reported once. In
 Python, a rule with a `variant`/`version` replaces its unrefined sibling on the same call, and
@@ -281,7 +310,10 @@ heuristics; unimported Java simple names are assumed to be the API class; reassi
 by simple name per file; Python resolution is flow-insensitive and does not follow attributes,
 return values or other modules; one algorithm per Java signature string (`SHA1withRSA` → RSA);
 dependency versions come from the manifest only (no parent POMs, BOMs, Gradle plugins; ranges give
-no version); Kotlin, Groovy, Scala, Go etc. are not analysed; test detection is path-based, so
+no version); Kotlin, Groovy, Scala etc. are not analysed; Go: method calls on values of unknown
+type (`key.Sign(…)`, `aead.Seal(…)`) are not anchors, constants are resolved within the file only,
+algorithm names in strings (`ssh.Config{Ciphers: …}`) and `golang.org/x/crypto/openpgp` are not
+covered, `go.mod` `replace` directives are not applied; test detection is path-based, so
 library code in directories such as `django/test/` counts as test code. tree-sitter-java 0.23.5
 reports a syntax error for some valid literals (a binary literal with a double underscore,
 `0b1000__0000`); the rest of the file is still analysed. Native libraries are bundled for

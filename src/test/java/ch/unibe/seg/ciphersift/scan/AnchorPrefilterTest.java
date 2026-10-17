@@ -68,6 +68,19 @@ class AnchorPrefilterTest {
     }
 
     @Test
+    void goNamesAreRequired() throws Exception {
+        AnchorPrefilter f = AnchorPrefilter.go(rules("id: go.t.x\nkind: source\nlanguage: go\nname: t\n"
+                + "asset: {type: algorithm}\nmatch:\n- call: crypto/aes.NewCipher\n- ref: 'crypto/tls.TLS_*'\n"
+                + "- assign: InsecureSkipVerify\n").goRules());
+        assertTrue(f.mayMatch("import \"crypto/aes\"\nfunc f() { aes.NewCipher(k) }"));
+        assertTrue(f.mayMatch("import x \"crypto/aes\"\nfunc f() { x.NewCipher(k) }"));
+        assertFalse(f.mayMatch("func f() { aes.NewCipher(k) }"), "the import path is required");
+        assertFalse(f.mayMatch("import \"crypto/aes\"\nfunc f() { aes.NewGCM(k) }"));
+        assertTrue(f.mayMatch("import \"crypto/tls\"\nvar s = tls.TLS_AES_128_GCM_SHA256"));
+        assertTrue(f.mayMatch("c.InsecureSkipVerify = true"));
+    }
+
+    @Test
     void identifierParts() throws Exception {
         assertTrue(AnchorPrefilter.ALL.mayMatch("nothing"));
         assertFalse(AnchorPrefilter.python(List.of()).mayMatch("import hashlib"), "no rules: nothing can fire");
@@ -82,17 +95,20 @@ class AnchorPrefilterTest {
         RuleSet rules = RuleLoader.loadBundled();
         AnchorPrefilter jf = AnchorPrefilter.java(rules.javaRules());
         AnchorPrefilter pf = AnchorPrefilter.python(rules.pythonRules());
+        AnchorPrefilter gf = AnchorPrefilter.go(rules.goRules());
         Grammars g = Grammars.get();
         List<Path> files = new ArrayList<>();
         try (Stream<Path> s = Files.walk(TestSupport.casesDir())) {
-            s.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".java") || p.toString().endsWith(".py"))
+            s.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".java") || p.toString().endsWith(".py")
+                    || p.toString().endsWith(".go"))
                     .sorted().forEach(files::add);
         }
         int rejected = 0;
-        try (Parser jp = new Parser(g.java()); Parser pp = new Parser(g.python())) {
+        try (Parser jp = new Parser(g.java()); Parser pp = new Parser(g.python()); Parser gp = new Parser(g.go())) {
             JavaContexts ctx = new JavaContexts(TestSupport.casesDir().toRealPath(), g.java(), () -> jp);
             JavaAnalyzer ja = new JavaAnalyzer(rules, ctx);
             PythonAnalyzer pa = new PythonAnalyzer(rules);
+            ch.unibe.seg.ciphersift.lang.go.GoAnalyzer ga = new ch.unibe.seg.ciphersift.lang.go.GoAnalyzer(rules);
             for (Path p : files) {
                 byte[] bytes = Files.readAllBytes(p);
                 if (SourceText.isBinary(bytes)) {
@@ -100,12 +116,14 @@ class AnchorPrefilterTest {
                 }
                 String text = SourceText.decode(bytes);
                 boolean java = p.toString().endsWith(".java");
-                if ((java ? jf : pf).mayMatch(text)) {
+                boolean go = p.toString().endsWith(".go");
+                if ((java ? jf : go ? gf : pf).mayMatch(text)) {
                     continue;
                 }
                 rejected++;
                 var found = java
                         ? ja.analyze(SyntaxTrees.parse(jp, g.java(), text), p.toRealPath(), p.toString(), false)
+                        : go ? ga.analyze(SyntaxTrees.parse(gp, g.go(), text), p.toString(), false)
                         : pa.analyze(SyntaxTrees.parse(pp, g.python(), text), p.toString(), false);
                 assertTrue(found.isEmpty(), p + ": rejected by the pre-filter but has findings " + found);
             }

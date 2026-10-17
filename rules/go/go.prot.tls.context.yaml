@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.prot.tls.context
+kind: source
+language: go
+name: TLS context usage in Go
+description: >-
+  Detects crypto/tls configurations (Config, Dialer composite literals, new(tls.Config)), connections and
+  listeners, and TLS cipher-suite constants.
+asset:
+  type: protocol
+  protocol: tls
+match:
+- composite: crypto/tls.Config
+- composite: crypto/tls.Dialer
+- call: crypto/tls.Dial
+- call: crypto/tls.DialWithDialer
+- call: crypto/tls.Listen
+- call: crypto/tls.NewListener
+- call: crypto/tls.Client
+- call: crypto/tls.Server
+- ref: 'crypto/tls.TLS_*'

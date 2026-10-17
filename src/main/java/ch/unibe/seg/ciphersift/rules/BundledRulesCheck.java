@@ -86,7 +86,8 @@ public final class BundledRulesCheck {
         RuleSet trusted = RuleLoader.loadTrusted(files, bundle);
         if (trusted == null || !trusted.digest().equals(full.digest())
                 || trusted.javaRules().size() != full.javaRules().size()
-                || trusted.pythonRules().size() != full.pythonRules().size()) {
+                || trusted.pythonRules().size() != full.pythonRules().size()
+                || trusted.goRules().size() != full.goRules().size()) {
             problems.add("the trusted load differs from the validated load");
         }
         if (!problems.isEmpty()) {

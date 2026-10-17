@@ -35,6 +35,13 @@ class RuleLoaderTest {
         RuleSet r = RuleLoader.loadBundled();
         assertEquals(103, r.javaRules().size());
         assertEquals(87, r.pythonRules().size());
+        assertEquals(66, r.goRules().size());
+        assertNotNull(r.dependencyRule("golang"));
+        assertTrue(r.dependencyRule("golang").matches("github.com/golang-jwt/jwt/v5"));
+        assertFalse(r.dependencyRule("golang").matches("golang.org/x/crypto/ssh"), "a pattern covers the whole key");
+        for (int i = 1; i < r.goRules().size(); i++) {
+            assertTrue(r.goRules().get(i - 1).id().compareTo(r.goRules().get(i).id()) < 0, "id order");
+        }
         assertEquals(1, r.constantsDocuments());
         assertNotNull(r.dependencyRule("maven"));
         assertNotNull(r.dependencyRule("pypi"));
@@ -56,7 +63,7 @@ class RuleLoaderTest {
         for (RuleLoader.RuleFile f : RuleLoader.bundledFiles()) {
             tests.add(DynamicTest.dynamicTest(f.path(), () -> RuleLoader.load(List.of(f))));
         }
-        assertEquals(193, tests.size());
+        assertEquals(260, tests.size());
         return tests.stream();
     }
 
@@ -234,10 +241,44 @@ class RuleLoaderTest {
                 "a: 1\n---\nb: 2\n".getBytes(StandardCharsets.UTF_8)), "two documents");
     }
 
+    /** Go patterns (SPEC 17.3): anchors, conditions per anchor, the import path. */
+    @Test
+    void goPatterns() throws Exception {
+        String go = "id: go.t.x\nkind: source\nlanguage: go\nname: t\nasset: {type: algorithm}\n";
+        RuleSet ok = RuleLoader.load(List.of(new RuleLoader.RuleFile("r.yaml", (go + "match:\n"
+                + "- call: crypto/cipher.NewGCM\n  anySymbol: [crypto/aes.NewCipher]\n"
+                + "- call: 'math/rand.*'\n- ref: 'crypto/tls.TLS_*'\n- composite: crypto/tls.Config\n"
+                + "- assign: InsecureSkipVerify\n  value: ^true$\n- call: crypto.SHA256\n  param: {value: x}\n"
+                + "- call: golang.org/x/crypto/sha3.New256\n  param: {index: 0}\n")
+                .getBytes(StandardCharsets.UTF_8))));
+        var ps = ok.goRules().get(0).goPatterns();
+        assertEquals("crypto/cipher", ps.get(0).path);
+        assertEquals(2, ps.get(0).specificity);
+        assertFalse(ps.get(0).matchesReferences(), "a call pattern with anySymbol needs arguments");
+        assertTrue(ps.get(1).prefix);
+        assertEquals("math/rand", ps.get(1).path);
+        assertEquals("", ps.get(1).member());
+        assertTrue(ps.get(1).nameMatches("math/rand.Intn"));
+        assertFalse(ps.get(1).nameMatches("math/rand/v2.IntN"));
+        assertEquals("TLS_", ps.get(2).member());
+        assertEquals(2, ps.get(4).specificity);
+        assertEquals("crypto", ps.get(5).path);
+        assertEquals("golang.org/x/crypto/sha3", ps.get(6).path);
+        fail("r.yaml", go + "match:\n- ref: crypto/tls.VersionTLS12\n  anySymbol: [crypto/aes.NewCipher]\n");
+        fail("r.yaml", go + "match:\n- call: crypto/aes.NewCipher\n  value: x\n");
+        fail("r.yaml", go + "match:\n- ref: crypto/rand.Reader\n  param: {index: 0}\n");
+        fail("r.yaml", go + "match:\n- composite: 'crypto/tls.Conf*'\n");
+        fail("r.yaml", go + "match:\n- call: NewCipher\n");
+        fail("r.yaml", go + "match:\n- call: crypto/aes.NewCipher\n  kwargs: {a: b}\n");
+        fail("r.yaml", "id: python.t.x\nkind: source\nlanguage: go\nname: t\nasset: {type: algorithm}\n"
+                + "match:\n- call: crypto/aes.NewCipher\n");
+    }
+
     private static List<String> ids(RuleSet r) {
         List<String> l = new ArrayList<>();
         r.javaRules().forEach(x -> l.add(x.id() + "/" + x.javaPatterns().size()));
         r.pythonRules().forEach(x -> l.add(x.id() + "/" + x.pythonPatterns().size()));
+        r.goRules().forEach(x -> l.add(x.id() + "/" + x.goPatterns().size()));
         return l;
     }
 }

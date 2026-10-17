@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.blowfish
+kind: source
+language: go
+name: Blowfish usage in Go
+description: >-
+  Detects golang.org/x/crypto/blowfish ciphers.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: Blowfish
+match:
+- call: golang.org/x/crypto/blowfish.NewCipher
+- call: golang.org/x/crypto/blowfish.NewSaltedCipher

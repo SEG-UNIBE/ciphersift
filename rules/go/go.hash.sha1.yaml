@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.sha1
+kind: source
+language: go
+name: SHA-1 hash usage in Go
+description: >-
+  Detects crypto/sha1 and crypto.SHA1.
+asset:
+  type: algorithm
+  primitive: hash
+  family: SHA1
+  securityLevel: 80
+match:
+- call: crypto/sha1.New
+- call: crypto/sha1.Sum
+- ref: crypto.SHA1

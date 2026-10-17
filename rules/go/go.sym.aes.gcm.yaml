@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.aes.gcm
+kind: source
+language: go
+name: AES-GCM usage in Go
+description: >-
+  Detects AES in GCM mode: a crypto/cipher NewGCM/NewGCMWithNonceSize/NewGCMWithTagSize/NewGCMWithRandomNonce
+  call whose block cipher comes from crypto/aes.NewCipher (directly or through a variable).
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: AES
+  variant: GCM
+match:
+- call: crypto/cipher.NewGCM
+  anySymbol:
+  - crypto/aes.NewCipher
+- call: crypto/cipher.NewGCMWithNonceSize
+  anySymbol:
+  - crypto/aes.NewCipher
+- call: crypto/cipher.NewGCMWithTagSize
+  anySymbol:
+  - crypto/aes.NewCipher
+- call: crypto/cipher.NewGCMWithRandomNonce
+  anySymbol:
+  - crypto/aes.NewCipher

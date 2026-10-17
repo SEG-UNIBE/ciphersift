@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.ecdsa
+kind: source
+language: go
+name: ECDSA signatures in Go
+description: >-
+  Detects crypto/ecdsa key generation (curve as parameter), signing and verification and the crypto/x509 ECDSA
+  algorithms.
+asset:
+  type: algorithm
+  primitive: signature
+  family: EC
+match:
+- call: crypto/ecdsa.GenerateKey
+  param:
+    index: 0
+- call: crypto/ecdsa.Sign
+- call: crypto/ecdsa.SignASN1
+- call: crypto/ecdsa.Verify
+- call: crypto/ecdsa.VerifyASN1
+- ref: crypto/x509.ECDSA
+- ref: crypto/x509.ECDSAWithSHA1
+- ref: crypto/x509.ECDSAWithSHA256
+- ref: crypto/x509.ECDSAWithSHA384
+- ref: crypto/x509.ECDSAWithSHA512

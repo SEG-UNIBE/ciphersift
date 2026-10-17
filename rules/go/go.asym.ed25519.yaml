@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.ed25519
+kind: source
+language: go
+name: Ed25519 signatures in Go
+description: >-
+  Detects Ed25519 via crypto/ed25519, golang.org/x/crypto/ed25519, golang.org/x/crypto/nacl/sign and the
+  crypto/x509 Ed25519 algorithms.
+asset:
+  type: algorithm
+  primitive: signature
+  family: Ed25519
+  securityLevel: 128
+match:
+- call: crypto/ed25519.GenerateKey
+- call: crypto/ed25519.NewKeyFromSeed
+- call: crypto/ed25519.Sign
+- call: crypto/ed25519.Verify
+- call: crypto/ed25519.VerifyWithOptions
+- call: golang.org/x/crypto/ed25519.GenerateKey
+- call: golang.org/x/crypto/ed25519.NewKeyFromSeed
+- call: golang.org/x/crypto/ed25519.Sign
+- call: golang.org/x/crypto/ed25519.Verify
+- call: golang.org/x/crypto/nacl/sign.GenerateKey
+- call: golang.org/x/crypto/nacl/sign.Sign
+- call: golang.org/x/crypto/nacl/sign.Open
+- ref: crypto/x509.Ed25519
+- ref: crypto/x509.PureEd25519

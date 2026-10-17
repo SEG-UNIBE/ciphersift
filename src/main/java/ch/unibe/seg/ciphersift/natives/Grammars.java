@@ -10,7 +10,7 @@ import java.lang.foreign.SymbolLookup;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The two grammars (SPEC 6.1, 15.3 step 4) and the field-name check of Appendix C. */
+/** The grammars (SPEC 6.1, 15.3 step 4, 17.2) and the field-name check of Appendix C. */
 public final class Grammars {
     /** Field names of Appendix C, Java grammar. */
     static final List<String> JAVA_FIELDS = List.of(
@@ -20,15 +20,21 @@ public final class Grammars {
     static final List<String> PYTHON_FIELDS = List.of(
             "name", "alias", "module_name", "parameters", "left", "right", "function", "arguments",
             "object", "attribute", "value", "key");
+    /** Field names of Appendix C, Go grammar (SPEC 17). */
+    static final List<String> GO_FIELDS = List.of(
+            "name", "path", "function", "arguments", "operand", "field", "type", "body", "key", "value",
+            "left", "right", "operator", "parameters", "receiver", "result", "package");
 
     private static volatile Grammars instance;
 
     private final Language java;
     private final Language python;
+    private final Language go;
 
-    private Grammars(Language java, Language python) {
+    private Grammars(Language java, Language python, Language go) {
         this.java = java;
         this.python = python;
+        this.go = go;
     }
 
     public static Grammars get() {
@@ -53,6 +59,10 @@ public final class Grammars {
         return python;
     }
 
+    public Language go() {
+        return go;
+    }
+
     private static Grammars load() {
         NativeLibraries libs = NativeLibraries.get();
         try {
@@ -61,6 +71,8 @@ public final class Grammars {
             Language p = Language.load(
                     SymbolLookup.libraryLookup(libs.library(NativeLibraries.PYTHON), Arena.global()),
                     "tree_sitter_python");
+            Language go = Language.load(
+                    SymbolLookup.libraryLookup(libs.library(NativeLibraries.GO), Arena.global()), "tree_sitter_go");
             List<String> missing = new ArrayList<>();
             for (String f : JAVA_FIELDS) {
                 if (j.getFieldIdForName(f) == 0) {
@@ -72,10 +84,15 @@ public final class Grammars {
                     missing.add("python:" + f);
                 }
             }
+            for (String f : GO_FIELDS) {
+                if (go.getFieldIdForName(f) == 0) {
+                    missing.add("go:" + f);
+                }
+            }
             if (!missing.isEmpty()) {
                 throw new NativeLoadException("grammar lacks required field names: " + missing);
             }
-            return new Grammars(j, p);
+            return new Grammars(j, p, go);
         } catch (NativeLoadException ex) {
             throw ex;
         } catch (RuntimeException | LinkageError ex) {

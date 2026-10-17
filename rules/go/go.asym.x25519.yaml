@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.x25519
+kind: source
+language: go
+name: X25519 key agreement in Go
+description: >-
+  Detects X25519 via crypto/ecdh.X25519, golang.org/x/crypto/curve25519 and the crypto/tls X25519 group.
+asset:
+  type: algorithm
+  primitive: key-agree
+  family: Curve25519
+  securityLevel: 128
+match:
+- call: crypto/ecdh.X25519
+- call: golang.org/x/crypto/curve25519.X25519
+- call: golang.org/x/crypto/curve25519.ScalarMult
+- call: golang.org/x/crypto/curve25519.ScalarBaseMult
+- ref: golang.org/x/crypto/curve25519.Basepoint
+- ref: crypto/tls.X25519

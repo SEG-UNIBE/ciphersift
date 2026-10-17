@@ -252,3 +252,76 @@ The open items O1–O7 were decided by the follow-up per the recommendations abo
 test with non-ASCII paths under a C locale) were done as well. Note on m9: the schema's
 `if`/`then` branch for `new` already rejected `new: X*`, only with a bare regex message; the
 loader now reports it in words.
+
+## Go extension (2026-10-17)
+
+Self-review of the Go support (SPEC section 17, DECISIONS G1–G16) by its implementer, done as a
+strict re-read of the whole diff (code, rules, schema, tests, conformance cases, documents) against
+the new spec section, before the evaluation on the BF-CBOM corpora. Clean-room rules respected: no
+Crypsy material and no other scanner's Go rules or code were read (`spec/PROVENANCE.md`).
+
+**Verdict: ready for evaluation.** `mvn verify` green (430 unit + 181 integration tests), the
+conformance suite passes 55/55 cases, 1178/1178 findings (JUnit runner and
+`spec/tools/conformance.py`), every CBOM validates against CycloneDX 1.7 and 1.6, determinism
+(threads, locations) holds for the Go cases too, `check_rules.py` and `regex_parity.py` pass
+(106 920 probes). Java and Python CBOMs of micro-java, micro-python and the 46 earlier conformance
+inputs are byte-identical to those of 88936e3 apart from `rulesDigest` and the derived
+`serialNumber`.
+
+| Severity | Found | Fixed | Open |
+|---|---|---|---|
+| Major | 2 | 2 | 0 |
+| Minor | 4 | 4 | 0 |
+| By design (documented) | 5 | – | 5 |
+
+### Major
+
+**GM1 — Plain assignments in another function did not make a package variable non-constant** — fixed
+`lang/go/GoAnalyzer.java` (`declarations`, `Assignment`). Bindings were stored in the innermost
+function scope of the *statement*, so `var bits = 1024; func init() { bits = 2048 }` left `bits`
+resolved to 1024 in every other function, and a closure assigning an outer variable was invisible
+to its enclosing function. *Fix:* declarations bind where they are; plain, compound and `++`/`--`
+assignments and `range … =` are attached after the walk to the innermost scope that declares the
+name (else the file). Spec 17.6 updated; cases `go/constants` (`twice`), unit test
+`plainAssignmentsBindWhereDeclared`.
+
+**GM2 — Dot imports gave names to unexported identifiers** — fixed `dotNames`. With
+`import . "math/rand"` every lower-case identifier (`len`, `_`, local names in other files) got
+the name `math/rand.<id>` and matched the `math/rand.*` prefix rule. Only exported (upper-case)
+identifiers are visible through a dot import; spec 17.4 says so now. Unit test
+`weaknessIndicatorPrefixAndExportedDotNames`.
+
+### Minor
+
+* **Gm1** `\uD800`-style escapes produced lone surrogates (SPEC 11.6 excludes them from the
+  output; Go rejects them as well) — such an escape now keeps its text. Test `interpretedStrings`.
+* **Gm2** The param-candidate walk recursed through unary operators (`^^^…x`, 3 000 deep) — now an
+  iterative loop over parentheses and unary operators. Test `deepNestingDoesNotCrash`.
+* **Gm3** `require(` without a space in `go.mod` was not recognised as a block — normalised.
+* **Gm4** A redundant always-true bounds test in the octal-escape branch obscured the logic —
+  removed (behaviour unchanged).
+
+### By design (documented in SPEC Appendix B / 17, README)
+
+* **GD1** No shadowing check for qualified selectors: a local variable named like an imported
+  package (legal when that scope does not use the package) is taken as the package; only names
+  that a rule lists can produce a finding, and such collisions are unlikely.
+* **GD2** `assign` patterns check the field name, not the struct type: `InsecureSkipVerify: true`
+  in a project's own config struct is reported too (the field name is specific enough; Python's
+  `assign` behaves the same).
+* **GD3** Declared names for dot imports are file-wide, resolution is flow-insensitive within a
+  function and block scopes are not distinguished (as in Python).
+* **GD4** Constants are resolved within the file only (no package-wide lookup across files, no
+  other packages' constants).
+* **GD5** A write to a package variable (`rand.Reader = fake` in a test) is a reference like a read.
+
+Checked without findings: thread safety (the analyzer holds only the immutable index; all state
+is per file), determinism (no hash-order output; candidate lists sorted by rule order and pattern
+position; `LinkedHashSet`s for bound names and symbols), the pre-filter's soundness argument (the
+import path occurs literally in the import spec because escapes in import paths are not
+interpreted; the member is the selector field, the dot-imported identifier or the type name; the
+existing soundness test now also runs over the Go inputs and rejects `go/names/pkg/plain.go`),
+the CycloneDX mapping of every Go family (`CycloneDx17Test`), the licence (MIT text in the jar
+under `META-INF/ciphersift/licenses/tree-sitter-go/`, `NOTICE`), the checksum pin (fetching
+reproduces the committed Java/Python vendor trees byte for byte), header checks (Go conformance
+inputs are excluded like the others).

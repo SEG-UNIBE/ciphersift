@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.cert.validation.disabled
+kind: source
+language: go
+name: TLS certificate validation disabled in Go
+description: >-
+  Detects InsecureSkipVerify set to true (in a composite literal such as tls.Config{...} or by assignment).
+asset:
+  type: related-crypto-material
+  subtype: cert-validation-disabled
+match:
+- assign: InsecureSkipVerify
+  value: ^true$

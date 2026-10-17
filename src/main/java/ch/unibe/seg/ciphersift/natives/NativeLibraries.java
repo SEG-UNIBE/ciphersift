@@ -27,6 +27,7 @@ public final class NativeLibraries {
     public static final String CORE = "tree-sitter";
     public static final String JAVA = "tree-sitter-java";
     public static final String PYTHON = "tree-sitter-python";
+    public static final String GO = "tree-sitter-go";
 
     private static volatile NativeLibraries instance;
 
@@ -63,7 +64,7 @@ public final class NativeLibraries {
         return directory;
     }
 
-    /** Path of the extracted library with the given base name ({@link #CORE}, {@link #JAVA}, {@link #PYTHON}). */
+    /** Path of the extracted library with the given base name ({@link #CORE}, {@link #JAVA}, {@link #PYTHON}, {@link #GO}). */
     public Path library(String base) {
         Path p = files.get(Platform.libraryFile(platform, base));
         if (p == null) {

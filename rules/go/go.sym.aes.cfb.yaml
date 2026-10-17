@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.aes.cfb
+kind: source
+language: go
+name: AES-CFB usage in Go
+description: >-
+  Detects AES in CFB mode: a crypto/cipher NewCFBEncrypter/NewCFBDecrypter call whose block cipher comes from
+  crypto/aes.NewCipher (directly or through a variable).
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: AES
+  variant: CFB
+match:
+- call: crypto/cipher.NewCFBEncrypter
+  anySymbol:
+  - crypto/aes.NewCipher
+- call: crypto/cipher.NewCFBDecrypter
+  anySymbol:
+  - crypto/aes.NewCipher

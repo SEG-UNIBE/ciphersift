@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.rand.prng.insecure
+kind: source
+language: go
+name: Non-cryptographic PRNG usage in Go
+description: >-
+  Weakness indicator, not a cryptographic algorithm: detects use of math/rand and math/rand/v2 wherever it is
+  used (also in tests and for non-security purposes such as jitter or shuffling). It must not be used for
+  security-sensitive values. Components carry the property ciphersift:indicator=weakness; reported only with
+  --weakness-indicators.
+indicator: weakness
+asset:
+  type: related-crypto-material
+  subtype: prng-insecure
+match:
+- call: 'math/rand.*'
+- call: 'math/rand/v2.*'

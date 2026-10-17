@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.sha3
+kind: source
+language: go
+name: SHA-3 / SHAKE hash usage in Go
+description: >-
+  Detects SHA-3, SHAKE and cSHAKE via crypto/sha3 (Go 1.24) and golang.org/x/crypto/sha3 (including the legacy
+  Keccak functions) and the crypto.SHA3_* constants.
+asset:
+  type: algorithm
+  primitive: hash
+  family: SHA3
+match:
+- call: crypto/sha3.New224
+- call: crypto/sha3.New256
+- call: crypto/sha3.New384
+- call: crypto/sha3.New512
+- call: crypto/sha3.Sum224
+- call: crypto/sha3.Sum256
+- call: crypto/sha3.Sum384
+- call: crypto/sha3.Sum512
+- call: crypto/sha3.NewSHAKE128
+- call: crypto/sha3.NewSHAKE256
+- call: crypto/sha3.SumSHAKE128
+- call: crypto/sha3.SumSHAKE256
+- call: crypto/sha3.NewCSHAKE128
+- call: crypto/sha3.NewCSHAKE256
+- call: golang.org/x/crypto/sha3.New224
+- call: golang.org/x/crypto/sha3.New256
+- call: golang.org/x/crypto/sha3.New384
+- call: golang.org/x/crypto/sha3.New512
+- call: golang.org/x/crypto/sha3.Sum224
+- call: golang.org/x/crypto/sha3.Sum256
+- call: golang.org/x/crypto/sha3.Sum384
+- call: golang.org/x/crypto/sha3.Sum512
+- call: golang.org/x/crypto/sha3.NewShake128
+- call: golang.org/x/crypto/sha3.NewShake256
+- call: golang.org/x/crypto/sha3.ShakeSum128
+- call: golang.org/x/crypto/sha3.ShakeSum256
+- call: golang.org/x/crypto/sha3.NewCShake128
+- call: golang.org/x/crypto/sha3.NewCShake256
+- call: golang.org/x/crypto/sha3.NewLegacyKeccak256
+- call: golang.org/x/crypto/sha3.NewLegacyKeccak512
+- ref: crypto.SHA3_224
+- ref: crypto.SHA3_256
+- ref: crypto.SHA3_384
+- ref: crypto.SHA3_512

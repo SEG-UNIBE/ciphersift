@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.dsa
+kind: source
+language: go
+name: DSA key generation / usage in Go
+description: >-
+  Detects crypto/dsa (parameters, keys, signatures, parameter sizes) and the crypto/x509 DSA algorithms.
+asset:
+  type: algorithm
+  primitive: signature
+  family: DSA
+match:
+- call: crypto/dsa.GenerateParameters
+- call: crypto/dsa.GenerateKey
+- call: crypto/dsa.Sign
+- call: crypto/dsa.Verify
+- ref: crypto/dsa.L1024N160
+- ref: crypto/dsa.L2048N224
+- ref: crypto/dsa.L2048N256
+- ref: crypto/dsa.L3072N256
+- ref: crypto/x509.DSA
+- ref: crypto/x509.DSAWithSHA1
+- ref: crypto/x509.DSAWithSHA256

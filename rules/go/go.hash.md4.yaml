@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.hash.md4
+kind: source
+language: go
+name: MD4 hash usage in Go
+description: >-
+  Detects golang.org/x/crypto/md4 and crypto.MD4.
+asset:
+  type: algorithm
+  primitive: hash
+  family: MD4
+  securityLevel: 64
+match:
+- call: golang.org/x/crypto/md4.New
+- ref: crypto.MD4

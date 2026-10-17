@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.ec
+kind: source
+language: go
+name: EC key generation / usage in Go
+description: >-
+  Detects the crypto/elliptic NIST curves (reported with their FIPS 186 names, which an enclosing call such as
+  ecdsa.GenerateKey also reports) and the deprecated crypto/elliptic point and key functions.
+asset:
+  type: algorithm
+  primitive: key-agree
+  family: EC
+match:
+- call: crypto/elliptic.P224
+  param:
+    value: P-224
+- call: crypto/elliptic.P256
+  param:
+    value: P-256
+- call: crypto/elliptic.P384
+  param:
+    value: P-384
+- call: crypto/elliptic.P521
+  param:
+    value: P-521
+- call: crypto/elliptic.GenerateKey
+- call: crypto/elliptic.Marshal
+- call: crypto/elliptic.MarshalCompressed
+- call: crypto/elliptic.Unmarshal
+- call: crypto/elliptic.UnmarshalCompressed

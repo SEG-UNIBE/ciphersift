@@ -1,0 +1,13 @@
+{"case": "go/names", "findings": [
+  {"file": "dot/dot.go", "line": 13, "rule": "go.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/md5.New"},
+  {"file": "dot/dot.go", "line": 15, "rule": "go.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "dot/dot.go", "line": 15, "rule": "go.prot.tls.v1_3", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.3", "param": null, "name": null},
+  {"file": "dot/dot.go", "line": 16, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"},
+  {"file": "pkg/names.go", "line": 21, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.Sum256"},
+  {"file": "pkg/names.go", "line": 22, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Read"},
+  {"file": "pkg/names.go", "line": 23, "rule": "go.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha1.Sum"},
+  {"file": "pkg/names.go", "line": 27, "rule": "go.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "pkg/names.go", "line": 28, "rule": "go.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "pkg/names.go", "line": 31, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.New"},
+  {"file": "pkg/names.go", "line": 34, "rule": "go.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha1.New"}
+]}

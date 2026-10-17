@@ -7,7 +7,7 @@ package ch.unibe.seg.ciphersift.files;
 import java.util.Locale;
 import java.util.Set;
 
-/** Test-file detection (SPEC 4.7 as amended by DECISIONS M1). */
+/** Test-file detection (SPEC 4.7 as amended by DECISIONS M1; Go: SPEC 17.1). */
 public final class TestFiles {
     private static final Set<String> TEST_DIRS = Set.of(
             "test", "tests", "testing", "__tests__", "testdata", "test-data", "testfixtures", "test-fixtures",
@@ -39,6 +39,10 @@ public final class TestFiles {
                 return true;
             }
             return false;
+        }
+        // Go file names (case-sensitive): the go test convention (SPEC 17.1, DECISIONS G12)
+        if (name.endsWith(".go")) {
+            return name.endsWith("_test.go");
         }
         // 3. Python file names (case-sensitive)
         if (name.endsWith(".py")) {

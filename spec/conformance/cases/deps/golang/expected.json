@@ -1,0 +1,13 @@
+{"case": "deps/golang", "findings": [
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "filippo.io/age", "version": "v1.2.1"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/cloudflare/circl", "version": "v1.5.0"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/golang-jwt/jwt/v5", "version": "v5.2.1"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "golang.org/x/crypto", "version": "v0.31.0"},
+  {"file": "go.sum", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "filippo.io/age", "version": "v1.2.1"},
+  {"file": "go.sum", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/cloudflare/circl", "version": "v1.5.0"},
+  {"file": "go.sum", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/golang-jwt/jwt/v5", "version": "v5.2.1"},
+  {"file": "go.sum", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "golang.org/x/crypto", "version": "v0.31.0"},
+  {"file": "svc/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/tink-crypto/tink-go/v2", "version": "v2.2.0"},
+  {"file": "svc/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "go.step.sm/crypto", "version": "v0.54.0"},
+  {"file": "tool/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "golang.org/x/crypto", "version": "v0.2.0"}
+]}

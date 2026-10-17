@@ -1,0 +1,4 @@
+{"case": "go/syntax-error", "findings": [
+  {"file": "broken.go", "line": 5, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.Sum256"},
+  {"file": "broken.go", "line": 11, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.Sum224"}
+]}

@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.chacha20poly1305
+kind: source
+language: go
+name: ChaCha20-Poly1305 AEAD usage in Go
+description: >-
+  Detects the ChaCha20-Poly1305 and XChaCha20-Poly1305 AEADs of golang.org/x/crypto/chacha20poly1305.
+asset:
+  type: algorithm
+  primitive: stream-cipher
+  family: ChaCha20
+  variant: Poly1305
+match:
+- call: golang.org/x/crypto/chacha20poly1305.New
+- call: golang.org/x/crypto/chacha20poly1305.NewX

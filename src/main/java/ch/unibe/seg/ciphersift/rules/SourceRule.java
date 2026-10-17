@@ -7,7 +7,7 @@ package ch.unibe.seg.ciphersift.rules;
 import java.util.List;
 
 /**
- * A source rule (SPEC 5.3). {@code patterns} holds {@link JavaPattern}s or {@link PythonPattern}s
+ * A source rule (SPEC 5.3). {@code patterns} holds {@link JavaPattern}s, {@link PythonPattern}s or {@link GoPattern}s
  * in file order. {@code order} is the rule's position in id order among the rules of its language.
  */
 public final class SourceRule {
@@ -73,6 +73,11 @@ public final class SourceRule {
     @SuppressWarnings("unchecked")
     public List<PythonPattern> pythonPatterns() {
         return (List<PythonPattern>) patterns;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<GoPattern> goPatterns() {
+        return (List<GoPattern>) patterns;
     }
 
     @Override

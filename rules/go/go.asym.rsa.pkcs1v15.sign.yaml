@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.asym.rsa.pkcs1v15.sign
+kind: source
+language: go
+name: 'RSA PKCS#1 v1.5 signatures in Go'
+description: >-
+  Detects crypto/rsa SignPKCS1v15 / VerifyPKCS1v15 and the crypto/x509 *WithRSA signature algorithms.
+asset:
+  type: algorithm
+  primitive: signature
+  family: RSA
+  variant: PKCS1v15
+match:
+- call: crypto/rsa.SignPKCS1v15
+- call: crypto/rsa.VerifyPKCS1v15
+- ref: crypto/x509.MD2WithRSA
+- ref: crypto/x509.MD5WithRSA
+- ref: crypto/x509.SHA1WithRSA
+- ref: crypto/x509.SHA256WithRSA
+- ref: crypto/x509.SHA384WithRSA
+- ref: crypto/x509.SHA512WithRSA

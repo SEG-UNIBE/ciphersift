@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift's Go support from the public API documentation of the Go standard library
+# and golang.org/x/crypto (pkg.go.dev); see spec/PROVENANCE.md and SPEC.md section 17.
+id: go.sym.aes
+kind: source
+language: go
+name: AES usage in Go (mode not statically determinable)
+description: >-
+  Detects AES block ciphers created with crypto/aes.NewCipher. The mode is reported by the go.sym.aes.* rules at
+  the crypto/cipher mode call when the block is known to be AES.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: AES
+match:
+- call: crypto/aes.NewCipher

@@ -6,8 +6,8 @@
 Version 1.0 of the specification (rule format version 1). Status: ready for implementation.
 
 CipherSift is an open-source (Apache-2.0) static scanner written in Java. It finds
-cryptographic assets in **Java** and **Python** source code and in **Maven/Gradle** and
-**PyPI** dependency manifests, and writes a **CycloneDX 1.7** Cryptography Bill of Materials
+cryptographic assets in **Java**, **Python** and **Go** source code and in **Maven/Gradle**,
+**PyPI** and **Go module** dependency manifests, and writes a **CycloneDX 1.7** Cryptography Bill of Materials
 (CBOM) as JSON (CycloneDX 1.6 on request, `--cyclonedx-version 1.6`).
 
 This document is the only description of the behaviour. It is written for an engineer who
@@ -36,6 +36,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 14. Performance
 15. Build, packaging and licensing
 16. Testing and conformance
+17. Go source analysis (added after 1.0)
 - Appendix A. Intentional differences from the reference tool
 - Appendix B. Known limitations (by design)
 - Appendix C. Tree-sitter node types and fields used
@@ -46,19 +47,21 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 ### 1.1 In scope
 
-* Source-code discovery in files with the extension `.java` (Java) and `.py` (Python).
+* Source-code discovery in files with the extension `.java` (Java), `.py` (Python) and `.go`
+  (Go, section 17).
   Detection is rule-driven: the cryptographic knowledge lives in rule files (section 5),
   the scanner provides language analysis (name resolution, constant resolution, argument
   analysis).
 * Dependency discovery in Maven `pom.xml`, Gradle `build.gradle`, `build.gradle.kts` and
   version catalogs (`*.versions.toml`), and Python `requirements*.txt`, `pyproject.toml`,
   `Pipfile.lock`, `poetry.lock`, `setup.cfg` and the literal requirements of `setup.py`
-  (9.8). Only packages on the crypto-library lists of the dependency rules are reported.
+  (9.8), and Go `go.mod` and `go.sum` (17.10). Only packages on the crypto-library lists of the
+  dependency rules are reported.
 * Output: one CycloneDX 1.7 JSON document (1.6 with `--cyclonedx-version 1.6`).
 
 ### 1.2 Out of scope
 
-Go, Ruby, Kotlin and other languages; configuration files (nginx, sshd, …); parsing of
+Ruby, Kotlin and other languages; configuration files (nginx, sshd, …); parsing of
 certificate, key or keystore files; weakness / CVE assessment; data-flow analysis beyond
 the constant resolution described here; reading compiled code (jars, wheels).
 
@@ -90,7 +93,7 @@ A scan runs five phases in this order. Phases 3 and 4 run per file and MAY run i
   rules ──► (0) rule loading
                  │
   scan root ─► (1) file collection ─► (2) classification ─► (3) extraction ─► (4) normalisation ─► (5) CBOM writing
-                                         java / python /         per file:        findings →            JSON
+                                         java / python / go /    per file:        findings →            JSON
                                          manifest / ignored      findings         components
 ```
 
@@ -100,8 +103,8 @@ A scan runs five phases in this order. Phases 3 and 4 run per file and MAY run i
 2. **Classification** (section 4.5–4.7): decide for every collected file whether it is Java
    source, Python source, a manifest of a known format, or ignored; detect test files;
    detect binary content.
-3. **Extraction**: Java analysis (section 7), Python analysis (section 8), manifest parsing
-   (section 9). Each produces findings.
+3. **Extraction**: Java analysis (section 7), Python analysis (section 8), Go analysis
+   (section 17), manifest parsing (sections 9, 17.10). Each produces findings.
 4. **Normalisation** (section 10): group findings into components by identity; build
    occurrences; deduplicate.
 5. **CBOM writing** (section 11): serialise components in a fixed order.
@@ -178,6 +181,9 @@ one info line:
 ciphersift: info: scanned 9874 files (java 8120, python 12, manifests 310) in 41.2 s; 1532 findings, 214 components; 3 files skipped
 ```
 
+When Go files were scanned, `, go <n>` follows the Python count (`(java 0, python 0, go 41,
+manifests 2)`); otherwise the line is exactly as above.
+
 Nothing but the CBOM is ever written to standard output.
 
 ### 3.3 Exit codes
@@ -247,6 +253,7 @@ wins. Comparisons of extensions and names are case-insensitive.
 |---|---|
 | Java source | extension `.java` |
 | Python source | extension `.py` (including `setup.py`, whose requirements are also read, 9.8) |
+| Go source | extension `.go` (17.1) |
 | Maven POM | name `pom.xml` |
 | Gradle build script | name `build.gradle` or `build.gradle.kts` |
 | Gradle version catalog | name ends with `.versions.toml` |
@@ -255,11 +262,13 @@ wins. Comparisons of extensions and names are case-insensitive.
 | Pipfile lock | name `Pipfile.lock` |
 | Poetry lock | name `poetry.lock` |
 | setup.cfg | name `setup.cfg` *(DECISIONS E10)* |
+| Go module file | name `go.mod` (17.10) |
+| Go checksum file | name `go.sum` (17.10) |
 | ignored | everything else |
 
 ### 4.6 Binary detection
 
-Source files (Java and Python) are checked for binary content before parsing: take the
+Source files (Java, Python and Go) are checked for binary content before parsing: take the
 first `n = min(8192, size)` bytes and count the bytes in the ranges `0x00–0x08` and
 `0x0E–0x1F`. If `count × 10 > n`, the file is binary; it is skipped with a debug message
 and counted as skipped. Empty files are not binary (and produce no findings). Manifests
@@ -281,6 +290,7 @@ Maven Surefire and pytest conventions (so `Latest.java` or `Contest.java` are no
    upper-case letter (`TestUtils.java` but not `Testament.java`).
 3. *Python file names* (case-sensitive). The base name matches `test_*.py`, `*_test.py`,
    `tests.py` or `conftest.py`.
+4. *Go file names* (case-sensitive). The base name matches `*_test.go` (17.1).
 
 With `--exclude-tests`, test files are dropped after collection, like excluded files (but
 see 7.4.5: Java constant lookup may still read them). With `--include-tests` (default) they
@@ -299,7 +309,7 @@ contain exactly one document; they are parsed with YAML 1.2 core-schema semantic
 
 | `kind` | Purpose | Section |
 |---|---|---|
-| `source` | detection rule for Java or Python source | 5.3–5.5 |
+| `source` | detection rule for Java, Python or Go source | 5.3–5.6, 17.3 |
 | `dependency` | crypto-library list for one package ecosystem | 5.9 |
 | `constants` | values of well-known library constants used by Java string resolution | 5.10 |
 
@@ -316,10 +326,11 @@ under `/rules/`. It contains:
 |---|---|
 | `rules/java/` | 103 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
 | `rules/python/` | 87 source rules (`python.*`) |
-| `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml` |
+| `rules/go/` | 66 source rules (`go.*`, section 17) |
+| `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml`, `dep.golang.yaml` |
 
-Two bundled rules are weakness indicators (`indicator: weakness`, 5.3): `java.rand.prng.insecure`
-and `python.rand.prng.insecure` (non-cryptographic random generators). Their findings appear only
+Three bundled rules are weakness indicators (`indicator: weakness`, 5.3): `java.rand.prng.insecure`,
+`python.rand.prng.insecure` and `go.rand.prng.insecure` (non-cryptographic random generators). Their findings appear only
 with `--weakness-indicators` *(DECISIONS E2)*. The Java rules `java.lib.shiro.*` cover Apache
 Shiro's public crypto API *(DECISIONS E16)*.
 
@@ -356,12 +367,12 @@ match:
 |---|---|---|
 | `id` | yes | Rule id, e.g. `python.hash.sha2`. Written to every occurrence. |
 | `kind` | yes | `source` |
-| `language` | yes | `java` or `python`. The rule is applied only to source files of that language. |
+| `language` | yes | `java`, `python` or `go`. The rule is applied only to source files of that language. |
 | `name` | yes | Human-readable rule name. Not part of the output except as the component name of non-algorithm, non-protocol assets (10.2). |
 | `description` | no | Free text. |
 | `indicator` | no | `weakness`: the findings are indicators of a possible weakness, not cryptographic assets (e.g. a non-cryptographic random generator, reported wherever it is used). They are reported only with `--weakness-indicators` (3.1); their components then carry the property `ciphersift:indicator` (11.3.4) *(DECISIONS E2, decided by owner)*. |
 | `asset` | yes | What a match denotes (5.4). |
-| `match` | yes | Non-empty list of patterns (5.5 Java, 5.6 Python). |
+| `match` | yes | Non-empty list of patterns (5.5 Java, 5.6 Python, 17.3 Go). |
 
 ### 5.4 The `asset` block
 
@@ -484,7 +495,7 @@ of the offending value and the problem. Unknown keys are errors (the schema forb
 ```yaml
 id: dep.maven
 kind: dependency
-ecosystem: maven            # maven | pypi
+ecosystem: maven            # maven | pypi | golang
 name: Cryptographic Java libraries
 asset: {type: library}
 packages:
@@ -493,7 +504,7 @@ packages:
 ```
 
 `package` is a pattern over the package key of the ecosystem: for Maven
-`groupId:artifactId`, for PyPI the normalised name (section 9.1). `*` matches any run of
+`groupId:artifactId`, for PyPI the normalised name (section 9.1), for Go the module path (17.10). `*` matches any run of
 characters (including `.`, `-`, `:`); matching is case-insensitive and covers the whole key.
 A manifest entry is reported iff its key matches at least one pattern of the rule of its
 ecosystem. `note` is documentation only.
@@ -694,8 +705,8 @@ case), with no surrounding white space, whose dotted form is listed in the table
 ### 6.1 Parser
 
 Source files are parsed with tree-sitter through **jtreesitter 0.26.1** (Maven
-`io.github.tree-sitter:jtreesitter:0.26.1`) using the grammars **tree-sitter-java 0.23.5**
-and **tree-sitter-python 0.25.0**. Packaging of the native libraries is specified in
+`io.github.tree-sitter:jtreesitter:0.26.1`) using the grammars **tree-sitter-java 0.23.5**,
+**tree-sitter-python 0.25.0** and **tree-sitter-go 0.25.0** (section 17). Packaging of the native libraries is specified in
 section 15.3.
 
 The decoded text (4.4) is passed to `Parser.parse(String)` (it returns `Optional<Tree>`;
@@ -1436,6 +1447,8 @@ yields no entries.
 | `poetry.lock` | pypi | `poetry-lock` |
 | `setup.cfg` | pypi | `setup-cfg` |
 | `setup.py` (Python source, 9.8) | pypi | `setup-py` |
+| `go.mod` (17.10) | golang | `go-mod` |
+| `go.sum` (17.10) | golang | `go-sum` |
 
 ### 9.1 Package keys and versions
 
@@ -1605,7 +1618,7 @@ rules.
 | `algorithm` | the finding's name: Java — the matched algorithm string (`AES/GCM/NoPadding`, `SHA-256`) or the display name (`GCMBlockCipher`, `Cipher.getInstance`); Python — the resolved call name (`cryptography.hazmat.primitives.ciphers.Cipher`, `hashlib.new`) |
 | `protocol` | upper-case protocol, then a space and the version if the rule has one: `TLS 1.2`, `SSL 3.0`, `TLS`, `SSH` |
 | others | the rule's `name` |
-| `library` | Maven: the artifactId (the groupId goes to `group`); PyPI: the normalised name |
+| `library` | Maven: the artifactId (the groupId goes to `group`); PyPI: the normalised name; Go: the module path |
 
 ### 10.3 Occurrences
 
@@ -1757,7 +1770,7 @@ In this order, each only if it has a value:
 | Name | Value |
 |---|---|
 | `ciphersift:ruleId` | rule id (all components of one key share it) |
-| `ciphersift:language` | `java` / `python` |
+| `ciphersift:language` | `java` / `python` / `go` |
 | `ciphersift:assetType` | the rule's asset type when it differs from the CycloneDX one (`key-material`) |
 | `ciphersift:primitive` | the rule's primitive (absent if unknown) |
 | `ciphersift:family` | the rule's family |
@@ -1774,9 +1787,11 @@ bom-ref     the purl
 group       Maven groupId (Maven only)
 name        (10.2)
 version     only if known
-purl        pkg:maven/<groupId>/<artifactId>[@<version>] or pkg:pypi/<name>[@<version>]
-            (percent-encode every character outside A-Z a-z 0-9 . - _ ~ in each part)
-properties  ciphersift:ruleId, ciphersift:ecosystem ("maven" / "pypi"), ciphersift:testOnly (if so)
+purl        pkg:maven/<groupId>/<artifactId>[@<version>], pkg:pypi/<name>[@<version>] or
+            pkg:golang/<module path>[@<version>] (17.10)
+            (percent-encode every character outside A-Z a-z 0-9 . - _ ~ in each part; for Go each
+            /-separated segment of the module path is a part)
+properties  ciphersift:ruleId, ciphersift:ecosystem ("maven" / "pypi" / "golang"), ciphersift:testOnly (if so)
 evidence    { occurrences: [ … ] }
 ```
 
@@ -2188,13 +2203,14 @@ rules/  spec/                          as delivered
 
 ### 15.3 Native libraries (tree-sitter core and grammars)
 
-jtreesitter does not ship native code. Three shared libraries are needed per platform:
+jtreesitter does not ship native code. Four shared libraries are needed per platform:
 
 | Library | Source | Exported entry point |
 |---|---|---|
 | `libtree-sitter` | tree-sitter core **v0.26.10** — the `core` submodule of the `v0.26.1` tag of `tree-sitter/java-tree-sitter` points to commit `3fc4cd2` ("release v0.26.10"). ABI range 13–15 (`TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION` 13, `TREE_SITTER_LANGUAGE_VERSION` 15). | `ts_*` API |
 | `libtree-sitter-java` | `tree-sitter/tree-sitter-java` tag `v0.23.5` (ABI 14) | `tree_sitter_java` |
 | `libtree-sitter-python` | `tree-sitter/tree-sitter-python` tag `v0.25.0` (ABI 15) | `tree_sitter_python` |
+| `libtree-sitter-go` | `tree-sitter/tree-sitter-go` tag `v0.25.0` (ABI 15; section 17) | `tree_sitter_go` |
 
 **Sources.** `native/sources.lock` lists, for each, the GitHub release tarball URL
 (`https://github.com/tree-sitter/<repo>/archive/refs/tags/<tag>.tar.gz`) and its SHA-256.
@@ -2209,7 +2225,7 @@ licence files are committed, so a normal build needs no network.
 CFLAGS="-O2 -fPIC -std=c11 -fvisibility=hidden -D_DEFAULT_SOURCE"
 gcc $CFLAGS -Ivendor/tree-sitter/lib/include -Ivendor/tree-sitter/lib/src \
     -fvisibility=default -shared -o libtree-sitter.so vendor/tree-sitter/lib/src/lib.c
-for g in java python; do
+for g in java python go; do
   srcs=vendor/tree-sitter-$g/src/parser.c
   [ -f vendor/tree-sitter-$g/src/scanner.c ] && srcs="$srcs vendor/tree-sitter-$g/src/scanner.c"
   gcc $CFLAGS -fvisibility=default -Ivendor/tree-sitter-$g/src -shared -o libtree-sitter-$g.so $srcs
@@ -2217,7 +2233,7 @@ done
 strip --strip-unneeded *.so
 ```
 
-Output: `target/native/linux-x86_64/` with the three files and a `SHA256SUMS` file; they
+Output: `target/native/linux-x86_64/` with the four files and a `SHA256SUMS` file; they
 are copied into the jar under `/native/linux-x86_64/`. Further platforms (`linux-aarch64`,
 `darwin-aarch64`, `darwin-x86_64`, `windows-x86_64`) MAY be added by cross-compiling (e.g.
 `zig cc -target …`) in CI and placing the results in `target/native/<platform>/` before
@@ -2229,7 +2245,7 @@ packaging; the fat jar then contains all of them. Platform id: `os.name` mapped 
 
 1. Determine the platform id; if the jar has no `/native/<platform>/`, fail with exit 1
    and a message listing the supported platforms.
-2. Extract the three files to `$XDG_CACHE_HOME/ciphersift/native/<sha256 of SHA256SUMS>/`
+2. Extract the four files to `$XDG_CACHE_HOME/ciphersift/native/<sha256 of SHA256SUMS>/`
    (default `~/.cache/…`), or, if that is not writable, to a fresh temporary directory
    deleted on exit. Write to a temporary name and rename atomically; verify each file
    against `SHA256SUMS` before use (also when already present).
@@ -2240,12 +2256,12 @@ packaging; the fat jar then contains all of them. Platform id: `os.name` mapped 
    `META-INF/services/io.github.treesitter.jtreesitter.NativeLibraryLookup`.
 4. Load each grammar with
    `Language.load(SymbolLookup.libraryLookup(<path>, Arena.global()), "tree_sitter_java")`
-   (resp. `tree_sitter_python`). The arena must never be closed.
+   (resp. `tree_sitter_python`, `tree_sitter_go`). The arena must never be closed.
 5. Native access must be enabled: the jar manifest's `Enable-Native-Access: ALL-UNNAMED`
    covers `java -jar`; the launcher also passes `--enable-native-access=ALL-UNNAMED`.
 
 `ciphersift --version` prints the CipherSift version, the jtreesitter version, and the ABI
-versions of both grammars (`Language.getAbiVersion()`).
+versions of the grammars (`Language.getAbiVersion()`).
 
 ### 15.4 Docker
 
@@ -2291,7 +2307,7 @@ arguments decodable (section 12).
   under `spec/conformance/cases/*/input/` are test data and MUST NOT get headers (that would
   shift line numbers); they are excluded from the header check.
 * `NOTICE` lists the bundled third-party components and their licences: tree-sitter core,
-  tree-sitter-java and tree-sitter-python (MIT; their copyright lines are reproduced),
+  tree-sitter-java, tree-sitter-python and tree-sitter-go (MIT; their copyright lines are reproduced),
   jtreesitter (MIT), Jackson, picocli, json-schema-validator (Apache-2.0), SnakeYAML
   (Apache-2.0, via jackson-dataformat-yaml), JSpecify (Apache-2.0, a runtime dependency of
   jtreesitter), and every further transitive dependency that the shade plugin puts into the
@@ -2316,6 +2332,268 @@ arguments decodable (section 12).
   from two different absolute locations whose last path segment is the same (it is
   `metadata.component.name`); outputs MUST be byte-identical.
 * **Rule regex parity**: `spec/tools/regex_parity.py` (optional in CI; requires Python).
+
+---
+
+## 17. Go source analysis *(DECISIONS G1–G16)*
+
+Go support was added after version 1.0 of this specification; it reuses the rule format
+(section 5), the normalisation (10) and the CBOM mapping (11) unchanged and adds only what Go
+needs. Section numbers 1–16 apply to Go files as to Java and Python files unless this section
+says otherwise.
+
+### 17.1 Files
+
+* **Go source**: extension `.go` (4.5, before `pom.xml`). Binary detection (4.6), the size limit
+  (4.3) and the pre-filter (14) apply as for the other languages.
+* **Test files** (4.7): the directory rule applies unchanged (it already contains Go's
+  `testdata`); in addition a file whose base name ends with `_test.go` (case-sensitive, the
+  `go test` convention) is a test file *(DECISIONS G12)*.
+* **Vendored code**: `vendor/` directories are scanned like any other directory; use
+  `--exclude vendor` to skip them (the default is the same as for Java and Python,
+  *DECISIONS G13*).
+* **Manifests**: `go.mod` and `go.sum` (section 17.10).
+
+### 17.2 Parser
+
+tree-sitter-go **v0.25.0** (ABI 15), built and loaded like the other grammars (15.3; entry
+point `tree_sitter_go`, library `libtree-sitter-go`). Error tolerance (6.2) and iterative
+traversal (6.3) apply. The node types and fields used are listed in Appendix C.
+
+### 17.3 Go patterns *(DECISIONS G2, G3)*
+
+A Go pattern names Go API members by **import path** and member, written
+`<import path>.<Member>` and split at the **last** `.`: `crypto/aes.NewCipher`,
+`golang.org/x/crypto/chacha20poly1305.New`, `crypto.SHA256` (package `crypto`). It has exactly
+one anchor:
+
+| Anchor | Value | Fires on |
+|---|---|---|
+| `call` | `path.Member`; the member may end with `*` (prefix), and `path.*` names every member | A call event (17.5) whose name (17.4) equals the value (or starts with it, for `*`). A `call` pattern **without** `anySymbol` also fires on a reference event with such a name: `hmac.New(sha256.New, key)` uses SHA-256 *(DECISIONS G5)*. |
+| `ref` | as `call` | A reference event (17.5) only: a constant, variable or function used as a value (`tls.VersionTLS12`, `crypto.SHA256`, `rand.Reader`). |
+| `composite` | `path.Type` (no `*`) | A composite-literal event (17.5): `tls.Config{…}`, `&rsa.PSSOptions{…}`, `new(tls.Config)`. |
+| `assign` | a field name | A field-assignment event (17.5): the keyed element `InsecureSkipVerify: true` of any composite literal, or the assignment `cfg.InsecureSkipVerify = true`. |
+
+Conditions:
+
+| Key | Value | Allowed with | Holds when |
+|---|---|---|---|
+| `anySymbol` | list of `path.Member` names (no `*`) | call, composite | Some listed name equals a name of the event's symbol set (17.7). |
+| `value` | regex | assign | The regex is found (`find`, case-insensitive) in one of the value texts (17.7) of the assigned expression. |
+| `valueContains` | list | assign | Some value text contains some listed string (case-insensitive). |
+| `param` | `{index: i}` (call only), `{self: true}` or `{value: s}` | call, ref, composite | *Not a filter.* The finding's param (17.8). |
+
+A pattern with `anySymbol`, `value` or `valueContains` is **specific** (specificity 2); every
+other pattern is **bare** (1). `*` prefixes are allowed only in `call` and `ref` anchors.
+
+The rule schema has a `goPattern` branch for `language: go`; source-rule ids start with `go.`.
+Semantic check (5.8) in addition to the schema: the import path before the last `.` is not
+empty. The bundled rules live in `rules/go/`; there is no Go constants document (Go constants are
+resolved from the source only, 17.6).
+
+### 17.4 Imports and names *(DECISIONS G4)*
+
+One walk over the whole tree collects the `import_spec`s of the file (in any position, also
+inside `ERROR` nodes). The **path** of a spec is the content of its `path` string literal,
+without the quotes and without interpreting escape sequences (import paths are plain ASCII in
+practice; a path written with escapes is not recognised). The spec's **local name** is:
+
+* the text of its `name` field if that is a `package_identifier`;
+* for `name` `.` (dot import): no local name; the path is appended to the file's *dot paths*;
+* for `name` `_` (blank import): nothing (the import has no effect on names);
+* without `name`: the last `/`-segment of the path; if that segment is a major-version suffix
+  `v2`, `v3`, … (`^v[0-9]+$`) and there is a segment before it, that previous segment
+  (`math/rand/v2` → `rand`, `github.com/golang-jwt/jwt/v5` → `jwt`); a trailing `.vN` of the
+  segment is removed (`gopkg.in/yaml.v3` → `yaml`). (Go takes the name from the package clause
+  of the imported package, which a scanner cannot see; these are the naming conventions of
+  every package the bundled rules name.)
+
+A later spec with the same local name replaces an earlier one. The **declared names** of the
+file are the texts of every `identifier` that is the `name` of a `function_declaration`,
+`var_spec`, `const_spec`, `parameter_declaration` or `variadic_parameter_declaration`, every
+`identifier` in the `left` list of a `short_var_declaration` or `range_clause`, and every
+`type_identifier` that is the `name` of a `type_spec` or `type_alias`.
+
+**Name of a qualified selector.** A `selector_expression` whose `operand` is an `identifier`
+*X* that is a local name of an import with path *P* has the single name *P*`.`*F*, *F* being
+the text of its `field`. (A local variable cannot shadow an import that the same scope uses,
+so no scope check is made.)
+
+**Name of an unqualified identifier.** An `identifier` *N* that starts with an upper-case letter
+(only exported names are visible through a dot import), is not a declared name of the file and
+is not a local name of an import has, for each dot path *P* in order, the name *P*`.`*N*; without
+dot imports it has no name. (Declared names are file-wide: a local variable named like a member of
+a dot-imported package hides that member in the whole file.)
+
+**Type names.** A `qualified_type` (`package` *X*, `name` *T*) has the name *P*`.`*T* if *X* is
+a local name of path *P*; a `type_identifier` *T* gets dot-import names like an identifier.
+
+### 17.5 Events
+
+One pre-order walk enumerates the events of the file (import declarations are not walked):
+
+| Event | Node | Names | Line | Snippet |
+|---|---|---|---|---|
+| call | `call_expression` whose `function` is a qualified selector or an unqualified identifier with names (17.4) | the function's names | row of the selector's `field` + 1, else start row + 1 | the call text |
+| composite | `composite_literal` whose `type` is a `qualified_type` or `type_identifier` with names; and a call of the identifier `new` (not a declared name) whose single argument is a `qualified_type`, or a qualified selector, with names | the type's names | start row + 1 | the node text |
+| reference | a qualified selector, or an unqualified identifier with names, that is not the `function` of a `call_expression`, not the type argument of a `new` composite event, not the expression of the `key` of a `keyed_element` (a struct field name or a map key), and not in a *test position* | its names | row of the `field` + 1 for a selector, else start row + 1 | the node text |
+| assign | a `keyed_element` whose `key` is a `literal_element` holding a single `identifier` (the field name); an `assignment_statement` with operator `=` for each position *i* whose left element is a `selector_expression` (field name = its `field`), when left and right have the same number of elements (value = right element *i*) | – | start row + 1 | the node text |
+
+**Test positions** *(DECISIONS G6)*: walking up from the reference through
+`parenthesized_expression` and `unary_expression`, the walk reaches the `left` or `right` of a
+`binary_expression` whose operator is `==`, `!=`, `<`, `<=`, `>` or `>=`, or an
+`expression_list` that is the `value` of an `expression_case`. Such a reference compares a
+value obtained elsewhere (`if state.Version == tls.VersionTLS10`, `case tls.VersionTLS12:` in a
+version-name table); it does not choose an algorithm.
+
+Snippets are truncated to 500 code points.
+
+### 17.6 Constant resolution *(DECISIONS G7)*
+
+**Scopes and bindings.** The *function scopes* are the `function_declaration`,
+`method_declaration` and `func_literal` nodes; the file is the outermost scope. Block scopes inside a function are not
+distinguished; resolution is flow-insensitive within a function.
+
+*Declarations* bind in the innermost function scope that contains them:
+
+* `const_spec` and `var_spec`: each `name` *nᵢ*; its value is element *i* of the `value`
+  list if the list has as many elements as there are names, the single element if the list has
+  one element (a multi-value call), and none otherwise (also without a value list, and for the
+  implicit repetition of a `const` group);
+* `short_var_declaration`: each `identifier` *nᵢ* of `left`, with the value paired from `right`
+  in the same way;
+* an identifier in the `left` of a `range_clause` with `:=`, and every parameter, receiver and
+  named result (`parameter_declaration` / `variadic_parameter_declaration` names of the
+  scope's `parameters`, `receiver`, `result`): a binding without value.
+
+*Assignments* — an `assignment_statement` with operator `=` (each `identifier` of `left`, value
+paired from `right` as above), one with another operator, an `inc_statement` /
+`dec_statement` of an identifier and a `range_clause` with `=` (bindings without value) — bind
+the variable where it is declared: in the innermost scope, from the assignment's function
+scope outwards, that has a declaration of the name, else in the file scope. So `bits = 4096`
+inside `init()` makes the package variable `bits` non-constant.
+
+`bindings(N, x)`: starting at the innermost function scope of node *x* and moving outwards, the
+bindings of `N` in the first scope that has any.
+
+**Values.** `value(e, d)` (string or unresolved; unresolved when `d > 12`):
+
+| Node | Value |
+|---|---|
+| `interpreted_string_literal` | its content with escapes decoded (`\a \b \f \n \r \t \v \\ \' \"`, `\xHH`, `\ooo`, `\uHHHH`, `\UHHHHHHHH`; an invalid escape keeps its text); a string |
+| `raw_string_literal` | its content without carriage returns; a string |
+| `int_literal` | decimal notation only (`[1-9][0-9_]*` or `0`): the text without `_`; a number |
+| `true`, `false` | the text |
+| `parenthesized_expression` | value of its expression |
+| `binary_expression` `+` | both operands resolve **to strings**: their concatenation; otherwise unresolved |
+| `identifier` | `bindings(N, e)`: if there is at least one and every binding has a value and all of these values resolve to the same result, that result; otherwise unresolved |
+| anything else | unresolved (other packages' constants, `iota`, conversions, calls, …) |
+
+So a `const`, or a variable assigned exactly once, is resolved; a variable assigned twice with
+different values, a parameter, or a variable without initialiser is not.
+
+**Bound names.** `boundNames(N, x, d)` (empty when `d > 12`; cycle guard as in 8.4.1): for each
+binding of `bindings(N, x)` with a value *v*: the names of *v* if it is a call event's call
+(its function's names), a qualified selector or an unqualified identifier with names, or a
+composite literal or `&` of one (its type's names); `boundNames` of *v* if it is another
+identifier. Example: `block, err := aes.NewCipher(key)` gives `block` (and `err`) the bound
+name `crypto/aes.NewCipher`.
+
+### 17.7 Symbol sets and value texts
+
+`collect(e, d)` (stops when `d > 6`):
+
+* qualified selector: add its name; any other `selector_expression`: `collect(operand)`;
+* `identifier`: add its names (dot imports) and `boundNames`;
+* `call_expression`: add the function's names; `collect` the function if it is neither a
+  qualified selector nor an identifier; `collect` every argument;
+* `composite_literal`: add the type's names; `collect` the body;
+* `func_literal`, string and number literals, comments: nothing;
+* anything else: `collect` every named child.
+
+The **symbol set** of a call event is the union of `collect(a, 0)` over its arguments; of a
+composite event, `collect(body, 0)`. Example: `cipher.NewGCM(block)` after the binding above has
+the symbols `crypto/aes.NewCipher` (from `block`).
+
+The **value texts** of an assigned expression *e*: its text; its value (17.6), if resolved; its
+names if it is a qualified selector or identifier, the function's names if it is a call.
+
+### 17.8 Selection, nesting and findings
+
+For each event: the candidate patterns are those whose anchor fires on the event (17.3); a rule
+matches if one of its candidate patterns holds (all conditions). Selection is that of Java
+(7.7.1): the rule's specificity is the highest of its holding patterns, its chosen pattern the
+first holding one with that specificity; per asset `type`, only the rules with the group's
+maximum specificity are kept. Then nested duplicates are dropped as in 7.7.2, with the Go
+expression ancestors `argument_list`, `call_expression`, `parenthesized_expression`,
+`unary_expression`, `composite_literal`, `literal_value`, `literal_element`, `keyed_element`
+*(DECISIONS G8)*: `ecdsa.GenerateKey(elliptic.P256(), rand.Reader)` is one ECDSA finding (the
+inner EC curve has the same family) plus the CSPRNG (no family); `cipher.NewGCM(` … `aes.NewCipher(k)` … `)`
+written inline is AES-GCM only.
+
+Each kept (event, rule) pair yields one finding:
+
+| Field | Value |
+|---|---|
+| line, snippet | 17.5 |
+| name, symbol | the first name of the event (in the order of 17.4) that made the chosen pattern's anchor fire; assign events: the field name |
+| param | 17.9 |
+
+The component name of an algorithm finding is therefore the qualified name of the API
+(`crypto/aes.NewCipher`, `crypto/tls.VersionTLS12`), as for Python (10.2).
+
+### 17.9 Parameters *(DECISIONS G9)*
+
+* `{value: s}`: *s*.
+* `{self: true}`: the member of the name used (`crypto/elliptic.P256` → `P256`), mapped as below.
+* `{index: i}` (call events): argument *i*, if present: its value (17.6) if resolved;
+  otherwise its *candidates* — the names of a qualified selector, identifier (dot imports) or
+  call; the bound names of an identifier; the type names of a composite literal or `&` of one —
+  and the param is the mapped member of the first candidate.
+
+*Mapping a member through the rules*: if some Go pattern of the loaded rule set
+has a `call` or `ref` anchor equal to the candidate's full name and a `param: {value: v}`, the
+param is *v* (the first such pattern in rule-id and file order); otherwise it is the member.
+The curve functions carry their standard names this way: `call: crypto/elliptic.P256` has
+`param: {value: P-256}`, so `ecdsa.GenerateKey(elliptic.P256(), rand.Reader)` reports `P-256`,
+which table 11.3.1b maps to `nist/P-256`. A param that is a table OID is replaced by its name
+(5.11).
+
+### 17.10 Go module manifests *(DECISIONS G10, G11)*
+
+Ecosystem **`golang`**; the package key is the module path as written (case preserved; rule
+matching is case-insensitive, 5.9). Manifest labels `go-mod` and `go-sum`.
+
+* **go.mod**: lines (LF; a trailing CR removed); `//` starts a comment to the end of the line.
+  A line `require PATH VERSION`, or each line `PATH VERSION` inside a `require (` … `)` block,
+  is an entry (`PATH` may be quoted with `"…"` or `` `…` ``). All other directives and blocks
+  (`module`, `go`, `toolchain`, `replace`, `exclude`, `retract`, `tool`, `godebug`, …) are
+  ignored; replacements are not applied.
+* **go.sum**: each line `PATH VERSION HASH` is an entry, except lines whose `VERSION` ends with
+  `/go.mod` (only the module's `go.mod` was needed by version selection; the module's code is not
+  part of the build).
+
+Within one file the last entry of a path determines the version (section 9). Snippet:
+`PATH@VERSION`. Library components (11.3.5): `name` = the module path, no `group`, `version`,
+`purl` = `pkg:golang/` + the `/`-separated segments of the path, each percent-encoded as in
+11.3.5, joined by `/`, + `@` + the encoded version; properties `ciphersift:ruleId`,
+`ciphersift:ecosystem` (`golang`). The bundled rule `rules/dependencies/dep.golang.yaml` lists
+Go cryptographic modules (`golang.org/x/crypto`, `filippo.io/age`, `github.com/cloudflare/circl`,
+…).
+
+### 17.11 Go coverage of the bundled rules *(DECISIONS G14, G15)*
+
+`rules/go/` (66 source rules) covers the Go standard library `crypto/...` packages
+(`aes`, `cipher` modes, `des`, `rc4`, `rsa`, `dsa`, `ecdsa`, `ecdh`, `elliptic`, `ed25519`,
+`hmac`, `md5`, `sha1`, `sha256`, `sha512`, `sha3`, `hkdf`, `pbkdf2`, `mlkem`, `rand`, `tls`,
+`x509`, the `crypto.Hash` constants) and `golang.org/x/crypto` (`chacha20`, `chacha20poly1305`,
+`poly1305`, `salsa20`, `nacl/box`, `nacl/secretbox`, `nacl/sign`, `nacl/auth`, `curve25519`,
+`ed25519`, `scrypt`, `argon2`, `bcrypt`, `hkdf`, `pbkdf2`, `sha3`, `blake2b`, `blake2s`, `md4`,
+`ripemd160`, `blowfish`, `cast5`, `twofish`, `xts`, `pkcs12`, `ssh`), and `math/rand` /
+`math/rand/v2` as a weakness indicator. Not covered: `golang.org/x/crypto/openpgp` (deprecated;
+no fitting CycloneDX asset), third-party APIs (JWT, JOSE, age, circl — their modules are reported
+through `go.mod`), method calls on values whose type is not known (`key.Sign(…)`, `aead.Seal(…)`;
+receiver types are not inferred), and algorithm names in strings (`ssh.Config{Ciphers: […]}`).
 
 ---
 
@@ -2397,8 +2675,17 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
 * Kotlin, Groovy and Scala sources are not analysed.
 * Test detection is path-based: library code that lives in directories named like tests
   (e.g. `django/test/`, `numpy/testing/`) is marked as test code.
-* Only files with the extensions `.java` and `.py` are source: extensionless scripts
+* Only files with the extensions `.java`, `.py` and `.go` are source: extensionless scripts
   (`#!/usr/bin/env python3`) are not scanned *(DECISIONS E18)*.
+* Go (section 17, *DECISIONS G1–G16*): receiver types are not inferred, so method calls on values
+  (`key.Sign(…)`, `aead.Seal(…)`, `curve.GenerateKey(…)`) are not anchors; constants are resolved
+  within the file only (not from other files of the package or from other packages); resolution
+  is flow-insensitive within a function and block scopes are not distinguished; local names of
+  imports without explicit name follow the naming conventions of 17.4 (a package whose name
+  differs from its last path segment is not recognised without an alias); an `assign` pattern
+  fires on a field of that name in any struct literal or selector (the type of the struct is
+  not checked); cgo, `//go:build` constraints and generated code are not treated specially;
+  `replace` directives of `go.mod` are not applied.
 * tree-sitter-java 0.23.5 rejects some valid literals (a binary literal with a double
   underscore, `0b1000__0000`); the rest of the file is analysed (6.2) *(DECISIONS E18)*.
 
@@ -2440,6 +2727,22 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
 `unary_operator`, `boolean_operator`, `not_operator`, `return_statement`, `await`,
 `comparison_operator`, `except_clause`, `subscript`, `type`, `generic_type`, `union_type`,
 `constrained_type`, `member_type`, `splat_type`, `type_alias_statement`, `type_parameter`.
+
+**Go (tree-sitter-go 0.25.0, section 17).** `source_file`; `import_declaration`, `import_spec`
+(fields `name` — `package_identifier`, `dot`, `blank_identifier` — and `path`),
+`interpreted_string_literal`, `raw_string_literal`; `function_declaration` (fields `name`,
+`parameters`, `result`), `method_declaration` (`receiver`, `parameters`, `result`), `func_literal`
+(`parameters`, `result`); `parameter_list`, `parameter_declaration`,
+`variadic_parameter_declaration` (field `name`); `const_spec`, `var_spec` (fields `name`,
+`value`); `short_var_declaration`, `assignment_statement` (fields `left`, `operator`, `right`),
+`range_clause` (field `left`; child `:=`), `inc_statement`, `dec_statement`; `expression_list`;
+`type_spec`, `type_alias` (field `name`); `call_expression` (fields `function`, `arguments`);
+`argument_list`; `selector_expression` (fields `operand`, `field`); `identifier`;
+`composite_literal` (fields `type`, `body`); `qualified_type` (fields `package`, `name`);
+`type_identifier`; `literal_value`, `keyed_element` (fields `key`, `value`), `literal_element`;
+`binary_expression` (fields `left`, `operator`, `right`); `unary_expression` (field `operand`);
+`parenthesized_expression`; `expression_case` (field `value`); `int_literal`, `true`, `false`;
+`comment`.
 
 An implementation SHOULD verify at start-up (or in a unit test) that every field name listed
 here exists in the loaded grammar (`Language.getFieldIdForName` returns non-zero), so that a
