@@ -166,3 +166,13 @@ then code. Each item below was decided by the implementer; none changes Java or 
 line as a trailing `// want: <rule> <name> [<param>]` comment; `expected.json` was derived from those
 comments and the rules' asset blocks (`deps/golang` written directly), all from SPEC section 17
 and the rules, and then compared with the implementation. No existing expectation changed.
+
+**Evaluation (2026-10-17, after the implementation was frozen at the Go-support commit).** BF-CBOM
+`micro-go`: 10/11 with the pilot scorer (the AES-GCM call is reported as `go.sym.aes.gcm`, but the
+scorer derives the family from the component name `crypto/cipher.NewGCM` and does not read
+`ciphersift:ruleId`; 11/11 when it does); `mid-age`, `mid-smallstep-crypto`, `micro-golang-jwt` run
+without errors, 30 of 30 sampled findings are real cryptographic API uses; micro-java and
+micro-python unchanged at 11/11. **No benchmark-informed change was made.** Follow-up candidates
+seen in the evaluation (not applied, owner to decide): the module `filippo.io/hpke` (used by age)
+is not on `dep.golang`; the newer standard-library packages `crypto/hpke` and `crypto/mldsa` have
+no rules (their uses in the evaluated code were types only, which are not events by design).
