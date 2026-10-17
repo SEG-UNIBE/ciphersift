@@ -48,8 +48,8 @@ needs write permission there).
 
 ```
 ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
-                [--threads N] [--rules DIR] [--weakness-indicators] [--cyclonedx-version V]
-                [--quiet | --verbose]
+                [--threads N] [--rules DIR] [--weakness-indicators] [--python-thin-wrappers]
+                [--cyclonedx-version V] [--quiet | --verbose]
 ciphersift rules validate [--rules DIR]
 ciphersift rules export <dir>
 ciphersift --version
@@ -80,6 +80,7 @@ Extra JVM options can be passed in `CIPHERSIFT_JAVA_OPTS` (e.g. `-Xmx4g`).
 | `--threads N` | Worker threads (default: processors, at most 8). The output does not depend on it. |
 | `--rules DIR` | Use the rules under `DIR` instead of the bundled ones (`rules export` gives you a copy to edit). |
 | `--weakness-indicators` | Also report *weakness indicators* (see below), e.g. non-cryptographic random generators. Off by default; all other findings are exactly those of a default scan. |
+| `--python-thin-wrappers` | Also treat thin Python functions (at most 8 lines, one family, any name) as crypto wrappers whose call sites are reported (see "Wrapper propagation"). Off by default; the metadata records it as `ciphersift:pythonThinWrappers=included`. |
 | `--cyclonedx-version V` | `1.7` (default) or `1.6`. The 1.6 document is the former output format: the same components, bom-refs and properties, without the 1.7 registry fields `algorithmFamily` and `ellipticCurve`. |
 | `--quiet`, `--verbose` | Only errors / also debug messages (one line per skipped file) on standard error. |
 
@@ -145,7 +146,9 @@ properties `ciphersift:rulesDigest`, `ciphersift:testFiles`, `ciphersift:filesSc
   value;
 * `evidence.occurrences`: `location` (path relative to the scan root, `/`-separated), `line`,
   `symbol` (the API, e.g. `javax.crypto.Cipher.getInstance`) and `additionalContext`, a string
-  holding compact JSON `{"ruleId":…,"snippet":…,"param":…,"test":true}`.
+  holding compact JSON `{"ruleId":…,"snippet":…,"param":…,"test":true}`; an occurrence found by
+  wrapper propagation has the called function as `symbol` (`Hash.sha3`), the call as snippet, and
+  `"via":[…],"origin":"<path>:<line>"` before `test`.
 
 **CycloneDX 1.7 registry fields.** `algorithmFamily` and `ellipticCurve` use the names of the
 CycloneDX cryptography registry (`cryptography-defs`): `SHA-2`, `SHA-3`, `RIPEMD`, `CAMELLIA`,
@@ -209,6 +212,37 @@ Go 1.25 raw ECDSA key encodings and key construction (`rsa.PublicKey{…}`, `ed2
 cases do not. `go.mod` and `go.sum` report the modules of `rules/dependencies/dep.golang.yaml`
 (`golang.org/x/crypto`, `filippo.io/age`, `github.com/cloudflare/circl`, JWT/JOSE libraries, …).
 `vendor/` directories are scanned like any other; pass `--exclude vendor` to skip vendored modules.
+Selected third-party Go APIs have rules too (SPEC 17.11, DECISIONS T11): `filippo.io/age` (and
+`agessh`), sigstore `cryptoutils`, the `crypto/x509` `Marshal*` key encoders,
+go-securesystemslib `encrypted` (scrypt + NaCl secretbox), go-containerregistry `v1.SHA256` (when
+imported as `v1`), CIRCL (`mldsa`, `mlkem`, `ed25519`, `ed448`, `x25519`, `x448`), flynn/noise
+cipher-suite values, miekg/pkcs11 `CKM_ECDSA*` and the azkeys RSA constants.
+
+**Wrapper propagation** (SPEC section 18, DECISIONS T1–T14). Projects often call their own small
+crypto helpers (`Hash.sha3(x)`, `sha256(x)`, `hmacSha512(k, d)`, `newAESGCM(k)`). CipherSift reports
+the API call inside such a helper anyway; it now also reports each *call* of the helper, as a
+further occurrence of the same component, with the helper chain in the occurrence
+(`additionalContext` keys `via` — the called helper first, `"<path>:<line> <name>"` — and `origin`,
+the line of the API call). A function or method is such a *crypto callable* when
+
+* its **name names a family** that a finding in its body has (`sha256`, `hmac_sha_512`,
+  `createSecp256k1KeyPair`, `SignECDSA`; the tokeniser and alias list are in SPEC 18.6), also
+  transitively through other callables, up to a chain of 3 functions (Java, Python, Go); or
+* it is a **thin wrapper**: at most 8 lines, exactly one family in its body (or in the callables it
+  calls), whatever its name. On for Java; off for Python (`--python-thin-wrappers` turns it on) and
+  for Go (no option; DECISIONS T14).
+
+Calls are resolved from declarations, without type inference: Java `Class.m(…)` (imports, the same
+package, nested classes), static imports and methods of the enclosing classes; Python imports
+(also relative imports and re-exports through `__init__.py`), the same module and `self.m(…)`;
+Go `pkg.F(…)` for project packages (through `go.mod`, also `vendor/`), the same package, and
+methods of a receiver, parameter or variable whose type is declared in the function. A call whose
+candidates belong to two different classes, modules or packages is skipped (`--verbose` prints the
+count). Wrappers defined in test files serve only test call sites; calls in test files are marked
+as test occurrences. Cryptographically secure random-number helpers and weakness indicators are
+not propagated. A call on a line that already has a finding of the same family is not reported
+again. Only the scan root takes part, so scanning a subdirectory can give fewer propagated
+occurrences than scanning the whole project.
 
 **Which libraries are listed.** The lists follow a written policy (SPEC 9.9): packages whose
 documented purpose is cryptographic primitives, a cryptographic protocol or format, key management
@@ -326,7 +360,9 @@ dependency versions come from the manifest only (no parent POMs, BOMs, Gradle pl
 no version); Kotlin, Groovy, Scala etc. are not analysed; Go: method calls on values of unknown
 type (`key.Sign(…)`, `aead.Seal(…)`) are not anchors, constants are resolved within the file only,
 algorithm names in strings (`ssh.Config{Ciphers: …}`) and `golang.org/x/crypto/openpgp` are not
-covered, `go.mod` `replace` directives are not applied; test detection is path-based, so
+covered, `go.mod` `replace` directives are not applied; wrapper propagation does not follow calls
+on variables of unknown type, inherited methods, interfaces or constructors, and does not fold
+calls nested across lines; test detection is path-based, so
 library code in directories such as `django/test/` counts as test code. tree-sitter-java 0.23.5
 reports a syntax error for some valid literals (a binary literal with a double underscore,
 `0b1000__0000`); the rest of the file is still analysed. Native libraries are bundled for

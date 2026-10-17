@@ -7,6 +7,36 @@
 
 Development steps of the unreleased 1.0.0, newest first.
 
+### Recall extension, tier 1 (DECISIONS T1–T14, SPEC section 18; benchmark-informed)
+
+* **Wrapper propagation** (new pass between extraction and normalisation): the call sites of the
+  project's own crypto wrappers are reported as further occurrences of the wrapper body's component,
+  with `via` (wrapper chain) and `origin` (body finding) in `additionalContext`.
+  * Name-consistent wrappers (W7): the function's name names a family its body yields (tokeniser
+    and alias list, SPEC 18.6); transitive up to a chain of 3; Java, Python, Go.
+  * Thin wrappers (W6): at most 8 lines, one family, any name; transitive; on for Java; for Python
+    only with the new option `--python-thin-wrappers` (metadata `ciphersift:pythonThinWrappers`);
+    off for Go (owner decision rule, DECISIONS T14).
+  * Declaration-based resolution per language (Java imports, same package, nested and enclosing
+    classes, static imports, arity; Python absolute and relative imports, re-exports, same module,
+    `self`/`cls`; Go `go.mod`/`vendor/` packages, same package, declared receiver/variable types,
+    one struct-field hop); name collisions are skipped and counted (`--verbose`).
+  * Folding: no propagated finding where a direct finding of the same family is on the line; one
+    per (file, line, family). Test-file wrappers serve test call sites only.
+  * Files skipped by the pre-filter are parsed only if they contain a callable's name (an
+    identifier Bloom filter built in phase 3 avoids rereading the others); output identical with
+    and without the pre-filter (tested).
+* **Go API rules (AG, T11)**: `filippo.io/age` and `agessh`, sigstore `cryptoutils`, `crypto/x509`
+  `Marshal*`, go-securesystemslib `encrypted`, go-containerregistry `v1.SHA256`, CIRCL (call anchors),
+  flynn/noise, miekg/pkcs11 `CKM_ECDSA*`, azkeys RSA constants; new rules `go.asym.ed448`,
+  `go.asym.x448` (69 Go rules).
+* Considered and rejected (did not generalise): Go identifier constants (C1), asn1crypto attribute
+  reads (A1) (T12).
+* Recorded, not implemented: the deep-mode roadmap (SPEC Appendix D, T13).
+* Conformance: five new cases (`java/wrappers`, `python/wrappers`, `python/thin-wrappers`,
+  `go/wrappers`, `go/api-ag`; 64 cases, 1403 findings); the normalisation compares `via`/`origin`.
+  No existing expectation changed. New unit tests `NameTokensTest`, `WrapperPropagationTest`.
+
 ### Fix round (DECISIONS F1–F8)
 
 * **EC keys are not key agreement** (F1): `python.asym.ec`, `python.asym.secp256k1` and

@@ -366,3 +366,61 @@ Checked:
 * Rule counts in `RuleLoaderTest`, `CliIT` and the conformance total in `ConformanceIT` updated.
 
 No findings left open.
+
+## Recall extension, tier 1 (2026-10-17, strict self-review of the diff)
+
+Scope: `wrappers/` (new), `scan/Scanner.java` (index loop, Bloom filter), `scan/IdentifierBloom.java`,
+model/CBOM changes (`via`, `origin`, metadata flag), the AG rules, SPEC 18 / 17.11 / Appendix D,
+DECISIONS T1–T14, five conformance cases, tests. Reviewed against SPEC 18 line by line and with the
+gauntlet data (22 inputs).
+
+### Major (fixed before the rescore)
+* **Pre-filter dependence** of the Python suffix module lookup and of Java same-package shadowing
+  (bug 1 in IMPLEMENTATION-NOTES): would have broken SPEC 14's "identical with and without the
+  filter". Fixed; DeterminismIT and the 22 inputs compare both ways.
+* **Level cap instead of fixpoint** (bug 2) silently dropped valid depth-3 chains through overload
+  groups. Fixed.
+* **Unordered `Set.of` in a first-match search** (bug 5): no observed difference, but iteration
+  order of `Set.of` is randomised per JVM; fixed to a list. All other hash collections in the pass
+  are used for membership only; outputs go through `TreeMap`/sorted lists.
+
+### Minor / by design (documented in SPEC 18, Appendix B, README)
+* Resolution is declaration-based: no inheritance (a subclass calling an inherited wrapper
+  unqualified is missed), no interface or variable-receiver calls in Java/Python, Go field hops
+  only through structs declared in the calling file. These are the deep-mode items of Appendix D.
+* Python import bindings are file-wide and flow-insensitive: a project wrapper imported through a
+  `try`/`except ImportError` alternative (two different targets) is not resolved; function-local
+  imports count for the whole file. Errs on the side of not reporting.
+* Evidence per family is the *first* body finding (line, rule id): a wrapper whose body has two
+  components of one family (e.g. SHA-256 and SHA-512 in branches) reports only the first at its
+  call sites. Explainable through `origin`; a union would multiply occurrences.
+* W6 transitive admission is decided at the first level where "exactly one family" holds; a later
+  level could add a second family to the same body without revoking it (documented; no case seen).
+* Java "same package" also accepts `S.java` in the calling file's directory; a package spread over
+  several source roots is handled through the index (FQN), not the directory check.
+* Java overload groups of one class are reported only if every same-arity overload carries the
+  family; typed overload resolution would be finer.
+* The snippet is cut from a second read of the file; if the file changes during the scan the
+  offsets may not match (falls back to the symbol when out of range). Acceptable for a scanner.
+* `compute()` runs single-threaded and rebuilds the index per round (usually 2 rounds); 0.1–0.2 s on
+  pdfbox. Outlines keep every call of parsed files (memory proportional to the parsed code); the
+  Bloom filters cost ≤ 8 KiB per skipped file. Large repositories were not measured beyond the
+  four speed inputs.
+* `--verbose` counts collisions only where a candidate carries a family (the count that matters).
+* Go thin wrappers are off by the owner's decision rule (T14); the code path stays tested
+  (`WrapperOptions` in unit tests) but has no CLI switch.
+
+### Checked and found correct
+* Folding: a propagated finding never coexists with a direct one of the same family key on a line;
+  dedupe order extended with `via` for safety. Components are never created by propagation;
+  `testOnly` can only flip to non-test (intended).
+* Outside the new behaviour the CBOMs are byte-identical to 097290e on all 22 inputs (script
+  `unrelated.py`), apart from `rulesDigest`/`serialNumber`.
+* Every propagated occurrence's line holds the callee name and every `via` line the definition's
+  name (865 occurrences, 0 problems).
+* Cycles and recursion: the caller is removed from its candidates; levels only read carries of
+  lower levels; chains are limited to 3 definitions (unit test with a 5-chain and a 2-cycle).
+* Tokeniser worst case: memoised, 128-character cap (unit test).
+
+No findings left open.
+

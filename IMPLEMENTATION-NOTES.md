@@ -9,9 +9,10 @@ Implemented clean-room from `spec/SPEC.md`, `spec/DECISIONS.md`, `spec/REVIEW.md
 ## Result in one paragraph
 
 *(State of the first implementation. The sections below follow the later steps in order. Current
-state (fix round, 2026-10-17): 436 unit + 193 integration tests, 59/59 conformance cases with
-1243 findings, CycloneDX 1.7 by default (1.6 on request), Java, Python and Go; start-up and
-throughput as measured in "Follow-up" and "Owner decisions".)*
+state (recall extension tier 1, 2026-10-17): 497 unit + 209 integration tests, 64/64 conformance
+cases with 1403 findings, CycloneDX 1.7 by default (1.6 on request), Java, Python and Go, wrapper
+propagation (SPEC 18); start-up and throughput as measured in "Follow-up", "Owner decisions" and
+"Recall extension, tier 1".)*
 
 `mvn -q verify` is green: 288 unit tests (surefire) and 60 integration tests (failsafe,
 against the fat jar). The conformance suite passes **25/25 cases, 562/562 findings** (the 23
@@ -473,3 +474,80 @@ handler whose `try` body imports the same local name (F2); `FileClass` / `FileCo
 first 256 bytes of unclassified files without `.` in their name and classify a Python interpreter
 line as Python source (F7); everything else (F1, F3–F6) is rule and list content. Tests: 436 unit
 + 193 integration, all passing; conformance 59/59 cases, 1243/1243 findings.
+
+## Recall extension, tier 1 (2026-10-17, DECISIONS T1–T14, SPEC 18)
+
+**Code.** New package `wrappers/`:
+* `NameTokens` — tokeniser and alias list (18.6); the decomposition memoises failing positions and
+  ignores tokens over 128 characters, so pathological identifiers cost linear time.
+* `Outline` + `JavaOutliner` / `PythonOutliner` / `GoOutliner` — per file, the definitions (name,
+  span, owner, arity, Python/Go locals, Go declared types), call sites (callee, qualifier, line,
+  offsets, symbol) and what resolution needs (Java package / imports / classes, Python module /
+  import bindings / classes, Go directory / package / imports / struct fields). The tree is not
+  kept; snippets are cut later from a second read of the reporting files.
+* `WrapperPass` — the contract of SPEC 18: `compute()` rebuilds the index (Java classes by FQN,
+  methods by owner; Python modules, functions, class methods; Go functions and methods by package
+  and by directory), assigns body findings to innermost definitions, resolves every call once
+  (candidates minus the caller, the test-file rule, owners → group or collision) and then runs the
+  levels until nothing changes; `callableNames()` drives the indexing of skipped files;
+  `report()` emits the findings with `via`/`origin` and folds them.
+* `WrapperOptions` — per-language W7/W6 switches; `defaults(pythonThin)` = Java W7+W6, Python
+  W7 (+W6 with the option), Go W7.
+
+**Scanner integration.** Phase 3 additionally outlines each parsed file of a language with
+propagation on; for each source file the pre-filter skips it builds an `IdentifierBloom` of the
+text's identifiers (512–65 536 bits). After phase 3 the pass loops: compute → names of the
+callables (Java: plus their classes' simple names) → among the skipped files, those whose Bloom
+filter may contain a new name are read, checked exactly (`NameSet`, hash-based, no string per
+identifier) and outlined in parallel → compute again, until no new name or file. Then the
+propagated findings are added before normalisation. An internal failure of the pass is a warning
+and keeps all phase-3 findings (SPEC 13). Python module names are taken from *all* Python files
+(not only indexed ones), so that suffix lookups and "is this a module?" do not depend on the
+pre-filter; with that, outputs are byte-identical with the pre-filter on and off (DeterminismIT and
+all 22 evaluation inputs).
+
+**Bugs found during the gauntlet and fixed** (all before the precision rescore):
+1. Output depended on the pre-filter (DeterminismIT): Python suffix module lookups saw only
+   indexed modules. Fixed with the module universe of all files; Java additionally indexes files
+   containing the simple names of callables' classes (a same-package class that shadows an
+   on-demand import must be known).
+2. Fixed number of levels (2–3) cut chains through overload groups whose members are found at
+   different levels (web3j `sha3String` → `sha3(byte[])`); now levels repeat until nothing changes,
+   with the depth limit on the chain.
+3. W6 not transitive lost bitcoinj's `hashTwice` → `newDigest()` sites the assessment had counted;
+   W6 is now transitive with a "first level where it holds" rule (T3).
+4. Re-reading every skipped file in the index loop cost ~1 s on pdfbox (8 threads): replaced by the
+   Bloom filter built in phase 3 (index step 0.02 s).
+5. `NEUTRAL` was a `Set.of` (unspecified iteration order) in a first-match decomposition: a
+   potential source of nondeterminism; now a `List`.
+6. Tokeniser too strict for `Blake2b`, `md5sum` (revealed by `go/wrappers` once Go W6 was off):
+   aliases ending in a digit may be followed by ≤ 2 characters; neutral parts `sum`, `hex` (T5).
+
+**Gauntlet** (record in `ciphersift-t1-eval/`): micro unchanged (11/11, 11/11, 10/11 → 11/11 with
+the rule id); mid inputs +7 (jjwt), +7 (paramiko), +192 (age, 144 in tests; mostly AG), +111
+(smallstep, 62 in tests); spot check of 10 new non-test mid findings by reading the code: 9 TP, 1
+debatable (age `tag.Recipient.Hybrid()`, a predicate, then a Go thin wrapper — Go W6 is now off).
+Recall and the fair precision rescore: DECISIONS "Evaluation" under T14. Propagated occurrences
+checked mechanically on all 22 inputs (callee name on the line, definition names at the `via`
+lines): 0 problems.
+
+**Throughput** (wall clock incl. JVM start, median of 5, `ciphersift-t1-eval/speed-summary.txt`;
+before = 097290e):
+
+| Input (LOC) | 1 thread before → after | ratio | 8 threads before → after | ratio |
+|---|---|---|---|---|
+| mid-age (11 k) | 11.4 k → 9.4 k LOC/s | 0.82 | 11.9 k → 10.5 k | 0.88 |
+| mid-smallstep-crypto (77 k) | 29.7 k → 24.9 k | 0.84 | 46.4 k → 32.1 k | 0.69 |
+| pdfbox (301 k) | 121 k → 96 k | 0.79 | 201 k → 126 k | 0.63 |
+| electrum (151 k) | 35.9 k → 29.8 k | 0.83 | 68.6 k → 54.5 k | 0.79 |
+
+The owner's bound (at least 1/4 of the old throughput) holds everywhere. The extra cost is the
+outlining of parsed files, the Bloom filters of skipped files, the single-threaded `compute()`
+(0.1–0.2 s on pdfbox) and parsing the few skipped files that contain a callable's name.
+
+Tests: `NameTokensTest` (tokens, families, negatives, pathological names), `WrapperPropagationTest`
+(Java inheritance/arity/varargs/nested/anonymous/duplicate FQN, depth limit and cycles, thin
+wrappers and the option, weakness indicators, Python imports/re-exports/namespace packages/
+conflicting bindings/classes, Go types/fields/modules, test files and threads, identifier scan,
+folding), DeterminismIT with `--python-thin-wrappers`; five conformance cases.
+
