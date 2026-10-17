@@ -14,7 +14,7 @@
   <packaging>jar</packaging>
 
   <name>CipherSift</name>
-  <description>Static scanner for cryptographic assets in Java and Python sources and dependency manifests; writes CycloneDX 1.7 (or 1.6) CBOMs.</description>
+  <description>Static scanner for cryptographic assets in Java, Python and Go sources and dependency manifests; writes CycloneDX 1.7 (or 1.6) CBOMs.</description>
   <licenses>
     <license>
       <name>Apache-2.0</name>
