@@ -24,3 +24,12 @@ match:
 # DECISIONS F4 (benchmark-informed): key construction, as the Java *KeySpec and Python *Numbers patterns.
 - composite: crypto/rsa.PrivateKey
 - composite: crypto/rsa.PublicKey
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: filippo.io/age/agessh.NewRSAIdentity
+- call: filippo.io/age/agessh.NewRSARecipient
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.GeneratePEMEncodedRSAKeyPair
+  param:
+    index: 0
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.KeyTypeRSA
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.KeyTypeRSAHSM

@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift from the pkg.go.dev documentation of github.com/cloudflare/circl (v1.6.5);
+# see spec/PROVENANCE.md ("Wrapper propagation") and DECISIONS T11 (benchmark-informed).
+id: go.asym.x448
+kind: source
+language: go
+name: X448 key agreement in Go
+description: >-
+  Detects Curve448 Diffie-Hellman (X448) through github.com/cloudflare/circl/dh/x448.
+asset:
+  type: algorithm
+  primitive: key-agree
+  family: Curve448
+  securityLevel: 224
+match:
+- call: github.com/cloudflare/circl/dh/x448.KeyGen
+- call: github.com/cloudflare/circl/dh/x448.Shared

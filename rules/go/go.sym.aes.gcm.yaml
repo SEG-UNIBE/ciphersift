@@ -32,3 +32,6 @@ match:
 - call: crypto/hpke.AES256GCM
 - call: filippo.io/hpke.AES128GCM
 - call: filippo.io/hpke.AES256GCM
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- ref: github.com/flynn/noise.CipherAESGCM

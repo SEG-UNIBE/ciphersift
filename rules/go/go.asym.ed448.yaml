@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift from the pkg.go.dev documentation of github.com/cloudflare/circl (v1.6.5);
+# see spec/PROVENANCE.md ("Wrapper propagation") and DECISIONS T11 (benchmark-informed).
+id: go.asym.ed448
+kind: source
+language: go
+name: Ed448 signatures in Go
+description: >-
+  Detects Ed448 key generation, signing and verification through github.com/cloudflare/circl/sign/ed448.
+asset:
+  type: algorithm
+  primitive: signature
+  family: Ed448
+  securityLevel: 224
+match:
+- call: github.com/cloudflare/circl/sign/ed448.GenerateKey
+- call: github.com/cloudflare/circl/sign/ed448.NewKeyFromSeed
+- call: github.com/cloudflare/circl/sign/ed448.Scheme
+- call: github.com/cloudflare/circl/sign/ed448.Sign
+- call: github.com/cloudflare/circl/sign/ed448.SignPh
+- call: github.com/cloudflare/circl/sign/ed448.Verify
+- call: github.com/cloudflare/circl/sign/ed448.VerifyAny
+- call: github.com/cloudflare/circl/sign/ed448.VerifyPh

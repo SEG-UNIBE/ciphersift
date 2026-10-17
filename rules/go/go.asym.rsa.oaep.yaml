@@ -19,3 +19,7 @@ match:
 - composite: crypto/rsa.OAEPOptions
 # Go 1.26 (separate OAEP and MGF1 hashes).
 - call: crypto/rsa.EncryptOAEPWithOptions
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.EncryptionAlgorithmRSAOAEP
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.EncryptionAlgorithmRSAOAEP256

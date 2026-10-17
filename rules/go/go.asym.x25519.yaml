@@ -25,3 +25,11 @@ match:
   anySymbol: [crypto/ecdh.X25519]
 - call: filippo.io/hpke.DHKEM
   anySymbol: [crypto/ecdh.X25519]
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: filippo.io/age.GenerateX25519Identity
+- call: filippo.io/age.ParseX25519Identity
+- call: filippo.io/age.ParseX25519Recipient
+- call: github.com/cloudflare/circl/dh/x25519.KeyGen
+- call: github.com/cloudflare/circl/dh/x25519.Shared
+- ref: github.com/flynn/noise.DH25519

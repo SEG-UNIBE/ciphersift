@@ -35,3 +35,17 @@ match:
 - call: crypto/ed25519.PublicKey
 - call: golang.org/x/crypto/ed25519.PrivateKey
 - call: golang.org/x/crypto/ed25519.PublicKey
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: filippo.io/age/agessh.NewEd25519Identity
+- call: filippo.io/age/agessh.NewEd25519Recipient
+- call: github.com/cloudflare/circl/sign/ed25519.GenerateKey
+- call: github.com/cloudflare/circl/sign/ed25519.NewKeyFromSeed
+- call: github.com/cloudflare/circl/sign/ed25519.Scheme
+- call: github.com/cloudflare/circl/sign/ed25519.Sign
+- call: github.com/cloudflare/circl/sign/ed25519.SignPh
+- call: github.com/cloudflare/circl/sign/ed25519.SignWithCtx
+- call: github.com/cloudflare/circl/sign/ed25519.Verify
+- call: github.com/cloudflare/circl/sign/ed25519.VerifyAny
+- call: github.com/cloudflare/circl/sign/ed25519.VerifyPh
+- call: github.com/cloudflare/circl/sign/ed25519.VerifyWithCtx

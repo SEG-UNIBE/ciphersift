@@ -17,3 +17,6 @@ match:
 - call: crypto/sha1.New
 - call: crypto/sha1.Sum
 - ref: crypto.SHA1
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.SKID

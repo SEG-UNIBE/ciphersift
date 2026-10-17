@@ -19,3 +19,6 @@ match:
 - call: crypto/rsa.DecryptPKCS1v15
 - call: crypto/rsa.DecryptPKCS1v15SessionKey
 - composite: crypto/rsa.PKCS1v15DecryptOptions
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.EncryptionAlgorithmRSA15

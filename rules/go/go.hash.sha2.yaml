@@ -39,3 +39,8 @@ match:
 - call: filippo.io/hpke.HKDFSHA256
 - call: filippo.io/hpke.HKDFSHA384
 - call: filippo.io/hpke.HKDFSHA512
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: github.com/google/go-containerregistry/pkg/v1.SHA256
+- ref: github.com/flynn/noise.HashSHA256
+- ref: github.com/flynn/noise.HashSHA512

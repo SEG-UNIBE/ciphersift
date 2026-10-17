@@ -36,3 +36,9 @@ match:
 - call: crypto/ecdsa.ParseUncompressedPublicKey
   param:
     index: 0
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.GeneratePEMEncodedECDSAKeyPair
+  param:
+    index: 0
+- ref: github.com/miekg/pkcs11.CKM_ECDSA*

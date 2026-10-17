@@ -29,3 +29,7 @@ match:
 - ref: crypto.BLAKE2b_256
 - ref: crypto.BLAKE2b_384
 - ref: crypto.BLAKE2b_512
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- ref: github.com/flynn/noise.HashBLAKE2b
+- ref: github.com/flynn/noise.HashBLAKE2s

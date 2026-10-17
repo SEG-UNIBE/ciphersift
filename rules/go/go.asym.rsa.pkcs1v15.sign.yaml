@@ -22,3 +22,8 @@ match:
 - ref: crypto/x509.SHA256WithRSA
 - ref: crypto/x509.SHA384WithRSA
 - ref: crypto/x509.SHA512WithRSA
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.SignatureAlgorithmRS256
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.SignatureAlgorithmRS384
+- ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.SignatureAlgorithmRS512

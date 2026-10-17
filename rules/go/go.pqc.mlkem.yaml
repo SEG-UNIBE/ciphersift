@@ -72,3 +72,41 @@ match:
 - call: filippo.io/hpke.MLKEM1024P384
   param:
     value: ML-KEM-1024
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: filippo.io/age.GenerateHybridIdentity
+  param:
+    value: ML-KEM-768
+- call: filippo.io/age.ParseHybridIdentity
+  param:
+    value: ML-KEM-768
+- call: filippo.io/age.ParseHybridRecipient
+  param:
+    value: ML-KEM-768
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem512.GenerateKeyPair
+  param:
+    value: ML-KEM-512
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem512.NewKeyFromSeed
+  param:
+    value: ML-KEM-512
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem512.Scheme
+  param:
+    value: ML-KEM-512
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem768.GenerateKeyPair
+  param:
+    value: ML-KEM-768
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem768.NewKeyFromSeed
+  param:
+    value: ML-KEM-768
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem768.Scheme
+  param:
+    value: ML-KEM-768
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem1024.GenerateKeyPair
+  param:
+    value: ML-KEM-1024
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem1024.NewKeyFromSeed
+  param:
+    value: ML-KEM-1024
+- call: github.com/cloudflare/circl/kem/mlkem/mlkem1024.Scheme
+  param:
+    value: ML-KEM-1024

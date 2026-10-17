@@ -19,3 +19,10 @@ match:
 # HPKE identifiers (crypto/hpke, Go 1.26, and filippo.io/hpke, the same API), DECISIONS F5.
 - call: crypto/hpke.ChaCha20Poly1305
 - call: filippo.io/hpke.ChaCha20Poly1305
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: filippo.io/age.Encrypt
+- call: filippo.io/age.EncryptReader
+- call: filippo.io/age.Decrypt
+- call: filippo.io/age.DecryptReaderAt
+- ref: github.com/flynn/noise.CipherChaChaPoly

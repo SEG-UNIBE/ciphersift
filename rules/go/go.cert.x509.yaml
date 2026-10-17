@@ -30,3 +30,11 @@ match:
 - composite: crypto/x509.VerifyOptions
 - call: crypto/tls.LoadX509KeyPair
 - call: crypto/tls.X509KeyPair
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.UnmarshalCertificatesFromPEM
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.UnmarshalCertificatesFromPEMLimited
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.LoadCertificatesFromPEM
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.MarshalCertificateToPEM
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.MarshalCertificatesToPEM
+- call: github.com/sigstore/sigstore/pkg/cryptoutils.ParseCSR

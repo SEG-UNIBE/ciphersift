@@ -42,3 +42,50 @@ match:
 - ref: crypto/tls.MLDSA87
   param:
     value: ML-DSA-87
+# Third-party Go APIs (DECISIONS T11, benchmark-informed), written from the pkg.go.dev documentation of the
+# packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa44.GenerateKey
+  param:
+    value: ML-DSA-44
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa44.NewKeyFromSeed
+  param:
+    value: ML-DSA-44
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa44.Scheme
+  param:
+    value: ML-DSA-44
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa44.SignTo
+  param:
+    value: ML-DSA-44
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa44.Verify
+  param:
+    value: ML-DSA-44
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa65.GenerateKey
+  param:
+    value: ML-DSA-65
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa65.NewKeyFromSeed
+  param:
+    value: ML-DSA-65
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa65.Scheme
+  param:
+    value: ML-DSA-65
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa65.SignTo
+  param:
+    value: ML-DSA-65
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa65.Verify
+  param:
+    value: ML-DSA-65
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa87.GenerateKey
+  param:
+    value: ML-DSA-87
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa87.NewKeyFromSeed
+  param:
+    value: ML-DSA-87
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa87.Scheme
+  param:
+    value: ML-DSA-87
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa87.SignTo
+  param:
+    value: ML-DSA-87
+- call: github.com/cloudflare/circl/sign/mldsa/mldsa87.Verify
+  param:
+    value: ML-DSA-87
