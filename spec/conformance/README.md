@@ -30,11 +30,11 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/syntax-error` | 1 | 2 | findings before and after a syntax error |
 | `java/deep-nesting` | 1 | 2 | 4 000-operand concatenation: no crash, depth limit → fallback |
 | `python/fork-fixtures` | 14 | 143 | the BF-CBOM Python fork's own fixtures (with `--weakness-indicators`): stdlib, pyca/cryptography (incl. operation attribution and curve objects), PyCryptodome/Cryptodome, libraries, negatives, broken/Python 2/binary-ish files, requirements/pyproject/Pipfile.lock |
-| `python/name-resolution` | 3 | 10 | `import as`, dotted imports, `from … import … as`, relative imports, star imports, `try`/`except` alternatives, function and module aliases, bound calls, prefix vs. non-prefix names |
+| `python/name-resolution` | 3 | 11 | `import as`, dotted imports, `from … import … as`, relative imports, star imports, `try`/`except` alternatives, function and module aliases, bound calls, prefix vs. non-prefix names |
 | `python/constants` | 1 | 7 | module and local constants, implicit concatenation, f-strings and bytes (not strings), parameter shadowing (D2), keyword strings, flow-insensitivity |
-| `python/arguments` | 1 | 15 | `anyCall` + `kwargs`, `param` by keyword/index/constant/symbol/self, list strings in keywords, attribute assignments |
-| `python/attribution` | 1 | 11 | `reportAt` (incl. multi-line calls), padding in a variable, nested same-rule folding, one finding per (rule, line) |
-| `python/setup-py` | 1 | 1 | `setup.py` is source (D1) |
+| `python/arguments` | 1 | 14 | `anyCall` + `kwargs`, `param` by keyword/index/constant/symbol/self, list strings in keywords, attribute assignments |
+| `python/attribution` | 1 | 12 | `reportAt` (incl. multi-line calls), padding in a variable, nested same-rule folding, one finding per (rule, line) |
+| `python/setup-py` | 1 | 3 | `setup.py` is source (D1); its `install_requires` (D13) |
 | `python/deep-nesting` | 1 | 1 | 3 000-level nested parentheses: no crash, later finding still reported |
 | `python/deep-call-args` | 1 | 3 | `hashlib.new(((…"md5"…)))` nested 3 000, 13, 12 and 5 levels deep: `strings()` depth limit 12 (SPEC 6.3, DECISIONS M4); no crash |
 | `python/alias-chain-limit` | 1 | 1 | an alias chain of exactly 16 binding steps resolves; 17 steps and a name whose own binding lies beyond the limit are unresolved, without fallback to the name at the limit (DECISIONS O4) |
@@ -71,7 +71,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/tls-x509-ssh` | 1 | 22 | `tls.Config` literals and `new(tls.Config)`, `InsecureSkipVerify` (literal, constant, variable, assignment), x509 templates and keys, `rsa.PSSOptions`, SSH configs and `InsecureIgnoreHostKey` |
 | `go/test-files` | 4 | 4 | `_test.go` and `testdata/` marking; the file-name rule is case-sensitive (SPEC 17.1) |
 | `go/syntax-error` | 1 | 2 | findings before and after a Go syntax error |
-| `deps/golang` | 5 | 11 | `go.mod` (single and block `require`, quoted paths, `replace`/`exclude`/`retract` ignored, last declaration wins), `go.sum` (`/go.mod` lines skipped, last version wins), major-version module paths (SPEC 17.10) |
+| `deps/golang` | 4 | 11 | `go.mod` (single and block `require`, quoted paths, `replace`/`exclude`/`retract` ignored, last declaration wins), `go.sum` (`/go.mod` lines skipped, last version wins), major-version module paths (SPEC 17.10) |
 | `deps/setup-files` | 5 | 16 | `setup.py` `install_requires` / `extras_require` (inline, through names, URL skipped), `setuptools.setup`, `setup.cfg`, `org.apache.shiro.crypto:*`, `electrum-ecc`, `pyaes`, `pysha3` (E10) |
 | `python/import-fallback` | 1 | 8 | import alternatives: a binding made in an import-failure handler (`ImportError`, `ModuleNotFoundError`, `Exception`, `BaseException`, bare `except`) of a `try` whose body imports the same local name is dropped; other handlers, other names and `finally` keep theirs (SPEC 8.2, DECISIONS F2) |
 | `go/hpke-mldsa-keys` | 3 | 32 | `crypto/hpke` / `filippo.io/hpke` KEM, KDF and AEAD identifiers (DHKEM with its curve, hybrid ML-KEM), `crypto/mldsa` and the TLS ML-DSA schemes, key structs, `elliptic.CurveParams`, Ed25519 key conversions, `ecdsa.ParseRawPrivateKey` / `ParseUncompressedPublicKey`, `rsa.EncryptOAEPWithOptions` (DECISIONS F4–F6) |
@@ -135,7 +135,7 @@ covered by SPEC.md section 11 and by unit tests.
 `spec/tools/conformance.py` implements exactly this (Python 3 standard library only):
 
 ```sh
-python3 spec/tools/conformance.py --cmd "java --enable-native-access=ALL-UNNAMED -jar target/ciphersift-1.0.0-all.jar"
+python3 spec/tools/conformance.py --cmd "java --enable-native-access=ALL-UNNAMED -jar target/ciphersift-1.0.0-SNAPSHOT-all.jar"
 python3 spec/tools/conformance.py --show out.json      # print a CBOM's normalised findings
 ```
 
@@ -203,10 +203,8 @@ Listed in `deviations.yaml` with reasons; summarised in SPEC.md Appendix A.
 | D4 | `java/string-resolution` | line 41: 3DES-ECB (`DESede` text block) instead of the unresolved fallback |
 | D5 | `common/binary` | − `blob.py` (binary) |
 | D6 | `common/test-files-excluded` | − the four test files |
-| D7 | `python/alias-chain-limit` | 1 | 1 | an alias chain of exactly 16 binding steps resolves; 17 steps and a name whose own binding lies beyond the limit are unresolved, without fallback to the name at the limit (DECISIONS O4) |
-| `deps/pypi` | + `requirements-dev.txt`, `requirements/base.txt`, `poetry.lock`, PEP 735 group |
-| D8 | `deps/pyproject-direct-reference` | 1 | 3 | `pkg @ https://…`, `git+https://…`, `file:///…` direct references in `project.dependencies`, optional dependencies and dependency groups are skipped like in requirements files (DECISIONS O5) |
-| `deps/maven` | all 17 findings (hand-written) |
+| D7 | `deps/pypi` | + `requirements-dev.txt`, `requirements/base.txt`, `poetry.lock`, PEP 735 group |
+| D8 | `deps/maven` | all 17 findings (hand-written) |
 | D9 | `java/constant-args` | + DES at `Keys.java:14` (byte-array numbers are not strings) |
 | D10 | `python/fork-fixtures`, `python/name-resolution` | + SHA2 at `pycryptodome/legacy.py:23`, + SHA1 at `pkg/imports.py:14` (bare references) |
 | D11 | `python/arguments` | − validation disabled at `args.py:15` (`verify=False` on a non-HTTP function) |

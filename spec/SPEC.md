@@ -3,7 +3,9 @@
 
 # CipherSift — Behavioural Specification
 
-Version 1.0 of the specification (rule format version 1). Status: ready for implementation.
+Version 1.0 of the specification (rule format version 1), with the later amendments recorded in
+`DECISIONS.md` (evaluation fixes, owner decisions, CycloneDX 1.7, Go support, fix round). Status:
+implemented (CipherSift 1.0.0-SNAPSHOT).
 
 CipherSift is an open-source (Apache-2.0) static scanner written in Java. It finds
 cryptographic assets in **Java**, **Python** and **Go** source code and in **Maven/Gradle**,
@@ -73,7 +75,7 @@ the constant resolution described here; reading compiled code (jars, wheels).
 | relative path | The path of a file relative to the scan root, with `/` as separator, no leading `./`. All paths in the output are relative paths. |
 | rule | A YAML or JSON document of kind `source` or `dependency` (section 5). |
 | pattern | One element of a source rule's `match` list. A rule matches a code location if at least one of its patterns matches. |
-| anchor | The key of a pattern that says *what kind of code location* it looks at (`call`, `new`, `method`, `field`, `override`, `anyCall`, `assign`). |
+| anchor | The key of a pattern that says *what kind of code location* it looks at (`call`, `new`, `method`, `field`, `override`, `anyCall`, `assign`, `ref`, `composite`). |
 | condition | Any further key of a pattern that restricts the anchor (`firstString`, `kwargs`, …). All conditions of a pattern must hold. |
 | finding | One match: (file, line, rule, extra data). Produced by the extractors. |
 | component | A CycloneDX component. Findings with the same identity (section 10) form one component; each finding becomes one occurrence. |
@@ -100,8 +102,8 @@ A scan runs five phases in this order. Phases 3 and 4 run per file and MAY run i
 0. **Rule loading** (section 5): read all rule documents from the bundled rule set or from
    `--rules DIR`, validate them, build the per-language indexes.
 1. **File collection** (section 4.1–4.4): walk the scan root, apply exclusions, size limit.
-2. **Classification** (section 4.5–4.7): decide for every collected file whether it is Java
-   source, Python source, a manifest of a known format, or ignored; detect test files;
+2. **Classification** (section 4.5–4.7): decide for every collected file whether it is Java,
+   Python or Go source, a manifest of a known format, or ignored; detect test files;
    detect binary content.
 3. **Extraction**: Java analysis (section 7), Python analysis (section 8), Go analysis
    (section 17), manifest parsing (sections 9, 17.10). Each produces findings.
@@ -116,8 +118,8 @@ A **source finding** has: relative path, line, rule, *name* (the component name,
 code points), *param* (optional parameter-set identifier, e.g. `2048` or `SECP256R1`), and
 the flag *test* (the file is a test file, section 4.7).
 
-A **dependency finding** has: relative path of the manifest, rule, ecosystem (`maven` or
-`pypi`), package (Maven `groupId:artifactId`, PyPI normalised name), version (or none),
+A **dependency finding** has: relative path of the manifest, rule, ecosystem (`maven`, `pypi`
+or `golang`), package (Maven `groupId:artifactId`, PyPI normalised name, Go module path), version (or none),
 manifest format, snippet (the coordinate as text) and the *test* flag. It has no line.
 
 Asset properties (type, primitive, family, variant, …) are never stored in a finding; they
@@ -131,7 +133,7 @@ The jar's main class implements the command `ciphersift`. The distribution SHOUL
 a launcher script `bin/ciphersift` that runs
 `java --enable-native-access=ALL-UNNAMED -jar <jar> "$@"`.
 
-**Java runtime** *(DECISIONS F1)*. The launcher uses `$CIPHERSIFT_JAVA` (a `java` executable),
+**Java runtime** *(DECISIONS follow-up F1)*. The launcher uses `$CIPHERSIFT_JAVA` (a `java` executable),
 else `$JAVA_HOME/bin/java`, else `java` on `PATH`. If the chosen runtime is older than Java 23,
 the next *explicitly configured* one (`CIPHERSIFT_JAVA`, then `JAVA_HOME`) is tried; the file
 system is never searched. Without a suitable runtime it prints one line,
@@ -327,7 +329,7 @@ contain exactly one document; they are parsed with YAML 1.2 core-schema semantic
 
 Every document has an `id`, unique across the rule set, matching
 `^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$`. By convention the file name is `<id>.yaml` and
-source-rule ids start with the language (`java.`, `python.`); dependency rule ids start
+source-rule ids start with the language (`java.`, `python.`, `go.`); dependency rule ids start
 with `dep.`. The JSON Schema `spec/rule-schema.json` is normative for the structure;
 section 5.8 lists the semantic checks the schema cannot express.
 
@@ -496,7 +498,7 @@ The **bundled** rule set is validated in full when the jar is built; the build f
 problem. At run time an implementation MAY skip the JSON-schema validation (and use
 pre-parsed documents recorded by that build step) for the bundled set if its files and the
 schema are byte-identical to the validated ones, verified by a digest recorded at build
-time *(DECISIONS F2)*. The semantic checks above and all checks of `--rules` directories and
+time *(DECISIONS follow-up F2)*. The semantic checks above and all checks of `--rules` directories and
 `rules validate --rules DIR` always run.
 
 A violation aborts the scan with exit code 4 and a message naming the file, the JSON pointer
@@ -1638,7 +1640,10 @@ whole); data-model, schema and protobuf packages; transparency logs and supply-c
 that use signatures as one part of a broader model (Rekor, TUF, in-toto). The entries
 `commons-codec` and `certifi`, kept from earlier versions, are documented as debatable (README).
 A `*` glob is used where a project publishes several modules or major versions under one prefix.
-: findings to components
+
+---
+
+## 10. Normalisation: findings to components
 
 ### 10.1 Component identity
 
@@ -1660,7 +1665,7 @@ rules.
 
 | Asset type | Name |
 |---|---|
-| `algorithm` | the finding's name: Java — the matched algorithm string (`AES/GCM/NoPadding`, `SHA-256`) or the display name (`GCMBlockCipher`, `Cipher.getInstance`); Python — the resolved call name (`cryptography.hazmat.primitives.ciphers.Cipher`, `hashlib.new`) |
+| `algorithm` | the finding's name: Java — the matched algorithm string (`AES/GCM/NoPadding`, `SHA-256`) or the display name (`GCMBlockCipher`, `Cipher.getInstance`); Python — the resolved call name (`cryptography.hazmat.primitives.ciphers.Cipher`, `hashlib.new`); Go — the import path and member (`crypto/aes.NewCipher`, 17.8) |
 | `protocol` | upper-case protocol, then a space and the version if the rule has one: `TLS 1.2`, `SSL 3.0`, `TLS`, `SSH` |
 | others | the rule's `name` |
 | `library` | Maven: the artifactId (the groupId goes to `group`); PyPI: the normalised name; Go: the module path |
@@ -1850,7 +1855,8 @@ line               1-based line (absent for dependency findings: file-level)
 symbol             the finding's symbol (absent for dependency findings)
 additionalContext  a string holding compact JSON (no whitespace) with keys in this order:
                    "ruleId"    rule id                                  (always)
-                   "snippet"   the snippet (dependencies: the coordinate, "g:a:v" / "name==v" / "name")
+                   "snippet"   the snippet (dependencies: the coordinate, "g:a:v" / "name==v" / "name" /
+                               "path@version", 17.10)
                    "param"     the param, if any
                    "manifest"  manifest label (9), dependency findings only
                    "test"      true, only for findings in test files
@@ -2178,7 +2184,7 @@ A finding is never emitted from a file whose analysis failed.
     per event *(advice: memoise per file)*.
   * Trees are closed after each file; only the compact constant contexts (7.4.5) are kept.
   * Workers process files independently; the results are merged and sorted at the end.
-  * *(DECISIONS F3)* A source file in whose text no pattern can fire need not be parsed: every
+  * *(DECISIONS follow-up F3)* A source file in whose text no pattern can fire need not be parsed: every
     anchor compares node texts with literal names of the pattern (the member, the simple class
     name, Python call-name parts, keywords, attribute names), so if, for every pattern, one
     of its required names does not occur in the file's text as a substring, the file's
@@ -2187,8 +2193,9 @@ A finding is never emitted from a file whose analysis failed.
     call names; `kwargs` keywords and `dictItems` keys occur in the text; a member type
     `a.Outer.Inner` is referred to only with `Outer` in the reference or in an import, 7.3.2.)
     A `setup.py` that declares requirements is always parsed (9.8).
-* **Reference points** (informational). The conformance suite (about 70 files) runs in a few
-  seconds including JVM start-up.
+* **Reference points** (informational). The conformance suite (59 cases, about 140 input files)
+  takes about half a second of JVM start-up and scan per case (2026-10-17: about 35 s for all
+  cases with `spec/tools/conformance.py`, one JVM per case, on a shared 32-core machine).
 
 ---
 
@@ -2207,8 +2214,9 @@ native/
   vendor/                              downloaded, unpacked grammar/core sources (committed)
 src/main/java/...                      implementation
 src/main/resources/
-  rules/                               copy of the repository's rules/ (generated at build time)
   META-INF/services/io.github.treesitter.jtreesitter.NativeLibraryLookup
+                                       (the repository's rules/ is added as a resource with
+                                       target path rules/; there is no copy in src/)
 src/test/java/...                      unit tests + conformance runner
 target/native/<platform>/*.so|*.dylib|*.dll  built by native/build-natives.sh (15.3), not committed;
                                        packaged into the jar under /native/<platform>/
@@ -2230,7 +2238,9 @@ rules/  spec/                          as delivered
   `jackson-dataformat-toml` (all **2.22.3**, managed with `jackson-bom:2.22.3`),
   `info.picocli:picocli:4.7.7` (CLI),
   `com.networknt:json-schema-validator:2.0.4` (rule validation against the schema; the same
-  version cyclonedx-core-java 13.2.0 uses, so there is no API clash on the test classpath).
+  version cyclonedx-core-java 13.2.0 uses, so there is no API clash on the test classpath),
+  `org.slf4j:slf4j-api:2.0.17` (declared explicitly, already a dependency of
+  json-schema-validator, so that a silent logging provider can be registered).
 * Test dependencies: `org.junit.jupiter:junit-jupiter:6.1.3`,
   `org.cyclonedx:cyclonedx-core-java:13.2.0` (output schema validation only; validates
   CycloneDX 1.6 and 1.7 with json-schema-validator 2.0.4, the runtime version above).
@@ -2238,7 +2248,7 @@ rules/  spec/                          as delivered
   `exec-maven-plugin` runs `native/build-natives.sh` in `generate-resources` when the
   libraries for the build platform are missing from `target/native/`, and in
   `process-classes` validates the bundled rules in full and records their digest (5.8,
-  DECISIONS F2); `maven-compiler-plugin` compiles the entry-point class for Java 8 (section 3)
+  DECISIONS follow-up F2); `maven-compiler-plugin` compiles the entry-point class for Java 8 (section 3)
   and everything else for Java 23;
   `maven-surefire-plugin` with `--enable-native-access=ALL-UNNAMED`;
   `maven-shade-plugin` produces `target/ciphersift-<version>-all.jar` with manifest entries

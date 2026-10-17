@@ -199,7 +199,7 @@ class RuleLoaderTest {
     }
 
     /**
-     * DECISIONS F2: the bundled set is loaded without schema validation only when it is the set that the
+     * DECISIONS follow-up F2: the bundled set is loaded without schema validation only when it is the set that the
      * build validated; the result equals a full validation.
      */
     @Test

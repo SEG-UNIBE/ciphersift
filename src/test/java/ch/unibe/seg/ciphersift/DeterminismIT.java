@@ -77,7 +77,7 @@ class DeterminismIT {
         assertTrue(!new String(none, StandardCharsets.UTF_8).contains("\"timestamp\""));
     }
 
-    /** DECISIONS F3: the textual pre-filter does not change the output. */
+    /** DECISIONS follow-up F3: the textual pre-filter does not change the output. */
     @Test
     void prefilterDoesNotChangeTheOutput() throws Exception {
         byte[] with = scan(a, tmp, List.of(), Map.of(), "4", "");

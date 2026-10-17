@@ -23,7 +23,7 @@ Expected findings for these two are written by hand from the spec (the reference
 
 # Follow-up decisions on the code review (2026-10-16)
 
-The owner delegated the open items O1–O7 of `CODE-REVIEW.md` to the follow-up; each was decided by follow-up per reviewer recommendation (none was found to need a different outcome). F1–F3 record behaviour introduced by the follow-up's start-up and speed work. `SPEC.md` has been updated accordingly.
+The owner delegated the open items O1–O7 of `CODE-REVIEW.md` to the follow-up; each was decided by follow-up per reviewer recommendation (none was found to need a different outcome). F1–F3 record behaviour introduced by the follow-up's start-up and speed work; elsewhere they are cited as "follow-up F1–F3", because the fix round below reuses the ids F1–F8 for other items. `SPEC.md` has been updated accordingly.
 
 | item | decision | where in SPEC.md |
 |---|---|---|
@@ -156,7 +156,7 @@ then code. Each item below was decided by the implementer; none changes Java or 
 | G11 module list | `rules/dependencies/dep.golang.yaml`: 36 module patterns written from the modules' public documentation — `golang.org/x/crypto`, filippo.io crypto modules (age, edwards25519, nistec, bigmod, mlkem768), Cloudflare CIRCL, ProtonMail go-crypto, JWT/JOSE libraries, smallstep and Tink, PKCS#11/#8/#12 libraries, secp256k1, SM2/3/4, BLAKE3, sha256-simd, liboqs-go, uTLS, pion/dtls, cryptopasta, keybase go-crypto, sigstore. `*` covers major-version suffixes (`github.com/golang-jwt/jwt/v5`). Patterns cover whole keys, so `golang.org/x/crypto/ssh` (not a module) does not match. | 17.10 |
 | G12 test files | `*_test.go` (case-sensitive, the `go test` convention) in addition to the directory rule, which already contains Go's `testdata`. | 4.7, 17.1 |
 | G13 vendored code | `vendor/` is scanned by default, as for Java and Python (no implicit exclusions); `--exclude vendor` skips it. Vendored modules are often large; the README recommends the option for applications that vendor. | 17.1 |
-| G14 coverage | Standard library `crypto/...` (including the Go 1.24 packages `crypto/hkdf`, `crypto/pbkdf2`, `crypto/sha3`, `crypto/mlkem`) and `golang.org/x/crypto` as listed in 17.11; 66 rules. Not covered: `x/crypto/openpgp` (deprecated, no CycloneDX protocol type), `x/crypto/tea` / `xtea` (no registry family), `ocsp`, `acme`, `crypto/subtle`; third-party APIs (JWT, JOSE, age, CIRCL — reported through `go.mod`); method calls on values (receiver types are not inferred); algorithm names in strings (`ssh.Config{Ciphers: …}`). | 17.11, Appendix B |
+| G14 coverage | Standard library `crypto/...` (including the Go 1.24 packages `crypto/hkdf`, `crypto/pbkdf2`, `crypto/sha3`, `crypto/mlkem`) and `golang.org/x/crypto` as listed in 17.11; 66 rules (67 since the fix round, F6). Not covered: `x/crypto/openpgp` (deprecated, no CycloneDX protocol type), `x/crypto/tea` / `xtea` (no registry family), `ocsp`, `acme`, `crypto/subtle`; third-party APIs (JWT, JOSE, age, CIRCL — reported through `go.mod`); method calls on values (receiver types are not inferred); algorithm names in strings (`ssh.Config{Ciphers: …}`). | 17.11, Appendix B |
 | G15 random numbers | `crypto/rand` (`Read`, `Int`, `Prime`, `Text`, and `rand.Reader` wherever it is referenced, also as the entropy argument of key generation) is the secure-PRNG rule, like Python's; it has no family, so it is not folded into the enclosing call. `math/rand` and `math/rand/v2` (every member, `path.*`) are the weakness indicator `go.rand.prng.insecure`, off by default (E2). | 17.11 |
 | G16 integration | tree-sitter-go v0.25.0 (ABI 15) pinned with its SHA-256 in `native/sources.lock`, built and bundled like the other grammars; MIT licence in `NOTICE` and the jar. The summary line shows `go N` only when Go files were scanned, so the standard error of a Java/Python scan is unchanged. The new rule files change `ciphersift:rulesDigest` and hence the content-derived `serialNumber` of every CBOM; everything else of a Java/Python CBOM is byte-identical (checked on micro-java, micro-python and all 46 previous conformance inputs against the jar of 88936e3). | 3.2, 15.3 |
 
@@ -176,6 +176,7 @@ micro-python unchanged at 11/11. **No benchmark-informed change was made.** Foll
 seen in the evaluation (not applied, owner to decide): the module `filippo.io/hpke` (used by age)
 is not on `dep.golang`; the newer standard-library packages `crypto/hpke` and `crypto/mldsa` have
 no rules (their uses in the evaluated code were types only, which are not events by design).
+(All three were taken up in the fix round below: F3, F5, F6.)
 
 # Fix round (2026-10-17)
 
@@ -185,7 +186,9 @@ follow-up candidates of the Go evaluation. Same clean-room rules as before (`PRO
 round"). Decided by the implementer as below. **benchmark-informed** marks items found through the
 evaluations (the 10 Java/Python projects of `ciphersift-eval`, the 5 Go projects of `go-eval`,
 the BF-CBOM `mid-age` / `mid-smallstep-crypto` inputs): the fix generalises what those projects
-showed, so the projects are no longer an independent test of it.
+showed, so the projects are no longer an independent test of it. The ids F1–F8 of this round are
+distinct from the follow-up items F1–F3 above (cited there as "follow-up F1–F3"); an unqualified
+"DECISIONS F*n*" in the code, SPEC and CHANGELOG refers to this round.
 
 | item | decision | where in SPEC.md |
 |---|---|---|

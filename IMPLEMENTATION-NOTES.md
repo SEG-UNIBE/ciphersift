@@ -8,8 +8,10 @@ Implemented clean-room from `spec/SPEC.md`, `spec/DECISIONS.md`, `spec/REVIEW.md
 
 ## Result in one paragraph
 
-*(State of the first implementation. For the current numbers — 379 tests, 28/28 conformance
-cases with 573 findings, start-up and throughput — see "Follow-up" below.)*
+*(State of the first implementation. The sections below follow the later steps in order. Current
+state (fix round, 2026-10-17): 436 unit + 193 integration tests, 59/59 conformance cases with
+1243 findings, CycloneDX 1.7 by default (1.6 on request), Java, Python and Go; start-up and
+throughput as measured in "Follow-up" and "Owner decisions".)*
 
 `mvn -q verify` is green: 288 unit tests (surefire) and 60 integration tests (failsafe,
 against the fat jar). The conformance suite passes **25/25 cases, 562/562 findings** (the 23
@@ -143,8 +145,9 @@ Other files: `native/build-natives.sh` (+ `sources.lock`, `vendor/` with the unp
 12. **Counts**: `filesScanned` includes malformed manifests (they were analysed, 13 does not list
     them as skipped). The "findings" number of the final info line is the number of occurrences
     in the CBOM.
-13. **`rules validate`** prints `source java: 88`, `source python: 79`, `constants java: 1`,
-    `dependency maven: 1`, `dependency pypi: 1` on standard output (3.2's "nothing but the CBOM"
+13. **`rules validate`** prints one count per kind and language (then `source java: 88`,
+    `source python: 79`, `constants java: 1`, `dependency maven: 1`, `dependency pypi: 1`; now
+    also `source go` and `dependency golang`) on standard output (3.2's "nothing but the CBOM"
     is read as applying to `scan`). `rules export` failures exit with 5.
 14. **YAML 1.2 (REVIEW m1)**: Jackson YAML with `PARSE_BOOLEAN_LIKE_WORDS_AS_STRINGS`, so
     `yes/no/on/off` are strings; duplicate keys and multi-document files are rejected. Other
@@ -228,7 +231,7 @@ the bottleneck.
 
 ## Follow-up (2026-10-16): start-up, throughput, review items
 
-Same clean-room rules as above. Decisions O1–O7 and F1–F3 are in `spec/DECISIONS.md`; SPEC.md
+Same clean-room rules as above. Decisions O1–O7 and F1–F3 ("follow-up F1–F3", not the later fix round F1–F8) are in `spec/DECISIONS.md`; SPEC.md
 was updated where it describes the behaviour.
 
 **Measurements** (same machine: 32 cores, JDK 25.0.1, `-Xmx2g`, wall clock including JVM start;
@@ -460,3 +463,13 @@ The pre-filter requires, per pattern, the import path (it occurs in the import s
 member. Tests: `GoAnalysisTest`, additions to `RuleLoaderTest`, `FilesTest`, `ManifestsTest`,
 `NativesTest`, `AnchorPrefilterTest` (soundness over the Go conformance inputs too),
 `CycloneDx17Test` (Go families in the registry table), `CliIT`; nine conformance cases.
+
+## Fix round (2026-10-17, DECISIONS F1–F8)
+
+Changes are listed in the CHANGELOG ("Fix round") and reviewed in `CODE-REVIEW.md` ("Fix round
+F1–F8"). In the implementation: `PythonAnalyzer` records each import binding with its `try`
+context and enters the bindings after the collection walk, dropping those of an import-failure
+handler whose `try` body imports the same local name (F2); `FileClass` / `FileCollector` read the
+first 256 bytes of unclassified files without `.` in their name and classify a Python interpreter
+line as Python source (F7); everything else (F1, F3–F6) is rule and list content. Tests: 436 unit
++ 193 integration, all passing; conformance 59/59 cases, 1243/1243 findings.

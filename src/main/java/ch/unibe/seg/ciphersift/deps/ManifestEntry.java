@@ -7,7 +7,7 @@ package ch.unibe.seg.ciphersift.deps;
 /**
  * One manifest entry (SPEC 9).
  *
- * @param key Maven {@code groupId:artifactId} or PyPI normalised name
+ * @param key Maven {@code groupId:artifactId}, PyPI normalised name or Go module path
  * @param version version or {@code null}
  * @param snippet the coordinate as text
  */

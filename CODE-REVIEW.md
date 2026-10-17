@@ -6,7 +6,7 @@
 Reviewed: the implementation in this directory against `spec/SPEC.md` (with `spec/DECISIONS.md`
 and `spec/REVIEW.md`), the rule schema, the conformance suite, the rules and the delivered
 documentation. Clean-room rules were respected (nothing outside this directory was read).
-All fixes are uncommitted working-tree changes.
+All fixes were made in the working tree before the first commit of the implementation (062f8c3).
 
 ## Verdict
 

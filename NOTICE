@@ -28,8 +28,8 @@ Java libraries:
   jtreesitter 0.26.1 (io.github.tree-sitter:jtreesitter) - MIT License
     Copyright (c) 2024 tree-sitter contributors
   JSpecify 1.0.0 (org.jspecify:jspecify), runtime dependency of jtreesitter - Apache License 2.0
-  Jackson 2.22.3: jackson-core, jackson-databind, jackson-annotations,
-    jackson-dataformat-yaml, jackson-dataformat-toml (com.fasterxml.jackson) - Apache License 2.0
+  Jackson 2.22.3: jackson-core, jackson-databind, jackson-dataformat-yaml,
+    jackson-dataformat-toml, and jackson-annotations 2.22 (com.fasterxml.jackson) - Apache License 2.0
     jackson-core contains FastDoubleParser (MIT License, Copyright (c) Werner Randelshofer)
     and Schubfach-derived code (MIT License, Copyright (c) Raffaello Giulietti); see
     META-INF/FastDoubleParser-LICENSE, META-INF/FastDoubleParser-ThirdParty-LICENSE and

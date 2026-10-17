@@ -203,7 +203,7 @@ class CliIT {
         return java;
     }
 
-    /** DECISIONS F1: the launcher's Java selection and the one-line error with exit code 6. */
+    /** DECISIONS follow-up F1: the launcher's Java selection and the one-line error with exit code 6. */
     @Test
     void launcherChecksTheJavaVersion() throws Exception {
         org.junit.jupiter.api.Assumptions.assumeTrue(System.getProperty("os.name").startsWith("Linux"));

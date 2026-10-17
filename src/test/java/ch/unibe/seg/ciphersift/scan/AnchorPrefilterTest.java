@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-/** The textual pre-filter (DECISIONS F3) never rejects a file that has findings. */
+/** The textual pre-filter (DECISIONS follow-up F3) never rejects a file that has findings. */
 class AnchorPrefilterTest {
     private static RuleSet rules(String yaml) throws Exception {
         return RuleLoader.load(List.of(new RuleLoader.RuleFile("r.yaml", yaml.getBytes(StandardCharsets.UTF_8))));

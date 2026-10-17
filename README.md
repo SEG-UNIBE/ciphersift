@@ -88,9 +88,9 @@ error or native libraries not loadable, `2` usage error, `3` bad scan root, `4` 
 `5` output not writable, `6` no Java 23+ runtime.
 
 Scanned inputs: `*.java`, `*.py` (including `setup.py`, whose literal `install_requires` /
-`extras_require` are also read as dependencies), `pom.xml`, `build.gradle(.kts)`,
+`extras_require` are also read as dependencies), `*.go`, `pom.xml`, `build.gradle(.kts)`,
 `*.versions.toml`, `requirements*.txt` and `requirements/*.txt`, `pyproject.toml`,
-`Pipfile.lock`, `poetry.lock`, `setup.cfg`. Files without one of these names or extensions are
+`Pipfile.lock`, `poetry.lock`, `setup.cfg`, `go.mod`, `go.sum`. Files without one of these names or extensions are
 not scanned, except files without any `.` in their name whose first line is a Python interpreter
 line (`#!/usr/bin/env python3`, `#!/usr/bin/python3.12`): they are scanned as Python (SPEC 4.5). `.git`, `.hg`, `.svn` and symbolic links are never followed; files
 over 10 MiB and binary source files are skipped.
@@ -103,11 +103,13 @@ non-ASCII scan root, output path or `--exclude` glob cannot be decoded, and Ciph
 about it. `bin/ciphersift` and the Docker image run the JVM with `LC_ALL=C.UTF-8` when the
 current locale is not UTF-8. Set `SOURCE_DATE_EPOCH` to get a `metadata.timestamp`.
 
-Start-up takes about half a second (bundled rules are validated when the jar is built, so they
+Start-up takes about half a second (measured 2026-10-17 on the 32-core development machine with
+JDK 25.0.1, natives cached; bundled rules are validated when the jar is built, so they
 are not re-validated at run time). Source files in which no rule's names occur at all are not
 parsed; this changes nothing in the output, only the speed.
 
-Optional, JDK 24 or newer: an AOT cache cuts start-up further (about 0.53 s → 0.37 s measured).
+Optional, JDK 24 or newer: an AOT cache cuts start-up further (about 0.53 s → 0.37 s, measured
+2026-10-16 on the same machine, before Go support).
 It belongs to one JDK build and one jar file; create it once with a normal scan, then pass it on
 every run (the directory must exist). Keep the JVM's own log quiet, since a mismatch warning would otherwise go to standard
 output:
@@ -159,7 +161,8 @@ own family stays in the property `ciphersift:family`, in both versions.
 `pkg:golang/<module path>[@<version>]`), Maven `group`,
 `name`, `version` (only if known), properties `ciphersift:ruleId`, `ciphersift:ecosystem`,
 `ciphersift:testOnly`; occurrences have `location` and `additionalContext`
-(`{"ruleId":…,"snippet":"g:a:v","manifest":"pom"}`), no line.
+(`{"ruleId":…,"snippet":"g:a:v","manifest":"pom"}`; the snippet is `name==v` for PyPI and
+`path@v` for Go, e.g. `"golang.org/x/crypto@v0.40.0"` with `"manifest":"go-mod"`), no line.
 
 **Weakness indicators.** Some rules do not detect a cryptographic asset but a sign of a possible
 weakness: today the non-cryptographic random generators (`java.util.Random`, `Math.random`,
@@ -303,7 +306,8 @@ each rule reports at most one finding per line.
 
 Regexes must be valid in both `java.util.regex` and Python `re` (no `(?P<…>)`, `\Z`, possessive
 quantifiers, `\p{…}`); `spec/tools/regex_parity.py` checks this. Dependency rules
-(`kind: dependency`) list package patterns per ecosystem (`org.bouncycastle:*`, `pycryptodome`).
+(`kind: dependency`) list package patterns per ecosystem (`org.bouncycastle:*`, `pycryptodome`,
+`golang.org/x/crypto`).
 
 ## Limitations
 

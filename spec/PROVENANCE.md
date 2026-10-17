@@ -58,9 +58,11 @@ used for any part of this delivery.
   upstream rule text, description or anchor list is carried over.
 * `rules/dependencies/dep.maven.yaml` (45 Maven coordinate patterns) and the 41 PyPI
   packages added from `spec/tools/pypi-extra.yaml`, written from public project
-  documentation.
+  documentation. (Counts at delivery; the evaluation fixes and the fix round extended both
+  lists by hand from public documentation, to 51 Maven and 70 PyPI patterns.)
 * Conformance cases other than the two `fork-fixtures` cases (21 cases), their inputs and
-  the hand-written Maven expectations.
+  the hand-written Maven expectations. (The 36 cases added later were hand-written by the
+  implementer; see `conformance/README.md`.)
 * Tools: `convert_rules.py` (rule conversion), `check_rules.py` (schema + semantic
   validation), `regex_parity.py` + `RegexParity.java` (Python/Java regex equivalence over
   all rule regexes), `make_expected.py` (expected-findings generation from the reference
@@ -100,7 +102,7 @@ pqcheck, Q-DARPAN, CryptoScan, SCANOSS, semgrep rules, OQS, qScan, …).
 | CipherSift's own `SPEC.md`, `DECISIONS.md`, Java/Python rules and code | conventions reused for Go (rule ids, asset blocks, selection, CBOM mapping) | — |
 
 Written new: `SPEC.md` section 17 and the Go parts of sections 1–16 and Appendices B/C,
-`DECISIONS.md` G1–G16, `rules/go/` (66 rules), `rules/dependencies/dep.golang.yaml`, the Go
+`DECISIONS.md` G1–G16, `rules/go/` (66 rules; 67 with `go.pqc.mldsa` of the fix round), `rules/dependencies/dep.golang.yaml`, the Go
 conformance cases (inputs and expectations), `lang/go/`, `deps/GoManifests.java` and the tests.
 The BF-CBOM benchmark corpora (`corpus-native/`, including `micro-go` and its ground truth) were
 not read before the implementation and the rules were frozen; see `DECISIONS.md` for any change

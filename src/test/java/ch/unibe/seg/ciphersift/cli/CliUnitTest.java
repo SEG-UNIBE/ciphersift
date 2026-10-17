@@ -31,7 +31,7 @@ class CliUnitTest {
         assertNull(ScanCommand.parseSourceDateEpoch("99999999999999999999"), "beyond long");
     }
 
-    /** The Java-8 entry point's version check (DECISIONS F1). */
+    /** The Java-8 entry point's version check (DECISIONS follow-up F1). */
     @Test
     void javaVersionCheck() {
         assertEquals(8, ch.unibe.seg.ciphersift.MainAccess.javaMajor("1.8"));
