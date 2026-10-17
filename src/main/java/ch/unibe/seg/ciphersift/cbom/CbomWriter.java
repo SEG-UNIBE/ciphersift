@@ -34,11 +34,19 @@ public final class CbomWriter {
     /** Document-level inputs; {@code cyclonedx} is the output version (SPEC 11.2). */
     public record Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
             long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded,
-            CycloneDxVersion cyclonedx) {
+            CycloneDxVersion cyclonedx, boolean pythonThinWrappers) {
         public Metadata {
             if (cyclonedx == null) {
                 cyclonedx = CycloneDxVersion.DEFAULT;
             }
+        }
+
+        /** Metadata of a scan without {@code --python-thin-wrappers} (the default, DECISIONS T3). */
+        public Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
+                long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded,
+                CycloneDxVersion cyclonedx) {
+            this(toolVersion, rootName, rulesDigest, testsIncluded, filesScanned, filesSkipped, sourceDateEpoch,
+                    weaknessIndicatorsIncluded, cyclonedx, false);
         }
 
         /** Metadata of a scan in the default CycloneDX version. */
@@ -231,6 +239,9 @@ public final class CbomWriter {
         property(g, "ciphersift:filesSkipped", Long.toString(m.filesSkipped()));
         if (m.weaknessIndicatorsIncluded()) {
             property(g, "ciphersift:weaknessIndicators", "included");
+        }
+        if (m.pythonThinWrappers()) {
+            property(g, "ciphersift:pythonThinWrappers", "included");
         }
         g.writeEndArray();
         g.writeEndObject();
@@ -433,7 +444,7 @@ public final class CbomWriter {
         g.writeEndObject();
     }
 
-    /** Compact JSON with keys ruleId, snippet, param, manifest, test (SPEC 11.4). */
+    /** Compact JSON with keys ruleId, snippet, param, manifest, via, origin, test (SPEC 11.4). */
     static String additionalContext(Component.Occurrence o) {
         StringWriter w = new StringWriter();
         try (JsonGenerator g = FACTORY.createGenerator(w)) {
@@ -445,6 +456,14 @@ public final class CbomWriter {
             }
             if (o.manifest() != null) {
                 g.writeStringField("manifest", o.manifest());
+            }
+            if (o.via() != null) {
+                g.writeArrayFieldStart("via");
+                for (String v : o.via()) {
+                    g.writeString(v);
+                }
+                g.writeEndArray();
+                g.writeStringField("origin", o.origin());
             }
             if (o.test()) {
                 g.writeBooleanField("test", true);

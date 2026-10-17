@@ -61,7 +61,7 @@ public final class GoAnalyzer {
      * The local name an import without explicit name gets (SPEC 17.4): the last path segment, the one
      * before a major-version suffix {@code vN}, without a trailing {@code .vN}.
      */
-    static String defaultLocalName(String path) {
+    public static String defaultLocalName(String path) {
         String[] seg = path.split("/", -1);
         String last = seg[seg.length - 1];
         if (seg.length > 1 && MAJOR_VERSION.matcher(last).matches()) {

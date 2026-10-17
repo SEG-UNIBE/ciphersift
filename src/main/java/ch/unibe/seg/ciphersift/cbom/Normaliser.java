@@ -39,8 +39,26 @@ public final class Normaliser {
         if (c != 0) {
             return c;
         }
-        return Texts.compareNullFirst(a.snippet(), b.snippet());
+        c = Texts.compareNullFirst(a.snippet(), b.snippet());
+        if (c != 0) {
+            return c;
+        }
+        return compareVia(a.via(), b.via());
     };
+
+    /** The {@code via} chains of SPEC 11.6: absent first, then element-wise, a prefix first. */
+    static int compareVia(List<String> a, List<String> b) {
+        if (a == null || b == null) {
+            return a == null ? (b == null ? 0 : -1) : 1;
+        }
+        for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
+            int c = Texts.compareCodePoints(a.get(i), b.get(i));
+            if (c != 0) {
+                return c;
+            }
+        }
+        return Integer.compare(a.size(), b.size());
+    }
 
     private record CryptoKey(String ruleId, String name, String param, String oid) {}
 
@@ -75,7 +93,7 @@ public final class Normaliser {
             List<Component.Occurrence> occ = new ArrayList<>();
             for (SourceFinding f : e.getValue()) {
                 occ.add(new Component.Occurrence(f.path(), f.line(), f.symbol(), f.rule().id(), f.snippet(), f.param(),
-                        null, f.test()));
+                        null, f.test(), f.via(), f.origin()));
             }
             cryptoComponents.add(new Component.Crypto(rules.get(k), k.name(), k.param(), k.oid(), dedupe(occ, true)));
         }

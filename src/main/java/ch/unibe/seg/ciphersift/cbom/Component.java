@@ -11,7 +11,13 @@ import java.util.List;
 public sealed interface Component {
     /** An occurrence (SPEC 11.4). {@code line} and {@code symbol} are null for dependency findings. */
     record Occurrence(String location, Integer line, String symbol, String ruleId, String snippet, String param,
-            String manifest, boolean test) {}
+            String manifest, boolean test, List<String> via, String origin) {
+        /** An occurrence that was not propagated (SPEC 18). */
+        public Occurrence(String location, Integer line, String symbol, String ruleId, String snippet, String param,
+                String manifest, boolean test) {
+            this(location, line, symbol, ruleId, snippet, param, manifest, test, null, null);
+        }
+    }
 
     List<Occurrence> occurrences();
 

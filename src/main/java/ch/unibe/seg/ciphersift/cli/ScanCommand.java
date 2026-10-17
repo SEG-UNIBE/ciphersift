@@ -72,6 +72,10 @@ public final class ScanCommand implements Callable<Integer> {
             description = "Also report weakness indicators (rules with indicator: weakness, e.g. non-cryptographic random generators); off by default.")
     boolean weaknessIndicators;
 
+    @Option(names = "--python-thin-wrappers",
+            description = "Also treat thin Python functions (at most 8 lines, one family) as crypto wrappers whose call sites are reported; off by default (on for Java and Go).")
+    boolean pythonThinWrappers;
+
     @Option(names = "--cyclonedx-version", paramLabel = "VERSION",
             description = "CycloneDX version of the output: 1.7 (default) or 1.6.")
     String cyclonedxVersion;
@@ -116,7 +120,8 @@ public final class ScanCommand implements Callable<Integer> {
 
         Scanner.Result result;
         try {
-            result = new Scanner(new Scanner.Options(root, globs, excludeTests, n, rules, weaknessIndicators)).run();
+            result = new Scanner(new Scanner.Options(root, globs, excludeTests, n, rules, weaknessIndicators,
+                    ch.unibe.seg.ciphersift.wrappers.WrapperOptions.defaults(pythonThinWrappers))).run();
         } catch (NativeLoadException ex) {
             throw new ExitException(ExitCodes.INTERNAL, ex.getMessage(), ex);
         } catch (InterruptedException ex) {
@@ -125,7 +130,8 @@ public final class ScanCommand implements Callable<Integer> {
         }
         String rootName = ch.unibe.seg.ciphersift.files.FileNames.name(root);
         CbomWriter.Metadata meta = new CbomWriter.Metadata(CipherSift.version(), rootName, rules.digest(),
-                !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch(), weaknessIndicators, cdx);
+                !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch(), weaknessIndicators, cdx,
+                pythonThinWrappers);
         byte[] doc = CbomWriter.write(meta, result.components());
         write(out, doc);
         double secs = (System.nanoTime() - start) / 1e9;

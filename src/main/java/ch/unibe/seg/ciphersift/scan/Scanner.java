@@ -23,14 +23,25 @@ import ch.unibe.seg.ciphersift.model.FileFindings;
 import ch.unibe.seg.ciphersift.model.SourceFinding;
 import ch.unibe.seg.ciphersift.natives.Grammars;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
+import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.syntax.SyntaxTrees;
+import ch.unibe.seg.ciphersift.util.Texts;
+import ch.unibe.seg.ciphersift.wrappers.Outline;
+import ch.unibe.seg.ciphersift.wrappers.Outlines;
+import ch.unibe.seg.ciphersift.wrappers.WrapperOptions;
+import ch.unibe.seg.ciphersift.wrappers.WrapperPass;
 import io.github.treesitter.jtreesitter.Language;
 import io.github.treesitter.jtreesitter.Parser;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,7 +53,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class Scanner {
     /** Scan options. {@code root} must be the canonical scan root. */
     public record Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules,
-            boolean weaknessIndicators) {
+            boolean weaknessIndicators, WrapperOptions wrappers) {
+        /** Options with the default wrapper propagation (SPEC 18). */
+        public Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules,
+                boolean weaknessIndicators) {
+            this(root, excludes, excludeTests, threads, rules, weaknessIndicators, WrapperOptions.defaults(false));
+        }
+
         /** Options of a scan without weakness indicators (the default, DECISIONS E2). */
         public Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules) {
             this(root, excludes, excludeTests, threads, rules, false);
@@ -52,7 +69,16 @@ public final class Scanner {
     /** What happened to one file. */
     enum Outcome { JAVA, PYTHON, GO, MANIFEST, SKIPPED }
 
-    private record FileResult(Outcome outcome, FileFindings findings) {}
+    /**
+     * @param outline the definitions and call sites for wrapper propagation (SPEC 18), or null
+     * @param unparsed for a source file the pre-filter did not parse, the identifiers of its text (it may
+     *        still be indexed, SPEC 18.2); else null
+     */
+    private record FileResult(Outcome outcome, FileFindings findings, Outline outline, IdentifierBloom unparsed) {
+        FileResult(Outcome outcome, FileFindings findings) {
+            this(outcome, findings, null, null);
+        }
+    }
 
     /** The result of a scan. */
     public record Result(List<Component> components, int javaFiles, int pythonFiles, int goFiles, int manifests,
@@ -175,17 +201,6 @@ public final class Scanner {
                 pool.shutdownNow();
             }
         }
-        synchronized (parsers) {
-            for (Parser p : parsers) {
-                try {
-                    p.close();
-                } catch (RuntimeException ex) {
-                    // ignore
-                }
-            }
-            parsers.clear();
-        }
-
         int java = 0;
         int python = 0;
         int go = 0;
@@ -211,6 +226,15 @@ public final class Scanner {
             }
             deps.addAll(r.findings().dependencies());
         }
+        if (options.wrappers().any()) {
+            try {
+                source.addAll(propagate(files, results, source));
+            } catch (RuntimeException | StackOverflowError | OutOfMemoryError ex) {
+                // an internal failure of the pass must not cost the findings of phase 3 (SPEC 13)
+                Log.warning("wrapper propagation failed (" + message(ex) + "); its findings are omitted");
+            }
+        }
+        closeParsers();
         List<Component> components = Normaliser.normalise(source, deps);
         int occurrences = 0;
         for (Component c : components) {
@@ -253,7 +277,8 @@ public final class Scanner {
                 boolean setupPy = !java && SetupManifests.isSetupPy(rel) && SetupManifests.maybeDeclaresRequirements(text);
                 if (!setupPy && !(java ? javaFilter : pythonFilter).mayMatch(text)) {
                     // no pattern can fire: the findings are empty without parsing (see AnchorPrefilter)
-                    return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.EMPTY);
+                    return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.EMPTY, null,
+                            bloom(fc, text));
                 }
                 SyntaxTrees.Parsed parsed = SyntaxTrees.parseChecked(
                         java ? javaParser.get() : pythonParser.get(), java ? javaLanguage : pythonLanguage, text);
@@ -267,11 +292,13 @@ public final class Scanner {
                 } else {
                     found = pythonAnalyzer.analyze(parsed.root(), rel, f.test());
                 }
+                Outline outline = outline(fc, parsed.root(), rel, f.test());
                 if (setupPy) {
                     return new FileResult(Outcome.PYTHON, new FileFindings(List.copyOf(found),
-                            List.copyOf(dependencyScanner.setupPy(rel, parsed.root(), f.test()))));
+                            List.copyOf(dependencyScanner.setupPy(rel, parsed.root(), f.test()))), outline, null);
                 }
-                return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.ofSource(found));
+                return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.ofSource(found), outline,
+                        null);
             }
             try {
                 return new FileResult(Outcome.MANIFEST,
@@ -289,13 +316,304 @@ public final class Scanner {
     /** A Go source file (SPEC 17); failures are handled by the caller like for the other languages. */
     private FileResult goFile(String text, String rel, boolean test) {
         if (!goFilter.mayMatch(text)) {
-            return new FileResult(Outcome.GO, FileFindings.EMPTY);
+            return new FileResult(Outcome.GO, FileFindings.EMPTY, null, bloom(FileClass.GO, text));
         }
         SyntaxTrees.Parsed parsed = SyntaxTrees.parseChecked(goParser.get(), goLanguage, text);
         if (parsed.hasError()) {
             Log.debug("syntax errors in " + rel + "; analysing the well-formed parts");
         }
-        return new FileResult(Outcome.GO, FileFindings.ofSource(goAnalyzer.analyze(parsed.root(), rel, test)));
+        List<SourceFinding> found = goAnalyzer.analyze(parsed.root(), rel, test);
+        return new FileResult(Outcome.GO, FileFindings.ofSource(found), outline(FileClass.GO, parsed.root(), rel, test),
+                null);
+    }
+
+    // ====================================================================== wrapper propagation (SPEC 18)
+
+    private static Outline.Lang lang(FileClass fc) {
+        return switch (fc) {
+            case JAVA -> Outline.Lang.JAVA;
+            case PYTHON -> Outline.Lang.PYTHON;
+            case GO -> Outline.Lang.GO;
+            default -> null;
+        };
+    }
+
+    /** The identifiers of a file the pre-filter skipped, if propagation is on for its language. */
+    private IdentifierBloom bloom(FileClass fc, String text) {
+        Outline.Lang l = lang(fc);
+        return l != null && options.wrappers().on(l) ? IdentifierBloom.of(text) : null;
+    }
+
+    /** The outline of a parsed file if propagation is on for its language; null if it fails (SPEC 13). */
+    private Outline outline(FileClass fc, SyntaxNode root, String rel, boolean test) {
+        Outline.Lang l = lang(fc);
+        if (l == null || !options.wrappers().on(l)) {
+            return null;
+        }
+        try {
+            return Outlines.of(l, root, rel, test);
+        } catch (RuntimeException | StackOverflowError ex) {
+            Log.debug("cannot index " + rel + " for wrapper propagation (" + message(ex) + ")");
+            return null;
+        }
+    }
+
+    /** Parses and outlines a file the pre-filter skipped (SPEC 18.2); null if it cannot be read or parsed. */
+    private Outline outlineSkipped(CollectedFile f, String text) {
+        try {
+            Outline.Lang l = lang(f.fileClass());
+            Parser p = switch (l) {
+                case JAVA -> javaParser.get();
+                case PYTHON -> pythonParser.get();
+                case GO -> goParser.get();
+            };
+            Language lg = switch (l) {
+                case JAVA -> javaLanguage;
+                case PYTHON -> pythonLanguage;
+                case GO -> goLanguage;
+            };
+            return outline(f.fileClass(), SyntaxTrees.parseChecked(p, lg, text).root(), f.relativePath(), f.test());
+        } catch (RuntimeException | StackOverflowError ex) {
+            Log.debug("cannot index " + f.relativePath() + " for wrapper propagation (" + message(ex) + ")");
+            return null;
+        }
+    }
+
+    /** The decoded text of a source file, or null (unreadable, too large, binary). */
+    private static String readText(CollectedFile f) {
+        try {
+            byte[] bytes = SourceText.readBounded(f.path());
+            if (SourceText.isBinary(bytes)) {
+                return null;
+            }
+            return SourceText.decode(bytes);
+        } catch (IOException | SecurityException | OutOfMemoryError ex) {
+            return null;
+        }
+    }
+
+    /** Whether the text has an identifier (SPEC 18.2) in {@code names}. */
+    static boolean hasIdentifier(String text, Set<String> names) {
+        return new NameSet(names).occursIn(text);
+    }
+
+    /**
+     * A set of identifiers that can be looked up while scanning a text, without creating a string
+     * per identifier: open addressing on {@link String#hashCode()} values.
+     */
+    static final class NameSet {
+        private final int[] hashes;
+        private final String[] names;
+        private final int mask;
+
+        NameSet(Set<String> s) {
+            int cap = Integer.highestOneBit(Math.max(4, s.size() * 4 - 1)) << 1;
+            hashes = new int[cap];
+            names = new String[cap];
+            mask = cap - 1;
+            for (String n : s) {
+                int i = n.hashCode() & mask;
+                while (names[i] != null) {
+                    i = (i + 1) & mask;
+                }
+                names[i] = n;
+                hashes[i] = n.hashCode();
+            }
+        }
+
+        private boolean contains(String text, int from, int to, int h) {
+            for (int i = h & mask; names[i] != null; i = (i + 1) & mask) {
+                if (hashes[i] == h && names[i].length() == to - from && text.regionMatches(from, names[i], 0, to - from)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        boolean occursIn(String text) {
+            int n = text.length();
+            int i = 0;
+            while (i < n) {
+                char c = text.charAt(i);
+                if (Character.isLetter(c) || c == '_' || c == '$') {
+                    int s = i;
+                    int h = 0;
+                    while (i < n) {
+                        char d = text.charAt(i);
+                        if (!(Character.isLetterOrDigit(d) || d == '_' || d == '$')) {
+                            break;
+                        }
+                        h = 31 * h + d;
+                        i++;
+                    }
+                    if (contains(text, s, i, h)) {
+                        return true;
+                    }
+                } else if (Character.isDigit(c)) {
+                    while (i < n && (Character.isLetterOrDigit(text.charAt(i)) || text.charAt(i) == '_')) {
+                        i++;
+                    }
+                } else {
+                    i++;
+                }
+            }
+            return false;
+        }
+    }
+
+    private static final java.util.regex.Pattern GO_MODULE =
+            java.util.regex.Pattern.compile("^\\s*module\\s+\"?([^\\s\"]+)\"?");
+
+    /** The findings of wrapper propagation (SPEC 18). */
+    private List<SourceFinding> propagate(List<CollectedFile> files, List<FileResult> results,
+            List<SourceFinding> direct) throws InterruptedException {
+        Map<String, Outline> outlines = new HashMap<>();
+        List<CollectedFile> unparsed = new ArrayList<>();
+        Map<CollectedFile, IdentifierBloom> blooms = new java.util.IdentityHashMap<>();
+        Set<String> javaFiles = new HashSet<>();
+        Set<String> pythonModules = new HashSet<>();
+        Set<String> goDirs = new HashSet<>();
+        Map<String, String> goModules = new TreeMap<>(Texts.CODE_POINT_ORDER);
+        Map<String, CollectedFile> byPath = new HashMap<>();
+        for (int i = 0; i < files.size(); i++) {
+            CollectedFile f = files.get(i);
+            FileResult r = results.get(i);
+            byPath.put(f.relativePath(), f);
+            String rel = f.relativePath();
+            switch (f.fileClass()) {
+                case JAVA -> javaFiles.add(rel);
+                case PYTHON -> pythonModules.add(WrapperPass.pythonModule(rel));
+                case GO -> goDirs.add(WrapperPass.dirOf(rel));
+                case GO_MOD -> {
+                    if (r.outcome() == Outcome.MANIFEST) {
+                        String t = readText(f);
+                        if (t != null) {
+                            for (String line : t.split("\n")) {
+                                java.util.regex.Matcher m = GO_MODULE.matcher(line);
+                                if (m.find()) {
+                                    goModules.put(WrapperPass.dirOf(rel), m.group(1));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                default -> {
+                    // nothing
+                }
+            }
+            if (r.outline() != null) {
+                outlines.put(rel, r.outline());
+            } else if (r.unparsed() != null) {
+                unparsed.add(f);
+                blooms.put(f, r.unparsed());
+            }
+        }
+        WrapperPass pass = new WrapperPass(options.wrappers(),
+                new WrapperPass.Project(javaFiles, pythonModules, goDirs, goModules));
+        Map<Outline.Lang, Set<String>> checked = new HashMap<>();
+        while (true) {
+            pass.compute(outlines, direct);
+            Map<Outline.Lang, Set<String>> names = pass.callableNames();
+            Map<Outline.Lang, Set<String>> fresh = new HashMap<>();
+            for (Map.Entry<Outline.Lang, Set<String>> e : names.entrySet()) {
+                Set<String> s = new HashSet<>(e.getValue());
+                s.removeAll(checked.getOrDefault(e.getKey(), Set.of()));
+                if (!s.isEmpty()) {
+                    fresh.put(e.getKey(), s);
+                }
+                checked.computeIfAbsent(e.getKey(), k -> new HashSet<>()).addAll(e.getValue());
+            }
+            if (fresh.isEmpty() || unparsed.isEmpty()) {
+                break;
+            }
+            Map<Outline.Lang, NameSet> sets = new HashMap<>();
+            fresh.forEach((k, v) -> sets.put(k, new NameSet(v)));
+            List<Outline> got = parallel(unparsed, f -> {
+                NameSet s = sets.get(lang(f.fileClass()));
+                if (s == null) {
+                    return null;
+                }
+                IdentifierBloom b = blooms.get(f);
+                if (fresh.get(lang(f.fileClass())).stream().noneMatch(b::mightContain)) {
+                    return null;
+                }
+                String t = readText(f);
+                return t != null && s.occursIn(t) ? outlineSkipped(f, t) : null;
+            });
+            List<CollectedFile> rest = new ArrayList<>();
+            boolean added = false;
+            for (int i = 0; i < unparsed.size(); i++) {
+                Outline o = got.get(i);
+                if (o != null) {
+                    outlines.put(unparsed.get(i).relativePath(), o);
+                    added = true;
+                } else {
+                    rest.add(unparsed.get(i));
+                }
+            }
+            unparsed = rest;
+            if (!added) {
+                break;
+            }
+        }
+        WrapperPass.Result r = pass.report(path -> {
+            CollectedFile f = byPath.get(path);
+            return f == null ? null : readText(f);
+        });
+        Log.debug("wrapper propagation: " + r.callables() + " callables, " + r.findings().size() + " occurrences, "
+                + r.ambiguous() + " ambiguous calls skipped");
+        return r.findings();
+    }
+
+    /** Applies {@code fn} to every element, on the worker threads; results in input order. */
+    private <T, R> List<R> parallel(List<T> in, java.util.function.Function<T, R> fn) throws InterruptedException {
+        List<R> out = new ArrayList<>(in.size());
+        int threads = Math.max(1, Math.min(options.threads(), in.size()));
+        if (threads == 1) {
+            for (T t : in) {
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
+                out.add(fn.apply(t));
+            }
+            return out;
+        }
+        AtomicInteger n = new AtomicInteger();
+        ExecutorService pool = Executors.newFixedThreadPool(threads, r -> {
+            Thread t = new Thread(r, "ciphersift-index-" + n.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        });
+        try {
+            List<Future<R>> futures = new ArrayList<>(in.size());
+            for (T t : in) {
+                futures.add(pool.submit(() -> fn.apply(t)));
+            }
+            for (Future<R> fu : futures) {
+                try {
+                    out.add(fu.get());
+                } catch (ExecutionException ex) {
+                    throw new IllegalStateException("internal error in worker", ex.getCause());
+                }
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+        return out;
+    }
+
+    private void closeParsers() {
+        synchronized (parsers) {
+            for (Parser p : parsers) {
+                try {
+                    p.close();
+                } catch (RuntimeException ex) {
+                    // ignore
+                }
+            }
+            parsers.clear();
+        }
     }
 
     private static String message(Throwable ex) {
