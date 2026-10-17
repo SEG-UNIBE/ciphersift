@@ -27,11 +27,19 @@ final class PythonRuleIndex {
     final List<Map.Entry<SourceRule, List<PythonPattern>>> assignRules = new ArrayList<>();
     /** All assign field names. */
     final Set<String> assignFields = new HashSet<>();
+    /**
+     * Patterns that can fire on a bare reference (SPEC 8.6.1), by the name the reference must resolve to;
+     * rules in id order, patterns in file order.
+     */
+    final Map<String, List<PythonPattern>> byRef = new HashMap<>();
 
     PythonRuleIndex(List<SourceRule> rules) {
         for (SourceRule r : rules) {
             List<PythonPattern> assigns = new ArrayList<>();
             for (PythonPattern p : r.pythonPatterns()) {
+                if (p.matchesReferences()) {
+                    byRef.computeIfAbsent(p.referenceName(), k -> new ArrayList<>()).add(p);
+                }
                 if (p.call != null) {
                     byCall.computeIfAbsent(p.call, k -> new ArrayList<>()).add(p);
                 } else if (p.methods != null) {

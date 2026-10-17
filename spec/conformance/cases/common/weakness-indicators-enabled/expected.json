@@ -1,0 +1,10 @@
+{"case": "common/weakness-indicators-enabled", "findings": [
+  {"file": "py/prng.py", "line": 3, "rule": "python.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "py/prng.py", "line": 4, "rule": "python.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "py/prng.py", "line": 5, "rule": "python.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "secrets.token_hex"},
+  {"file": "src/w/Rand.java", "line": 7, "rule": "java.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/w/Rand.java", "line": 8, "rule": "java.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/w/Rand.java", "line": 9, "rule": "java.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SecureRandom"},
+  {"file": "src/w/Rand.java", "line": 10, "rule": "java.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "src/w/Rand.java", "line": 10, "rule": "java.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SecureRandom"}
+]}

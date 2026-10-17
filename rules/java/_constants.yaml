@@ -47,3 +47,21 @@ constants:
     ENCRYPTION_PADDING_PKCS7: PKCS7Padding
     ENCRYPTION_PADDING_RSA_PKCS1: PKCS1Padding
     ENCRYPTION_PADDING_RSA_OAEP: OAEPPadding
+  # Apache Shiro hash classes (org.apache.shiro.crypto.hash, 1.x and 2.x; Md2/Md5/Sha1Hash 1.x only)
+  # and the Shiro 2.x Argon2/bcrypt hashes (DECISIONS E16)
+  Md2Hash:
+    ALGORITHM_NAME: MD2
+  Md5Hash:
+    ALGORITHM_NAME: MD5
+  Sha1Hash:
+    ALGORITHM_NAME: SHA-1
+  Sha256Hash:
+    ALGORITHM_NAME: SHA-256
+  Sha384Hash:
+    ALGORITHM_NAME: SHA-384
+  Sha512Hash:
+    ALGORITHM_NAME: SHA-512
+  Argon2Hash:
+    DEFAULT_ALGORITHM_NAME: argon2id
+  BCryptHash:
+    DEFAULT_ALGORITHM_NAME: bcrypt2y

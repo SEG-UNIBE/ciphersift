@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.sym.blowfish
+kind: source
+language: java
+name: Blowfish via Apache Shiro cipher services
+description: >-
+  BlowfishCipherService (Shiro 1.x and 2.x) and DefaultBlockCipherService with the algorithm name Blowfish.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: Blowfish
+match:
+- new: org.apache.shiro.crypto.BlowfishCipherService
+- new: org.apache.shiro.crypto.cipher.BlowfishCipherService
+- new: org.apache.shiro.crypto.DefaultBlockCipherService
+  firstString: Blowfish$
+- new: org.apache.shiro.crypto.cipher.DefaultBlockCipherService
+  firstString: Blowfish$

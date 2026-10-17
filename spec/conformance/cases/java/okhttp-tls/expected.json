@@ -1,0 +1,12 @@
+{"case": "java/okhttp-tls", "findings": [
+  {"file": "src/o/Http.java", "line": 9, "rule": "java.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 10, "rule": "java.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 11, "rule": "java.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 12, "rule": "java.prot.tls.v1_2", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.2", "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 12, "rule": "java.prot.tls.v1_3", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.3", "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 14, "rule": "java.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 14, "rule": "java.prot.tls.null_cipher", "type": "protocol", "subtype": "null-cipher", "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 14, "rule": "java.prot.tls.rc4", "type": "protocol", "subtype": "rc4-cipher", "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 14, "rule": "java.prot.tls.v1_0", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.0", "param": null, "name": null},
+  {"file": "src/o/Http.java", "line": 14, "rule": "java.prot.tls.v1_1", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.1", "param": null, "name": null}
+]}

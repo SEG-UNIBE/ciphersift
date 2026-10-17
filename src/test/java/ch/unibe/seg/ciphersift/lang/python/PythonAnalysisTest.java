@@ -49,7 +49,9 @@ class PythonAnalysisTest {
     void importsAndAliases() {
         assertEquals("2:python.hash.sha1:hashlib.sha1", summary("import hashlib as h\nh.sha1()\n"));
         assertEquals("2:python.hash.md5:hashlib.md5", summary("from hashlib import md5 as m\nm()\n"));
-        assertEquals("3:python.hash.md5:hashlib.md5", summary("import hashlib\nH = hashlib.md5\nH()\n"));
+        // the alias definition is a bare reference (SPEC 8.6.1), the call is resolved through it
+        assertEquals("2:python.hash.md5:hashlib.md5 3:python.hash.md5:hashlib.md5",
+                summary("import hashlib\nH = hashlib.md5\nH()\n"));
         assertEquals("", summary("from .local import md5\nmd5()\n"));
         assertEquals("", summary("import hashlib\nhashlib.sha1x()\n"));
     }
@@ -105,7 +107,9 @@ class PythonAnalysisTest {
         }
         b.append("v10()\n");
         b.append("v20()\n");
-        assertEquals("23:python.hash.md5:hashlib.md5", summary(b.toString()));
+        // the definitions of v0 .. v16 are bare references that resolve within the limit (lines 2-18,
+        // SPEC 8.6.1); of the two calls only v10() resolves
+        assertEquals(refs(2, 18) + " 23:python.hash.md5:hashlib.md5", summary(b.toString()));
     }
 
     /**
@@ -119,9 +123,15 @@ class PythonAnalysisTest {
             chain.append("u").append(i).append(" = u").append(i - 1).append('\n');
         }
         // md5 is reached at step 16 without own bindings: fallback md5, hashlib.md5 (star module)
-        assertEquals("18:python.hash.md5:hashlib.md5", summary("from hashlib import *\n" + chain + "u15()\n"));
+        assertEquals(refs(2, 18), summary("from hashlib import *\n" + chain + "u15()\n"));
         // md5 has a binding of its own, which would be step 17: unresolved, no finding
         assertEquals("", summary("from hashlib import *\nmd5 = v\n" + chain + "u15()\n"));
+    }
+
+    /** The bare-reference findings of an alias chain from hashlib.md5 on lines {@code from..to}. */
+    private static String refs(int from, int to) {
+        return java.util.stream.IntStream.rangeClosed(from, to).mapToObj(i -> i + ":python.hash.md5:hashlib.md5")
+                .collect(Collectors.joining(" "));
     }
 
     @Test

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.hash.md5
+kind: source
+language: java
+name: MD5 hashing via Apache Shiro
+description: >-
+  Md5Hash, Md5CredentialsMatcher (Shiro 1.x) and the algorithm name MD5 given to SimpleHash, HashedCredentialsMatcher or setHashAlgorithmName.
+asset:
+  type: algorithm
+  primitive: hash
+  family: MD5
+  securityLevel: 64
+match:
+- new: org.apache.shiro.crypto.hash.Md5Hash
+- call: org.apache.shiro.crypto.hash.Md5Hash.from*
+- new: org.apache.shiro.authc.credential.Md5CredentialsMatcher
+- new: org.apache.shiro.crypto.hash.SimpleHash
+  firstString: MD5$
+- new: org.apache.shiro.authc.credential.HashedCredentialsMatcher
+  firstString: MD5$
+- method: setHashAlgorithmName
+  firstString: MD5$
+- new: org.apache.shiro.crypto.hash.SimpleHashRequest
+  firstString: MD5$

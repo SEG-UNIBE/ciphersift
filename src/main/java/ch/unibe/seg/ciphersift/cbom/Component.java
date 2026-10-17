@@ -15,8 +15,14 @@ public sealed interface Component {
 
     List<Occurrence> occurrences();
 
-    /** A cryptographic-asset component. {@code param} only for algorithms. */
-    record Crypto(SourceRule rule, String name, String param, List<Occurrence> occurrences) implements Component {}
+    /** A cryptographic-asset component. {@code param} and {@code oid} only for algorithms. */
+    record Crypto(SourceRule rule, String name, String param, String oid, List<Occurrence> occurrences)
+            implements Component {
+        /** A component without OID. */
+        public Crypto(SourceRule rule, String name, String param, List<Occurrence> occurrences) {
+            this(rule, name, param, null, occurrences);
+        }
+    }
 
     /** A library component. */
     record Library(String ruleId, String ecosystem, String packageKey, String version, List<Occurrence> occurrences)

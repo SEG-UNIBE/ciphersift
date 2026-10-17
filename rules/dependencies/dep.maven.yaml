@@ -23,6 +23,7 @@ packages:
   - {package: "commons-codec:commons-codec", note: "DigestUtils / HmacUtils"}
   - {package: "org.jasypt:*", note: "Jasypt"}
   - {package: "org.apache.shiro:shiro-crypto*", note: "Apache Shiro crypto modules"}
+  - {package: "org.apache.shiro.crypto:*", note: "Apache Shiro 2.x crypto modules (hash formats Argon2, bcrypt)"}
   - {package: "org.springframework.security:spring-security-crypto", note: "Spring Security Crypto"}
   - {package: "com.goterl:lazysodium-java", note: "libsodium"}
   - {package: "com.goterl:lazysodium-android", note: "libsodium"}

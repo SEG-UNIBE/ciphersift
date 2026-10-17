@@ -45,6 +45,33 @@ class CliIT {
         }
     }
 
+    /**
+     * Weakness indicators are off by default; {@code --weakness-indicators} adds them and leaves the rest unchanged
+     * (SPEC 3.1, DECISIONS E2).
+     */
+    @Test
+    void weaknessIndicatorsAreOptIn() throws Exception {
+        Path d = demo();
+        Files.writeString(d.resolve("src/R.java"), "import java.util.Random;\nclass R { long f() { return new Random().nextLong(); } }\n");
+        JarRunner.Run def = JarRunner.run("scan", d.toString(), "-o", "-", "--quiet");
+        JarRunner.Run all = JarRunner.run("scan", d.toString(), "-o", "-", "--quiet", "--weakness-indicators");
+        assertEquals(0, def.exit(), def.stderr());
+        assertEquals(0, all.exit(), all.stderr());
+        assertFalse(def.out().contains("java.rand.prng.insecure"), def.out());
+        assertFalse(def.out().contains("ciphersift:weaknessIndicators"));
+        assertTrue(def.out().contains("java.hash.sha2"), "other findings stay");
+        assertTrue(all.out().contains("java.rand.prng.insecure"), all.out());
+        assertTrue(all.out().contains("\"value\": \"weakness\""), all.out());
+        assertTrue(all.out().contains("\"name\": \"ciphersift:weaknessIndicators\",\n        \"value\": \"included\""),
+                all.out());
+        assertTrue(all.out().contains("java.hash.sha2"), "other findings stay");
+        String help = JarRunner.run("scan", "--help").out();
+        assertTrue(help.contains("--weakness-indicators"));
+        assertFalse(help.contains("--no-weakness-indicators"));
+        JarRunner.Run old = JarRunner.run("scan", d.toString(), "-o", "-", "--quiet", "--no-weakness-indicators");
+        assertEquals(2, old.exit(), "the former option is gone: " + old.stderr());
+    }
+
     @Test
     void stdoutOutputIsTheCbomOnly() throws Exception {
         Path d = demo();
@@ -82,8 +109,8 @@ class CliIT {
     void rulesValidateAndExport() throws Exception {
         JarRunner.Run v = JarRunner.run("rules", "validate");
         assertEquals(0, v.exit(), v.stderr());
-        assertTrue(v.out().contains("source java: 88"), v.out());
-        assertTrue(v.out().contains("source python: 79"), v.out());
+        assertTrue(v.out().contains("source java: 103"), v.out());
+        assertTrue(v.out().contains("source python: 87"), v.out());
         Path exp = tmp.resolve("exported");
         JarRunner.Run e = JarRunner.run("rules", "export", exp.toString());
         assertEquals(0, e.exit(), e.stderr());

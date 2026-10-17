@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.hash.sha1
+kind: source
+language: java
+name: SHA-1 hashing via Apache Shiro
+description: >-
+  Sha1Hash, Sha1CredentialsMatcher (Shiro 1.x) and the algorithm name SHA-1 given to SimpleHash, HashedCredentialsMatcher or setHashAlgorithmName.
+asset:
+  type: algorithm
+  primitive: hash
+  family: SHA1
+  securityLevel: 80
+match:
+- new: org.apache.shiro.crypto.hash.Sha1Hash
+- call: org.apache.shiro.crypto.hash.Sha1Hash.from*
+- new: org.apache.shiro.authc.credential.Sha1CredentialsMatcher
+- new: org.apache.shiro.crypto.hash.SimpleHash
+  firstString: SHA(-?1)?$
+- new: org.apache.shiro.authc.credential.HashedCredentialsMatcher
+  firstString: SHA(-?1)?$
+- method: setHashAlgorithmName
+  firstString: SHA(-?1)?$
+- new: org.apache.shiro.crypto.hash.SimpleHashRequest
+  firstString: SHA(-?1)?$

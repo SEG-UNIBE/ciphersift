@@ -6,6 +6,7 @@ package ch.unibe.seg.ciphersift.cbom;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.unibe.seg.ciphersift.model.DependencyFinding;
@@ -147,5 +148,49 @@ class CbomTest {
         assertEquals(null, CbomWriter.mode("Poly1305"));
         assertEquals("secret-key", CbomWriter.relatedType("hardcoded-key"));
         assertEquals("other", CbomWriter.relatedType(null));
+        assertEquals("private-key", CbomWriter.relatedType("private-key"));
+        assertEquals("public-key", CbomWriter.relatedType("public-key"));
+        assertEquals("signature", CbomWriter.relatedType("cms-signed-data"));
+        assertEquals("ciphertext", CbomWriter.relatedType("cms-enveloped-data"));
+        assertEquals("other", CbomWriter.relatedType("domain-parameters"));
+    }
+
+    /** Weakness indicators (SPEC 11.3.4, 11.2.1; DECISIONS E2). */
+    @Test
+    void weaknessIndicatorProperty() {
+        SourceFinding prng = new SourceFinding("A.java", 3, rule("java.rand.prng.insecure"), "x", "java.util.Random",
+                "new Random()", null, false);
+        SourceFinding aes = new SourceFinding("A.java", 4, rule("java.sym.aes"), "AES", "s", "s", null, false);
+        List<Component> comps = Normaliser.normalise(List.of(prng, aes), List.of());
+        String s = new String(CbomWriter.write(new CbomWriter.Metadata("1", "r", "sha256:0", true, 1, 0, null), comps),
+                StandardCharsets.UTF_8);
+        assertTrue(s.contains("\"name\": \"ciphersift:subtype\",\n          \"value\": \"prng-insecure\"\n        },\n"
+                + "        {\n          \"name\": \"ciphersift:indicator\",\n          \"value\": \"weakness\""), s);
+        assertEquals(1, s.split("ciphersift:indicator", -1).length - 1, "only the indicator rule's component");
+        assertFalse(s.contains("ciphersift:weaknessIndicators"), "absent in a default scan");
+        String included = new String(CbomWriter.write(new CbomWriter.Metadata("1", "r", "sha256:0", true, 1, 0, null,
+                true), List.of()), StandardCharsets.UTF_8);
+        assertTrue(included.contains("\"name\": \"ciphersift:weaknessIndicators\",\n        \"value\": \"included\""),
+                included);
+    }
+
+    /** An OID (SPEC 5.11): {@code cryptoProperties.oid}, part of the key; bom-refs without OID unchanged. */
+    @Test
+    void oidIsWrittenAndSeparatesComponents() {
+        SourceFinding byName = new SourceFinding("A.java", 3, rule("java.hash.sha2"), "SHA-256", "s", "s", null, false);
+        SourceFinding byOid = new SourceFinding("A.java", 4, rule("java.hash.sha2"), "SHA-256", "s", "s", null,
+                "2.16.840.1.101.3.4.2.1", false);
+        List<Component> comps = Normaliser.normalise(List.of(byOid, byName), List.of());
+        assertEquals(2, comps.size());
+        assertNull(((Component.Crypto) comps.get(0)).oid(), "no OID sorts first");
+        String s = new String(CbomWriter.write(new CbomWriter.Metadata("1", "r", "sha256:0", true, 1, 0, null), comps),
+                StandardCharsets.UTF_8);
+        assertTrue(s.contains("\"primitive\": \"hash\"\n        },\n        \"oid\": \"2.16.840.1.101.3.4.2.1\"\n      }"), s);
+        assertEquals(1, s.split("\"oid\"", -1).length - 1);
+        String plain = CbomWriter.fullRef((Component.Crypto) comps.get(0));
+        assertEquals("algorithm:" + CbomWriter.sha256Hex(CbomWriter.compactArray("algorithm", "java.hash.sha2", "SHA-256", "")
+                .getBytes(StandardCharsets.UTF_8)), plain);
+        assertEquals("algorithm:" + CbomWriter.sha256Hex(CbomWriter.compactArray("algorithm", "java.hash.sha2", "SHA-256", "",
+                "2.16.840.1.101.3.4.2.1").getBytes(StandardCharsets.UTF_8)), CbomWriter.fullRef((Component.Crypto) comps.get(1)));
     }
 }

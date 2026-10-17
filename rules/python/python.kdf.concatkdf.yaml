@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: python.kdf.concatkdf
+kind: source
+language: python
+name: Concat KDF (NIST SP 800-56A) in Python
+description: Detects the single-step key derivation function of NIST SP 800-56A (Concat KDF) via pyca/cryptography
+  ConcatKDFHash and ConcatKDFHMAC.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: ConcatKDF
+match:
+- call: cryptography.hazmat.primitives.kdf.concatkdf.ConcatKDFHash
+- call: cryptography.hazmat.primitives.kdf.concatkdf.ConcatKDFHMAC

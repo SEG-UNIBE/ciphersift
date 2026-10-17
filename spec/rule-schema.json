@@ -117,6 +117,7 @@
         },
         "anyCall": {"const": true},
         "assign": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+        "ref": {"$ref": "#/$defs/pythonDottedName"},
         "firstString": {"$ref": "#/$defs/regex"},
         "stringContains": {"$ref": "#/$defs/stringList"},
         "anySymbol": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pythonDottedName"}},
@@ -127,24 +128,40 @@
           "propertyNames": {"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
           "additionalProperties": {"$ref": "#/$defs/regex"}
         },
+        "dictItems": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"minLength": 1},
+          "additionalProperties": {"$ref": "#/$defs/regex"}
+        },
+        "notInside": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}},
         "value": {"$ref": "#/$defs/regex"},
         "valueContains": {"$ref": "#/$defs/stringList"},
         "param": {"$ref": "#/$defs/param"},
         "reportAt": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}}
       },
       "allOf": [
-        {"description": "exactly one of call / anyCall / assign; method may stand alone or (not used today) accompany call",
+        {"description": "exactly one of call / anyCall / assign / ref; method may stand alone or (not used today) accompany call",
          "oneOf": [
-           {"required": ["call"], "not": {"anyOf": [{"required": ["anyCall"]}, {"required": ["assign"]}]}},
-           {"required": ["method"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["anyCall"]}, {"required": ["assign"]}]}},
-           {"required": ["anyCall", "kwargs"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["assign"]}]}},
-           {"required": ["assign"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}]}}
+           {"required": ["call"], "not": {"anyOf": [{"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}]}},
+           {"required": ["method"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}]}},
+           {"required": ["anyCall", "kwargs"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["assign"]}, {"required": ["ref"]}]}},
+           {"required": ["assign"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["ref"]}]}},
+           {"required": ["ref"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["assign"]}]}}
          ]},
         {"if": {"required": ["assign"]},
          "then": {"not": {"anyOf": [
            {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
-           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["param"]}, {"required": ["reportAt"]}]}},
-         "else": {"not": {"anyOf": [{"required": ["value"]}, {"required": ["valueContains"]}]}}}
+           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
+           {"required": ["param"]}, {"required": ["reportAt"]}]}},
+         "else": {"not": {"anyOf": [{"required": ["value"]}, {"required": ["valueContains"]}]}}},
+        {"description": "a ref pattern (a bare reference has no arguments) takes no condition; its param can only be {self: true}",
+         "if": {"required": ["ref"]},
+         "then": {"not": {"anyOf": [
+           {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
+           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
+           {"required": ["reportAt"]}]},
+           "properties": {"param": {"anyOf": [{"required": ["self"]}, {"required": ["value"]}]}}}}
       ]
     },
 
@@ -155,10 +172,15 @@
       "properties": {
         "self": {"const": true},
         "keyword": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
-        "index": {"type": "integer", "minimum": 0}
+        "index": {"type": "integer", "minimum": 0},
+        "value": {"$ref": "#/$defs/nonEmptyString"}
       },
-      "if": {"required": ["self"]},
-      "then": {"not": {"anyOf": [{"required": ["keyword"]}, {"required": ["index"]}]}}
+      "allOf": [
+        {"if": {"required": ["self"]},
+         "then": {"not": {"anyOf": [{"required": ["keyword"]}, {"required": ["index"]}, {"required": ["value"]}]}}},
+        {"if": {"required": ["value"]},
+         "then": {"not": {"anyOf": [{"required": ["keyword"]}, {"required": ["index"]}, {"required": ["self"]}]}}}
+      ]
     },
 
     "sourceRule": {
@@ -171,6 +193,7 @@
         "language": {"enum": ["java", "python"]},
         "name": {"$ref": "#/$defs/nonEmptyString"},
         "description": {"type": "string"},
+        "indicator": {"enum": ["weakness"], "description": "The findings are indicators of a possible weakness, not cryptographic assets (SPEC 5.3, 11.3.4)."},
         "asset": {"$ref": "#/$defs/asset"},
         "match": {"type": "array", "minItems": 1}
       },

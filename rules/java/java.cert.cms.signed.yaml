@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: java.cert.cms.signed
+kind: source
+language: java
+name: CMS / PKCS#7 signed data and time-stamps in Java
+description: Detects creation, parsing and verification of CMS (PKCS#7) SignedData and RFC 3161 time-stamp tokens
+  via the BouncyCastle CMS/TSP APIs.
+asset:
+  type: related-crypto-material
+  subtype: cms-signed-data
+match:
+- new: org.bouncycastle.cms.CMSSignedData
+- new: org.bouncycastle.cms.CMSSignedDataGenerator
+- new: org.bouncycastle.cms.CMSSignedDataStreamGenerator
+- new: org.bouncycastle.cms.CMSSignedDataParser
+- new: org.bouncycastle.cms.CMSTimeStampedData
+- new: org.bouncycastle.cms.CMSTimeStampedDataGenerator
+- new: org.bouncycastle.cms.SignerInfoGeneratorBuilder
+- new: org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder
+- new: org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder
+- new: org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder
+- new: org.bouncycastle.cms.jcajce.JcaSignerInfoVerifierBuilder
+- new: org.bouncycastle.tsp.TimeStampToken
+- new: org.bouncycastle.tsp.TimeStampTokenGenerator
+- new: org.bouncycastle.tsp.TimeStampRequestGenerator
+- new: org.bouncycastle.tsp.TimeStampRequest
+- new: org.bouncycastle.tsp.TimeStampResponse
+- new: org.bouncycastle.tsp.TimeStampResponseGenerator
+- new: org.bouncycastle.asn1.cms.SignedData
+- call: org.bouncycastle.asn1.cms.SignedData.getInstance

@@ -19,7 +19,7 @@ public final class Grammars {
     /** Field names of Appendix C, Python grammar. */
     static final List<String> PYTHON_FIELDS = List.of(
             "name", "alias", "module_name", "parameters", "left", "right", "function", "arguments",
-            "object", "attribute", "value");
+            "object", "attribute", "value", "key");
 
     private static volatile Grammars instance;
 

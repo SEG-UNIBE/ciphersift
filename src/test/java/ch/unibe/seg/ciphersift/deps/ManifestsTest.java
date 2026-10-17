@@ -48,6 +48,17 @@ class ManifestsTest {
         assertEquals("cryptography@1 pyjwt@2.0 url@null", keys(PythonManifests.requirements(text)));
     }
 
+    /** setup.cfg (SPEC 9.8): [options] install_requires and [options.extras_require], dangling lists. */
+    @Test
+    void setupCfg() {
+        String t = "[metadata]\nname = x\ninstall_requires = notme\n[options]\ninstall_requires =\n    cryptography>=41\n"
+                + "    # comment\n    pynacl==1.5.0 ; python_version>'3'\nzip_safe = False\n  ignored\n"
+                + "[options.extras_require]\njwt = pyjwt==2.8.0\nssh =\n    paramiko\n    file: other.txt\n[isort]\nprofile = black\n";
+        assertEquals("cryptography@null pynacl@1.5.0 pyjwt@2.8.0 paramiko@null", keys(SetupManifests.setupCfg(t)));
+        assertEquals(FileClass.SETUP_CFG, FileClass.of("a/setup.cfg"));
+        assertEquals("setup-cfg", FileClass.SETUP_CFG.label());
+    }
+
     @Test
     void pyprojectOrderAndPoetry() throws Exception {
         String t = """

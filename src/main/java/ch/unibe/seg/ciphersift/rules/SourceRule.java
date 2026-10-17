@@ -17,15 +17,18 @@ public final class SourceRule {
     private final Asset asset;
     private final List<? extends Object> patterns;
     private final String file;
+    private final String indicator;
     int order;
 
-    SourceRule(String id, String language, String name, Asset asset, List<? extends Object> patterns, String file) {
+    SourceRule(String id, String language, String name, Asset asset, List<? extends Object> patterns, String file,
+            String indicator) {
         this.id = id;
         this.language = language;
         this.name = name;
         this.asset = asset;
         this.patterns = patterns;
         this.file = file;
+        this.indicator = indicator;
     }
 
     public String id() {
@@ -47,6 +50,14 @@ public final class SourceRule {
     /** Position among the rules of the language in ascending id order. */
     public int order() {
         return order;
+    }
+
+    /**
+     * The rule's {@code indicator} (SPEC 5.3), e.g. {@code weakness}: its findings are signs of a possible
+     * weakness rather than cryptographic assets. {@code null} for ordinary rules.
+     */
+    public String indicator() {
+        return indicator;
     }
 
     /** Rule-set relative path of the defining file. */

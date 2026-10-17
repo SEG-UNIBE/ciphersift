@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.hash.sha3
+kind: source
+language: java
+name: SHA-3 hashing via Apache Shiro
+description: >-
+  SHA-3 algorithm names given to SimpleHash, HashedCredentialsMatcher or setHashAlgorithmName.
+asset:
+  type: algorithm
+  primitive: hash
+  family: SHA3
+match:
+- new: org.apache.shiro.crypto.hash.SimpleHash
+  firstString: SHA3-(224|256|384|512)$
+- new: org.apache.shiro.authc.credential.HashedCredentialsMatcher
+  firstString: SHA3-(224|256|384|512)$
+- method: setHashAlgorithmName
+  firstString: SHA3-(224|256|384|512)$
+- new: org.apache.shiro.crypto.hash.SimpleHashRequest
+  firstString: SHA3-(224|256|384|512)$

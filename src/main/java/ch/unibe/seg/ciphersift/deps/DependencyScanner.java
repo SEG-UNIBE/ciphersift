@@ -43,6 +43,7 @@ public final class DependencyScanner {
                 case PYPROJECT -> PythonManifests.pyproject(SourceText.decode(bytes));
                 case PIPFILE_LOCK -> PythonManifests.pipfileLock(SourceText.decode(bytes));
                 case POETRY_LOCK -> PythonManifests.poetryLock(SourceText.decode(bytes));
+                case SETUP_CFG -> SetupManifests.setupCfg(SourceText.decode(bytes));
                 default -> throw new IllegalArgumentException("not a manifest: " + fc);
             };
         } catch (IOException ex) {
@@ -67,21 +68,35 @@ public final class DependencyScanner {
         return new ArrayList<>(m.values());
     }
 
-    /** Findings of one manifest. */
-    public List<DependencyFinding> scan(String relativePath, FileClass fc, byte[] bytes, boolean test)
-            throws MalformedManifestException {
-        DependencyRule rule = rules.dependencyRule(fc.ecosystem());
-        List<ManifestEntry> entries = entries(fc, bytes);
+    /**
+     * Findings of the requirements declared in a parsed {@code setup.py} (SPEC 9.8); the file itself is
+     * Python source.
+     */
+    public List<DependencyFinding> setupPy(String relativePath, ch.unibe.seg.ciphersift.syntax.SyntaxNode root,
+            boolean test) {
+        return findings(relativePath, "pypi", SetupManifests.SETUP_PY_LABEL, SetupManifests.setupPy(root), test);
+    }
+
+    private List<DependencyFinding> findings(String relativePath, String ecosystem, String label,
+            List<ManifestEntry> entries, boolean test) {
+        DependencyRule rule = rules.dependencyRule(ecosystem);
         if (rule == null) {
             return List.of();
         }
         List<DependencyFinding> out = new ArrayList<>();
         for (ManifestEntry e : deduplicate(entries)) {
             if (rule.matches(e.key())) {
-                out.add(new DependencyFinding(relativePath, rule, fc.ecosystem(), e.key(), e.version(), fc.label(),
+                out.add(new DependencyFinding(relativePath, rule, ecosystem, e.key(), e.version(), label,
                         e.snippet(), test));
             }
         }
         return out;
+    }
+
+    /** Findings of one manifest. */
+    public List<DependencyFinding> scan(String relativePath, FileClass fc, byte[] bytes, boolean test)
+            throws MalformedManifestException {
+        List<ManifestEntry> entries = entries(fc, bytes);
+        return findings(relativePath, fc.ecosystem(), fc.label(), entries, test);
     }
 }

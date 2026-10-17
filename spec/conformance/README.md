@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-28 cases, 573 expected findings. A conforming implementation produces exactly the expected
+46 cases, 1021 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -18,7 +18,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 
 | Case | Files | Findings | What it checks |
 |---|---|---|---|
-| `java/fork-fixtures` | 8 | 105 | the BF-CBOM Java fork's own fixtures: JCA, BouncyCastle, libraries, TLS, key management, edge cases, a negative file |
+| `java/fork-fixtures` | 8 | 105 | the BF-CBOM Java fork's own fixtures (with `--weakness-indicators`): JCA, BouncyCastle, libraries, TLS, key management, edge cases, a negative file |
 | `java/regex-battery` | 1 | 134 | one `getInstance` call per line for ~130 algorithm strings over 12 JCA factories; exactly one rule per line, `*.unresolved` for unknown names |
 | `java/name-resolution` | 2 | 12 | explicit, wildcard, static and static-wildcard imports; FQN use; a different imported class with the same simple name; a class declared in the file; nested classes; variable receivers; line of a multi-line call |
 | `java/string-resolution` | 1 | 19 | escapes, `+` with ints and constants, parentheses, `this.f`, `C.F.toString()`, interface constants, finality and reassignment, ternary/parameter/format fallbacks, constants table, array arguments (inline and via constant, D3), text blocks (D4) |
@@ -29,7 +29,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/array-comments` | 1 | 7 | comments inside byte-array initialisers are ignored by the constant-bytes check (DECISIONS O3): inline, via a constant field, line comments across lines; a non-literal element still prevents it |
 | `java/syntax-error` | 1 | 2 | findings before and after a syntax error |
 | `java/deep-nesting` | 1 | 2 | 4 000-operand concatenation: no crash, depth limit → fallback |
-| `python/fork-fixtures` | 14 | 142 | the BF-CBOM Python fork's own fixtures: stdlib, pyca/cryptography (incl. operation attribution and curve objects), PyCryptodome/Cryptodome, libraries, negatives, broken/Python 2/binary-ish files, requirements/pyproject/Pipfile.lock |
+| `python/fork-fixtures` | 14 | 143 | the BF-CBOM Python fork's own fixtures (with `--weakness-indicators`): stdlib, pyca/cryptography (incl. operation attribution and curve objects), PyCryptodome/Cryptodome, libraries, negatives, broken/Python 2/binary-ish files, requirements/pyproject/Pipfile.lock |
 | `python/name-resolution` | 3 | 10 | `import as`, dotted imports, `from … import … as`, relative imports, star imports, `try`/`except` alternatives, function and module aliases, bound calls, prefix vs. non-prefix names |
 | `python/constants` | 1 | 7 | module and local constants, implicit concatenation, f-strings and bytes (not strings), parameter shadowing (D2), keyword strings, flow-insensitivity |
 | `python/arguments` | 1 | 15 | `anyCall` + `kwargs`, `param` by keyword/index/constant/symbol/self, list strings in keywords, attribute assignments |
@@ -42,10 +42,28 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `deps/maven-managed-version` | 2 | 3 | a version from the same POM's `<dependencyManagement>` (via `<properties>`) applies to an unversioned dependency, in either order; no version anywhere → reported without version (DECISIONS M2) |
 | `deps/pyproject-direct-reference` | 1 | 3 | `pkg @ https://…`, `git+https://…`, `file:///…` direct references in `project.dependencies`, optional dependencies and dependency groups are skipped like in requirements files (DECISIONS O5) |
 | `deps/maven` | 5 | 17 | `pom.xml` (properties, dependencyManagement, plugin dependencies, unmanaged version, unknown property, comments), Groovy and Kotlin Gradle scripts (strings, map notation, variables, comments), version catalog |
-| `common/test-files` | 6 | 6 | test-file marking with the default `--include-tests` |
+| `common/test-files` | 6 | 5 | test-file marking with the default `--include-tests` (the `conftest.py` file holds only a weakness indicator, not reported by default: D15) |
 | `common/test-files-excluded` | 6 | 2 | the same input with `--exclude-tests` (D6) |
 | `common/exclude` | 3 | 1 | `--exclude` with `dir/**` and `**/*_pb2.py` |
 | `common/binary` | 3 | 2 | binary `.py` skipped (D5), Latin-1 byte + CRLF, UTF-8 BOM |
+| `common/weakness-indicators` | 2 | 3 | insecure and secure PRNGs in Java and Python, default options: only the secure PRNGs, weakness indicators are off by default (E2) |
+| `common/weakness-indicators-enabled` | 2 | 8 | the same input with `--weakness-indicators` (E2) |
+| `python/references` | 1 | 19 | bare references (SPEC 8.6.1): tuple, dict key/value, class attribute, keyword and positional arguments, alias definition, conditional expression, `ref` operands; folded inside `hmac.new`; nothing for annotations, `isinstance`, `cast`, comparisons, `except`, `Union[…]`, class bases, defaults, attribute reads, modules (E1) |
+| `python/asn1crypto` | 1 | 9 | `Certificate.load`, CRLs, `DigestAlgorithm` / `SignedDigestAlgorithm` / `EncryptionAlgorithm` / `KeyEncryptionAlgorithm` with `dictItems` (inline and through a name), `DigestAlgorithmId`; no fingerprints, no dynamic values (E3) |
+| `python/key-loading` | 1 | 7 | pyca `load_*_private_key` / `_public_key` / `_parameters`, pyOpenSSL, a loader as reference; not `private_bytes` (E4) |
+| `python/secp256k1-pyaes` | 1 | 10 | electrum_ecc / coincurve keys with the fixed parameter `secp256k1`, `GENERATOR` as operand and table element, `ecdsa_sign`/`ecdsa_verify`, pyaes modes (E5) |
+| `python/misc-libs` | 1 | 20 | standalone `PKCS1v15()`, ConcatKDF, X9.63 KDF, PyJWT algorithms, python-pkcs11 mechanisms and key types, signxml enums and strings, PKCS1v15 inside `sign` (E12) |
+| `python/padding-flow` | 1 | 14 | a padding variable bound to several paddings: all of them at the operation call, each object at its own line (E13) |
+| `python/verify-false` | 1 | 5 | `verify=False` / `ssl=False` on requests, sessions, httpx, aiohttp, OAuth sessions; not on other functions or `asyncio.open_connection` (E14) |
+| `java/pki-cms` | 1 | 11 | PKIX parameters, cert stores, trust anchors, BC certificate holders, CMS signed / enveloped data, time-stamp tokens, `KeyStore.getDefaultType` (E6) |
+| `java/okhttp-tls` | 2 | 10 | OkHttp `ConnectionSpec`, `CipherSuite` and `TlsVersion` constants, string suites and versions; an unqualified member type without import is not the API class (SPEC 7.3.2, E7) |
+| `java/bc-provider-digests` | 3 | 7 | BC JCA provider digest classes `Outer.Inner`, a member type imported by name or through its enclosing class, not through the package (E8) |
+| `java/fallbacks` | 1 | 11 | `*.unresolved` for `SecretKeySpec`, `AlgorithmParameterGenerator`, `AlgorithmParameters`, `JcaContentSignerBuilder`; specific rules win when the name is known (E9) |
+| `java/ec-mgf1` | 1 | 9 | `EllipticCurve`/`ECFieldFp` (folded), BC EC parameters, `SecP256K1Curve.q`, `MGF1ParameterSpec` names and constants (E11) |
+| `java/oid-table` | 2 | 144 | every OID of the built-in table (SPEC 5.11) through BouncyCastle `ASN1ObjectIdentifier`; JCA factories with OIDs (literal, constant, `OID.` prefix); unknown and non-OID strings; deferred `final` local stays unresolved (E15) |
+| `python/oid-table` | 2 | 120 | every table OID through pyca `x509.ObjectIdentifier` (none for OIDs without a Python rule); `x509.oid.ObjectIdentifier`, asn1crypto, pyasn1, a constant, a curve parameter, unknown OIDs (E15) |
+| `java/shiro` | 2 | 22 | Apache Shiro 1.x and 2.x public crypto API: hash classes, `SimpleHash`, `HashedCredentialsMatcher` / `setHashAlgorithmName` (also via `ALGORITHM_NAME`), Argon2 / bcrypt, cipher services, `SecureRandomNumberGenerator`; a same-named class of another library (E16) |
+| `deps/setup-files` | 5 | 16 | `setup.py` `install_requires` / `extras_require` (inline, through names, URL skipped), `setuptools.setup`, `setup.cfg`, `org.apache.shiro.crypto:*`, `electrum-ecc`, `pyaes`, `pysha3` (E10) |
 
 ## Format of expected.json
 
@@ -71,6 +89,7 @@ Source findings:
 | `type` | the **rule's** asset type (`key-material` is kept, not mapped to `related-crypto-material`) |
 | `subtype`, `primitive`, `family`, `variant`, `protocol`, `version` | from the rule's `asset` block (`null` if absent); `primitive` uses the CycloneDX spelling |
 | `param` | parameter-set identifier (SPEC 8.8) or `null` |
+| `oid` | the algorithm OID (`cryptoProperties.oid`, SPEC 5.11) or `null`; written only where it is non-null |
 | `name` | component name (SPEC 10.2) for `algorithm` findings, `null` for other types |
 | `test` | present and `true` only for findings in test files (SPEC 4.7) |
 
@@ -94,7 +113,7 @@ covered by SPEC.md section 11 and by unit tests.
    * for cryptographic assets: `type` = property `ciphersift:assetType` if present, else
      `cryptoProperties.assetType`; `subtype`, `primitive`, `family`, `variant` = the
      properties `ciphersift:<field>`; `protocol`, `version` = `protocolProperties.type` /
-     `.version`; `param` = `algorithmProperties.parameterSetIdentifier`; `name` = component
+     `.version`; `param` = `algorithmProperties.parameterSetIdentifier`; `oid` = `cryptoProperties.oid`; `name` = component
      `name` if `type` is `algorithm`.
 3. Compare the *set* of normalised findings with the set in `expected.json` (all fields
    listed above take part; missing optional fields count as `null`). A case passes iff the
@@ -124,6 +143,19 @@ tool behaves differently there by design. The same holds for `java/array-comment
 decisions O3, O4 and O5 (`../DECISIONS.md`); CipherSift before those decisions fails each of them
 (3 missing hard-coded keys, 1 extra MD5, 4 extra libraries). No existing expectation changed.
 
+The fifteen cases added with the evaluation fixes (E1–E14, `../DECISIONS.md`) are hand-written
+as well; each is built from the reproducer of its issue, and every expected finding was derived
+from SPEC.md and the rules before the implementation was run on it. Seven findings of six
+generated cases changed with those fixes; they are deviations D10–D14 below and are listed with
+their justification in `../DECISIONS.md`.
+
+With the owner decisions of 2026-10-17 (`../DECISIONS.md`, "Owner decisions"), weakness
+indicators are off by default: `common/weakness-indicators` now expects the default scan (3 of
+its 8 findings), `common/weakness-indicators-enabled` (formerly `-excluded`) passes
+`--weakness-indicators`, both `fork-fixtures` cases pass it too, and `common/test-files` loses one
+finding (D15). The new cases `java/oid-table`, `python/oid-table` (E15) and `java/shiro` (E16)
+are hand-written; their per-OID lines are derived from the table of SPEC 5.11.
+
 Every finding was then checked by hand against the comment at the end of its source line
 (inputs written for this suite carry the expected line number and result as a trailing
 comment such as `// 21: AES-CBC` or `# 12: ...`; the two `fork-fixtures` cases equal, line
@@ -148,6 +180,12 @@ Listed in `deviations.yaml` with reasons; summarised in SPEC.md Appendix A.
 | D8 | `deps/pyproject-direct-reference` | 1 | 3 | `pkg @ https://…`, `git+https://…`, `file:///…` direct references in `project.dependencies`, optional dependencies and dependency groups are skipped like in requirements files (DECISIONS O5) |
 | `deps/maven` | all 17 findings (hand-written) |
 | D9 | `java/constant-args` | + DES at `Keys.java:14` (byte-array numbers are not strings) |
+| D10 | `python/fork-fixtures`, `python/name-resolution` | + SHA2 at `pycryptodome/legacy.py:23`, + SHA1 at `pkg/imports.py:14` (bare references) |
+| D11 | `python/arguments` | − validation disabled at `args.py:15` (`verify=False` on a non-HTTP function) |
+| D12 | `python/attribution`, `python/fork-fixtures` | + OAEP at `ops.py:17`; four method-only findings named after the matching symbol |
+| D13 | `python/setup-py` | + `cryptography`, `pyjwt 2.8.0` from `install_requires` |
+| D14 | `java/regex-battery` | `SecureRandom.getInstance` lines 137–139 report the algorithm as parameter |
+| D15 | `common/test-files` | − `random.random()` in `conftest.py` (weakness indicators are off by default; the fork-fixture cases pass `--weakness-indicators`) |
 
 Regenerating (needs the reference tool, maintainers only):
 

@@ -67,6 +67,10 @@ public final class ScanCommand implements Callable<Integer> {
     @Option(names = "--rules", paramLabel = "DIR", description = "Use the rule documents under DIR instead of the bundled rules.")
     String rulesDir;
 
+    @Option(names = "--weakness-indicators",
+            description = "Also report weakness indicators (rules with indicator: weakness, e.g. non-cryptographic random generators); off by default.")
+    boolean weaknessIndicators;
+
     static final class Verbosity {
         @Option(names = "--quiet", description = "Only errors on standard error.")
         boolean quiet;
@@ -101,7 +105,7 @@ public final class ScanCommand implements Callable<Integer> {
 
         Scanner.Result result;
         try {
-            result = new Scanner(new Scanner.Options(root, globs, excludeTests, n, rules)).run();
+            result = new Scanner(new Scanner.Options(root, globs, excludeTests, n, rules, weaknessIndicators)).run();
         } catch (NativeLoadException ex) {
             throw new ExitException(ExitCodes.INTERNAL, ex.getMessage(), ex);
         } catch (InterruptedException ex) {
@@ -110,7 +114,7 @@ public final class ScanCommand implements Callable<Integer> {
         }
         String rootName = ch.unibe.seg.ciphersift.files.FileNames.name(root);
         CbomWriter.Metadata meta = new CbomWriter.Metadata(CipherSift.version(), rootName, rules.digest(),
-                !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch());
+                !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch(), weaknessIndicators);
         byte[] doc = CbomWriter.write(meta, result.components());
         write(out, doc);
         double secs = (System.nanoTime() - start) / 1e9;

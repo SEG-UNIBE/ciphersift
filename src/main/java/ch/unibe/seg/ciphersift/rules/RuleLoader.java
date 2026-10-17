@@ -590,7 +590,7 @@ public final class RuleLoader {
     private static SourceRule javaRule(String file, JsonNode doc, List<String> problems) {
         List<JavaPattern> patterns = new ArrayList<>();
         SourceRule rule = new SourceRule(doc.get("id").asText(), "java", doc.get("name").asText(),
-                asset(doc.get("asset")), patterns, file);
+                asset(doc.get("asset")), patterns, file, text(doc, "indicator"));
         int before = problems.size();
         JsonNode match = doc.get("match");
         for (int i = 0; i < match.size(); i++) {
@@ -675,41 +675,54 @@ public final class RuleLoader {
         return problems.size() == before ? rule : null;
     }
 
+    /** A {@code kwargs}-like map (name → case-insensitive regex) in document order, or {@code null}. */
+    private static Map<String, Pattern> regexMap(String file, String ptr, String key, JsonNode p, List<String> problems) {
+        if (!p.has(key)) {
+            return null;
+        }
+        Map<String, Pattern> m = new LinkedHashMap<>();
+        Iterator<Map.Entry<String, JsonNode>> it = p.get(key).properties().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, JsonNode> kv = it.next();
+            m.put(kv.getKey(), regex(file, ptr + "/" + key + "/" + kv.getKey(), kv.getValue(), CI, problems));
+        }
+        return java.util.Collections.unmodifiableMap(m);
+    }
+
     private static SourceRule pythonRule(String file, JsonNode doc, List<String> problems) {
         List<PythonPattern> patterns = new ArrayList<>();
         SourceRule rule = new SourceRule(doc.get("id").asText(), "python", doc.get("name").asText(),
-                asset(doc.get("asset")), patterns, file);
+                asset(doc.get("asset")), patterns, file, text(doc, "indicator"));
         int before = problems.size();
         JsonNode match = doc.get("match");
         for (int i = 0; i < match.size(); i++) {
             JsonNode p = match.get(i);
             String ptr = "/match/" + i;
-            Map<String, Pattern> kwargs = null;
-            if (p.has("kwargs")) {
-                kwargs = new LinkedHashMap<>();
-                Iterator<Map.Entry<String, JsonNode>> it = p.get("kwargs").properties().iterator();
-                while (it.hasNext()) {
-                    Map.Entry<String, JsonNode> kv = it.next();
-                    kwargs.put(kv.getKey(), regex(file, ptr + "/kwargs/" + kv.getKey(), kv.getValue(), CI, problems));
-                }
-                kwargs = java.util.Collections.unmodifiableMap(kwargs);
-            }
+            Map<String, Pattern> kwargs = regexMap(file, ptr, "kwargs", p, problems);
+            Map<String, Pattern> dictItems = regexMap(file, ptr, "dictItems", p, problems);
             JsonNode param = p.get("param");
+            if (p.has("ref") && param != null && !param.has("self") && !param.has("value")) {
+                problems.add(file + ": " + ptr + "/param: a ref pattern's param may only be {self: true} or {value: …}"); // also the schema
+            }
             patterns.add(new PythonPattern(rule, i,
                     text(p, "call"),
                     strings(p.get("method"), false),
                     p.has("anyCall") && p.get("anyCall").asBoolean(),
                     text(p, "assign"),
+                    text(p, "ref"),
                     regex(file, ptr + "/firstString", p.get("firstString"), CI, problems),
                     strings(p.get("stringContains"), true),
                     strings(p.get("anySymbol"), false),
                     strings(p.get("allSymbols"), false),
                     kwargs,
+                    dictItems,
+                    strings(p.get("notInside"), false),
                     regex(file, ptr + "/value", p.get("value"), CI, problems),
                     strings(p.get("valueContains"), true),
                     param == null ? null : text(param, "keyword"),
                     param != null && param.has("index") ? param.get("index").asInt() : null,
                     param != null && param.has("self") && param.get("self").asBoolean(),
+                    param == null ? null : text(param, "value"),
                     param != null,
                     strings(p.get("reportAt"), false)));
         }

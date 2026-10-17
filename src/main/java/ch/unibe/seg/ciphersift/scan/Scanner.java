@@ -8,6 +8,7 @@ import ch.unibe.seg.ciphersift.cbom.Component;
 import ch.unibe.seg.ciphersift.cbom.Normaliser;
 import ch.unibe.seg.ciphersift.cli.Log;
 import ch.unibe.seg.ciphersift.deps.DependencyScanner;
+import ch.unibe.seg.ciphersift.deps.SetupManifests;
 import ch.unibe.seg.ciphersift.files.FileClass;
 import ch.unibe.seg.ciphersift.files.FileCollector;
 import ch.unibe.seg.ciphersift.files.FileCollector.CollectedFile;
@@ -39,7 +40,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 /** Runs phases 1–4 of a scan (SPEC 2): collection, classification, extraction, normalisation. */
 public final class Scanner {
     /** Scan options. {@code root} must be the canonical scan root. */
-    public record Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules) {}
+    public record Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules,
+            boolean weaknessIndicators) {
+        /** Options of a scan without weakness indicators (the default, DECISIONS E2). */
+        public Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules) {
+            this(root, excludes, excludeTests, threads, rules, false);
+        }
+    }
 
     /** What happened to one file. */
     enum Outcome { JAVA, PYTHON, MANIFEST, SKIPPED }
@@ -183,7 +190,13 @@ public final class Scanner {
                 case SKIPPED -> skipped++;
                 default -> throw new IllegalStateException();
             }
-            source.addAll(r.findings().source());
+            for (SourceFinding f : r.findings().source()) {
+                // Findings of indicator rules are dropped after extraction unless --weakness-indicators is
+                // given, so that every other finding is exactly the one of a scan with them (SPEC 3.1)
+                if (options.weaknessIndicators() || f.rule().indicator() == null) {
+                    source.add(f);
+                }
+            }
             deps.addAll(r.findings().dependencies());
         }
         List<Component> components = Normaliser.normalise(source, deps);
@@ -221,7 +234,9 @@ public final class Scanner {
                 }
                 String text = SourceText.decode(bytes);
                 boolean java = fc == FileClass.JAVA;
-                if (!(java ? javaFilter : pythonFilter).mayMatch(text)) {
+                // setup.py is Python source and may also declare requirements (SPEC 9.8)
+                boolean setupPy = !java && SetupManifests.isSetupPy(rel) && SetupManifests.maybeDeclaresRequirements(text);
+                if (!setupPy && !(java ? javaFilter : pythonFilter).mayMatch(text)) {
                     // no pattern can fire: the findings are empty without parsing (see AnchorPrefilter)
                     return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.EMPTY);
                 }
@@ -236,6 +251,10 @@ public final class Scanner {
                     found = javaAnalyzer.analyze(parsed.root(), abs, rel, f.test());
                 } else {
                     found = pythonAnalyzer.analyze(parsed.root(), rel, f.test());
+                }
+                if (setupPy) {
+                    return new FileResult(Outcome.PYTHON, new FileFindings(List.copyOf(found),
+                            List.copyOf(dependencyScanner.setupPy(rel, parsed.root(), f.test()))));
                 }
                 return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.ofSource(found));
             }

@@ -22,12 +22,71 @@
 #   D9  Integer/char elements of Java array arguments are not strings.
 #   D8  Maven / Gradle manifests (the reference tool's pom.xml support is third-party
 #       work and not carried over; all Maven expectations are hand-written here).
+#
+# Added with the evaluation fixes (spec/DECISIONS.md, E-series; the trailing comments of
+# the affected input lines still describe the earlier behaviour):
+#   D10 Python bare references in value position (tables, class attributes, arguments,
+#       aliases) are matched by call patterns (SPEC 8.6.1, DECISIONS E1).
+#   D11 verify=False / ssl=False only on HTTP-client calls (SPEC 8.6, DECISIONS E14).
+#   D12 A padding object in a variable is attributed to the operation call (PSS, OAEP like
+#       PKCS1v15), and method-only patterns with anySymbol are named after the symbol
+#       (SPEC 8.6, DECISIONS E13, E17).
+#   D13 setup.py install_requires / extras_require are dependency findings (SPEC 9.8,
+#       DECISIONS E10).
+#   D14 SecureRandom.getInstance reports its algorithm as parameter (DECISIONS E17).
+#
+# Added with the owner decisions of 2026-10-17 (spec/DECISIONS.md):
+#   D15 Weakness indicators (insecure PRNGs) are reported only with --weakness-indicators
+#       (SPEC 3.1, DECISIONS E2). Cases about indicators or about the forks' fixtures pass the
+#       option in options.json (the reference tool reports them anyway); the others lose them.
 
 cases:
   python/setup-py:
     add:
       - {spec: D1, reason: "setup.py is a Python file and is scanned like any other",
          finding: {file: setup.py, line: 7, rule: python.hash.sha1, name: hashlib.sha1}}
+      - {spec: D13, reason: "install_requires of the setup() call",
+         finding: {file: setup.py, rule: dep.pypi, package: cryptography, version: null}}
+      - {spec: D13, reason: "install_requires of the setup() call, pinned",
+         finding: {file: setup.py, rule: dep.pypi, package: pyjwt, version: "2.8.0"}}
+
+  python/name-resolution:
+    add:
+      - {spec: D10, reason: "H = hl.sha1 is a bare reference to hashlib.sha1 on the right-hand side of an assignment",
+         finding: {file: pkg/imports.py, line: 14, rule: python.hash.sha1, name: hashlib.sha1}}
+
+  python/arguments:
+    remove:
+      - {spec: D11, reason: "some_helper is not an HTTP client; verify=False is reported only for requests/httpx/aiohttp and HTTP-client methods",
+         match: {file: args.py, line: 15, rule: python.cert.validation.disabled}}
+
+  python/attribution:
+    add:
+      - {spec: D12, reason: "pad holds padding.OAEP(...); key.decrypt(msg, pad) is attributed like PKCS1v15 (method + anySymbol)",
+         finding: {file: ops.py, line: 17, rule: python.asym.rsa.oaep, name: cryptography.hazmat.primitives.asymmetric.padding.OAEP}}
+
+  python/fork-fixtures:
+    add:
+      - {spec: D10, reason: "HMAC.new(key, digestmod=SHA256): the module Crypto.Hash.SHA256 is passed as the hash",
+         finding: {file: pycryptodome/legacy.py, line: 23, rule: python.hash.sha2, name: Crypto.Hash.SHA256}}
+    change:
+      - {spec: D12, reason: "method-only pattern: named after the matching symbol, not the receiver",
+         match: {file: misc/libs.py, line: 33, rule: python.asym.rsa}, set: {name: OpenSSL.crypto.TYPE_RSA}}
+      - {spec: D12, reason: "method-only pattern: named after the matching symbol, not the receiver",
+         match: {file: pyca/ciphers.py, line: 34, rule: python.asym.rsa.pkcs1v15.sign},
+         set: {name: cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15}}
+      - {spec: D12, reason: "method-only pattern: named after the matching symbol, not the receiver",
+         match: {file: pyca/ciphers.py, line: 35, rule: python.asym.rsa.pkcs1v15.encrypt},
+         set: {name: cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15}}
+      - {spec: D12, reason: "method-only pattern: named after the matching symbol, not the receiver",
+         match: {file: pyca/operations.py, line: 30, rule: python.asym.rsa.pkcs1v15.sign},
+         set: {name: cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15}}
+
+  java/regex-battery:
+    change:
+      - {spec: D14, reason: "the resolved algorithm argument is the parameter", match: {file: src/battery/Battery.java, line: 137, rule: java.rand.prng.secure}, set: {param: SHA1PRNG}}
+      - {spec: D14, reason: "the resolved algorithm argument is the parameter", match: {file: src/battery/Battery.java, line: 138, rule: java.rand.prng.secure}, set: {param: DRBG}}
+      - {spec: D14, reason: "the resolved algorithm argument is the parameter", match: {file: src/battery/Battery.java, line: 139, rule: java.rand.prng.secure}, set: {param: NativePRNG}}
 
   python/constants:
     remove:
@@ -55,6 +114,11 @@ cases:
     remove:
       - {spec: D5, reason: "blob.py is mostly NUL bytes and is classified as binary",
          match: {file: blob.py}}
+
+  common/test-files:
+    remove:
+      - {spec: D15, reason: "random.random() is a weakness indicator, not reported without --weakness-indicators; the case is about test-file marking (conftest.py marking stays covered by FilesTest)",
+         match: {file: app/conftest.py, rule: python.rand.prng.insecure}}
 
   common/test-files-excluded:
     remove:

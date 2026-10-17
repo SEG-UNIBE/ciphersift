@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: python.asym.secp256k1
+kind: source
+language: python
+name: secp256k1 keys and signatures (libsecp256k1 bindings) in Python
+description: Detects elliptic-curve keys on secp256k1 via the libsecp256k1 bindings electrum_ecc (ECPrivkey, ECPubkey,
+  GENERATOR), coincurve (PrivateKey, PublicKey, PublicKeyXOnly) and secp256k1-py (PrivateKey, PublicKey).
+asset:
+  type: algorithm
+  primitive: signature
+  family: EC
+match:
+- call: electrum_ecc.ECPrivkey
+  param:
+    value: secp256k1
+- call: electrum_ecc.ECPubkey
+  param:
+    value: secp256k1
+- ref: electrum_ecc.GENERATOR
+  param:
+    value: secp256k1
+- call: coincurve.PrivateKey
+  param:
+    value: secp256k1
+- call: coincurve.PublicKey
+  param:
+    value: secp256k1
+- call: coincurve.PublicKeyXOnly
+  param:
+    value: secp256k1
+- call: coincurve.keys.PrivateKey
+  param:
+    value: secp256k1
+- call: coincurve.keys.PublicKey
+  param:
+    value: secp256k1
+- call: coincurve.keys.PublicKeyXOnly
+  param:
+    value: secp256k1
+- call: secp256k1.PrivateKey
+  param:
+    value: secp256k1
+- call: secp256k1.PublicKey
+  param:
+    value: secp256k1

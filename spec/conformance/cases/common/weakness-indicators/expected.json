@@ -1,0 +1,5 @@
+{"case": "common/weakness-indicators", "findings": [
+  {"file": "py/prng.py", "line": 5, "rule": "python.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "secrets.token_hex"},
+  {"file": "src/w/Rand.java", "line": 9, "rule": "java.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SecureRandom"},
+  {"file": "src/w/Rand.java", "line": 10, "rule": "java.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SecureRandom"}
+]}

@@ -1,5 +1,4 @@
 {"case": "common/test-files", "findings": [
-  {"file": "app/conftest.py", "line": 2, "rule": "python.rand.prng.insecure", "type": "related-crypto-material", "subtype": "prng-insecure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null, "test": true},
   {"file": "app/test_util.py", "line": 2, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5", "test": true},
   {"file": "app/util.py", "line": 2, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"},
   {"file": "src/main/java/t/Prod.java", "line": 4, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-256"},

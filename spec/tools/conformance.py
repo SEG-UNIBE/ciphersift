@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parent
 CASES = HERE.parent / "conformance" / "cases"
 
 SOURCE_FIELDS = ("file", "line", "rule", "type", "subtype", "primitive", "family", "variant",
-                 "protocol", "version", "param", "name", "test")
+                 "protocol", "version", "param", "oid", "name", "test")
 DEP_FIELDS = ("file", "line", "rule", "type", "ecosystem", "package", "version", "test")
 
 
@@ -56,6 +56,7 @@ def normalise(cbom: dict) -> list[dict]:
                 "family": props.get("ciphersift:family"), "variant": props.get("ciphersift:variant"),
                 "protocol": proto.get("type"), "version": proto.get("version"),
                 "param": alg.get("parameterSetIdentifier"),
+                "oid": cp.get("oid"),
                 "name": comp["name"] if rtype == "algorithm" else None,
             })
             if ctx.get("test"):

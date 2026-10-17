@@ -17,6 +17,7 @@ public enum FileClass {
     PYPROJECT("pypi", "pyproject"),
     PIPFILE_LOCK("pypi", "pipfile-lock"),
     POETRY_LOCK("pypi", "poetry-lock"),
+    SETUP_CFG("pypi", "setup-cfg"),
     IGNORED(null, null);
 
     private final String ecosystem;
@@ -82,6 +83,9 @@ public enum FileClass {
         }
         if (n.equals("poetry.lock")) {
             return POETRY_LOCK;
+        }
+        if (n.equals("setup.cfg")) {
+            return SETUP_CFG;
         }
         return IGNORED;
     }

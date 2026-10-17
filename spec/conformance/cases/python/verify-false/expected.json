@@ -1,0 +1,7 @@
+{"case": "python/verify-false", "findings": [
+  {"file": "http.py", "line": 7, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "http.py", "line": 9, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "http.py", "line": 10, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "http.py", "line": 11, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "http.py", "line": 13, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null}
+]}

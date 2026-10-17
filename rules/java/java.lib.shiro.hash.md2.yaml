@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.hash.md2
+kind: source
+language: java
+name: MD2 hashing via Apache Shiro
+description: >-
+  Md2Hash, Md2CredentialsMatcher (Shiro 1.x) and the algorithm name MD2 given to SimpleHash, HashedCredentialsMatcher or setHashAlgorithmName.
+asset:
+  type: algorithm
+  primitive: hash
+  family: MD2
+  securityLevel: 64
+match:
+- new: org.apache.shiro.crypto.hash.Md2Hash
+- call: org.apache.shiro.crypto.hash.Md2Hash.from*
+- new: org.apache.shiro.authc.credential.Md2CredentialsMatcher
+- new: org.apache.shiro.crypto.hash.SimpleHash
+  firstString: MD2$
+- new: org.apache.shiro.authc.credential.HashedCredentialsMatcher
+  firstString: MD2$
+- method: setHashAlgorithmName
+  firstString: MD2$
+- new: org.apache.shiro.crypto.hash.SimpleHashRequest
+  firstString: MD2$

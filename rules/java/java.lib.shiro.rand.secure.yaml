@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.rand.secure
+kind: source
+language: java
+name: Secure random numbers via Apache Shiro
+description: >-
+  Shiro's SecureRandomNumberGenerator (a java.security.SecureRandom wrapper, Shiro 1.x and 2.x).
+asset:
+  type: algorithm
+  subtype: prng-secure
+match:
+- new: org.apache.shiro.crypto.SecureRandomNumberGenerator

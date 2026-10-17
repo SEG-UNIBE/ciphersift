@@ -4,6 +4,7 @@
  */
 package ch.unibe.seg.ciphersift.lang.python;
 
+import ch.unibe.seg.ciphersift.lang.OidTable;
 import ch.unibe.seg.ciphersift.model.SourceFinding;
 import ch.unibe.seg.ciphersift.rules.PythonPattern;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
@@ -34,6 +35,19 @@ public final class PythonAnalyzer {
     private static final Set<String> REPORT_AT_CHAIN = Set.of("argument_list", "keyword_argument", "call",
             "parenthesized_expression", "list", "tuple", "conditional_expression");
     private static final Pattern DIGITS = Pattern.compile("[0-9]+");
+    /** Parents a bare reference may have to be in value position (SPEC 8.6.1); checked in full later. */
+    private static final Set<String> REFERENCE_PARENTS = Set.of("list", "tuple", "set", "expression_list", "pair",
+            "argument_list", "keyword_argument", "assignment", "parenthesized_expression", "conditional_expression",
+            "binary_operator", "unary_operator", "boolean_operator", "not_operator", "return_statement", "await");
+    /** Operators a {@code ref} pattern's reference may be an operand of (SPEC 8.6.1). */
+    private static final Set<String> OPERATORS = Set.of("binary_operator", "unary_operator", "boolean_operator",
+            "not_operator", "await");
+    /** Contexts that end a value-position walk through containers without a value position (SPEC 8.6.1). */
+    private static final Set<String> REFERENCE_STOP = Set.of("comparison_operator", "except_clause", "subscript",
+            "type", "generic_type", "union_type", "constrained_type", "member_type", "splat_type",
+            "type_alias_statement", "type_parameter");
+    /** Calls whose arguments are type tests or type constructions, not values (SPEC 8.6.1). */
+    private static final Set<String> TYPE_CALLS = Set.of("isinstance", "issubclass", "cast", "TypeVar", "NewType");
 
     private final PythonRuleIndex index;
 
@@ -77,6 +91,7 @@ public final class PythonAnalyzer {
         final boolean test;
         final Map<String, List<String>> imports = new HashMap<>();
         final List<String> starModules = new ArrayList<>();
+        /** Calls and bare-reference candidates (SPEC 8.6.1), in pre-order. */
         final List<Located> calls = new ArrayList<>();
         final List<Located> attributeAssignments = new ArrayList<>();
         final Set<String> emitted = new HashSet<>();
@@ -97,7 +112,11 @@ public final class PythonAnalyzer {
         List<SourceFinding> run() {
             collect();
             for (Located c : calls) {
-                matchCall(c.node(), c.scope());
+                if (c.node().is("call")) {
+                    matchCall(c.node(), c.scope());
+                } else {
+                    matchReference(c.node(), c.scope());
+                }
             }
             if (!index.assignRules.isEmpty()) {
                 for (Located a : attributeAssignments) {
@@ -151,6 +170,11 @@ public final class PythonAnalyzer {
                         }
                     }
                     case "call" -> calls.add(new Located(n, s));
+                    case "identifier", "attribute" -> {
+                        if (!index.byRef.isEmpty() && maybeReference(n)) {
+                            calls.add(new Located(n, s));
+                        }
+                    }
                     default -> {
                         // nothing
                     }
@@ -162,6 +186,19 @@ public final class PythonAnalyzer {
                     }
                 }
             }
+        }
+
+        /** Cheap pre-check of a bare reference's position: its parent (SPEC 8.6.1). */
+        private boolean maybeReference(SyntaxNode n) {
+            SyntaxNode p = n.parent();
+            if (p == null || !REFERENCE_PARENTS.contains(p.type())) {
+                return false;
+            }
+            return switch (p.type()) {
+                case "keyword_argument" -> "value".equals(n.field());
+                case "assignment" -> "right".equals(n.field());
+                default -> true;
+            };
         }
 
         private void addImport(String local, String target) {
@@ -608,9 +645,13 @@ public final class PythonAnalyzer {
             String v = stringValue(e);
             if (v != null) {
                 l.add(v);
+                addOidName(v, l);
             }
             if (e.is("identifier")) {
-                l.addAll(constantValues(e.text(), s));
+                for (String c : constantValues(e.text(), s)) {
+                    l.add(c);
+                    addOidName(c, l);
+                }
             }
             if (e.is("identifier") || e.is("attribute")) {
                 l.addAll(resolveDotted(e, s));
@@ -619,6 +660,33 @@ public final class PythonAnalyzer {
                 l.addAll(callNames(e, s));
             }
             return l;
+        }
+
+        /** A value text that is a dotted OID of the table is followed by the name it maps to (SPEC 5.11). */
+        private static void addOidName(String text, List<String> l) {
+            OidTable.Entry x = OidTable.lookup(text);
+            if (x != null) {
+                l.add(x.name());
+            }
+        }
+
+        /** The OID among the string value and constant values of {@code e} that maps to {@code name}, or null. */
+        private String oidNamed(SyntaxNode e, Scope s, String name) {
+            List<String> cands = new ArrayList<>();
+            String v = stringValue(e);
+            if (v != null) {
+                cands.add(v);
+            }
+            if (e.is("identifier")) {
+                cands.addAll(constantValues(e.text(), s));
+            }
+            for (String c : cands) {
+                OidTable.Entry x = OidTable.lookup(c);
+                if (x != null && x.name().equals(name)) {
+                    return x.oid();
+                }
+            }
+            return null;
         }
 
         // ------------------------------------------------------------------ 8.6 matching calls
@@ -631,6 +699,8 @@ public final class PythonAnalyzer {
             final List<Map.Entry<String, SyntaxNode>> keywords = new ArrayList<>();
             final SyntaxNode generator;
             private List<String> strings;
+            /** The OID each element of {@link #strings} was given as (SPEC 5.11), or null; parallel to it. */
+            private List<String> stringOids;
             private Set<String> symbols;
 
             Args(SyntaxNode call, Scope scope) {
@@ -693,9 +763,25 @@ public final class PythonAnalyzer {
                             FileRun.this.strings(k.getValue(), scope, 0, l);
                         }
                     }
+                    // a dotted OID of the built-in table is treated like the name it maps to (SPEC 5.11)
+                    List<String> oids = new ArrayList<>(l.size());
+                    for (int i = 0; i < l.size(); i++) {
+                        OidTable.Entry x = OidTable.lookup(l.get(i));
+                        oids.add(x == null ? null : x.oid());
+                        if (x != null) {
+                            l.set(i, x.name());
+                        }
+                    }
                     strings = l;
+                    stringOids = oids;
                 }
                 return strings;
+            }
+
+            /** The OID behind element {@code i} of the string list, or null. */
+            String stringOid(int i) {
+                strings();
+                return i < 0 || i >= stringOids.size() ? null : stringOids.get(i);
             }
 
             Set<String> symbols() {
@@ -782,7 +868,15 @@ public final class PythonAnalyzer {
                     continue;
                 }
                 if (conditionsHold(c.pattern(), args, m)) {
-                    hits.add(new Hit(r, c.nameUsed(), c.pattern()));
+                    String used = c.nameUsed();
+                    if (c.pattern().call == null && c.pattern().anySymbol != null) {
+                        // the receiver is unknown: name the finding after the API that identified it (SPEC 8.6)
+                        String sym = firstHitSymbol(c.pattern(), args);
+                        if (sym != null) {
+                            used = sym;
+                        }
+                    }
+                    hits.add(new Hit(r, used, c.pattern()));
                     hitRules.add(r);
                 }
             }
@@ -802,6 +896,148 @@ public final class PythonAnalyzer {
                 }
                 emit(h, call, args);
             }
+        }
+
+        // ------------------------------------------------------------------ 8.6.1 bare references
+
+        private void matchReference(SyntaxNode ref, Scope s) {
+            List<String> names = resolveDotted(ref, s);
+            if (names.isEmpty()) {
+                return;
+            }
+            List<Candidate> cands = null;
+            Set<PythonPattern> seen = null;
+            for (String n : names) {
+                List<PythonPattern> ps = index.byRef.get(n);
+                if (ps == null) {
+                    continue;
+                }
+                if (cands == null) {
+                    cands = new ArrayList<>();
+                    seen = new HashSet<>();
+                }
+                for (PythonPattern p : ps) {
+                    if (seen.add(p)) {
+                        cands.add(new Candidate(p, n));
+                    }
+                }
+            }
+            if (cands == null) {
+                return;
+            }
+            boolean value = valuePosition(ref, false);
+            boolean expression = value || valuePosition(ref, true);
+            if (!expression) {
+                return;
+            }
+            List<Hit> hits = new ArrayList<>();
+            Set<SourceRule> hitRules = new HashSet<>();
+            for (Candidate c : cands) {
+                // call patterns need a value position; ref patterns any expression position
+                if (!(c.pattern().ref != null ? expression : value)) {
+                    continue;
+                }
+                SourceRule r = c.pattern().rule;
+                if (hitRules.add(r)) {
+                    hits.add(new Hit(r, c.nameUsed(), c.pattern()));
+                }
+            }
+            Set<String> refinedIdentities = new HashSet<>();
+            for (Hit h : hits) {
+                if (h.rule().asset().refined()) {
+                    refinedIdentities.add(h.rule().asset().identity());
+                }
+            }
+            for (Hit h : hits) {
+                if (!h.rule().asset().refined() && refinedIdentities.contains(h.rule().asset().identity())) {
+                    continue;
+                }
+                emitReference(h, ref);
+            }
+        }
+
+        /**
+         * Is a bare reference in value position (SPEC 8.6.1)? Through parentheses and conditional
+         * expressions, and through container displays (list, tuple, set, dict, expression list), the walk
+         * ends at a call argument or keyword value (not of a type-test call), the right-hand side of an
+         * assignment, or — after a container — any context except type and test contexts. With
+         * {@code operands} (expression position, for {@code ref} patterns) operators are transparent as
+         * well and every context except type and test contexts ends the walk successfully.
+         */
+        private boolean valuePosition(SyntaxNode ref, boolean operands) {
+            SyntaxNode x = ref;
+            SyntaxNode p = x.parent();
+            boolean container = operands;
+            while (p != null) {
+                if (operands && OPERATORS.contains(p.type())) {
+                    x = p;
+                    p = p.parent();
+                    continue;
+                }
+                switch (p.type()) {
+                    case "parenthesized_expression", "conditional_expression" -> {
+                        // transparent
+                    }
+                    case "list", "tuple", "set", "expression_list", "dictionary", "pair" -> container = true;
+                    case "argument_list" -> {
+                        SyntaxNode c = p.parent();
+                        return c != null && c.is("call") && !TYPE_CALLS.contains(methodName(c));
+                    }
+                    case "keyword_argument" -> {
+                        if (!"value".equals(x.field())) {
+                            return false;
+                        }
+                        SyntaxNode al = p.parent();
+                        SyntaxNode c = al == null ? null : al.parent();
+                        return al != null && al.is("argument_list") && c != null && c.is("call")
+                                && !TYPE_CALLS.contains(methodName(c));
+                    }
+                    case "assignment" -> {
+                        return "right".equals(x.field());
+                    }
+                    default -> {
+                        return container && !REFERENCE_STOP.contains(p.type());
+                    }
+                }
+                x = p;
+                p = p.parent();
+            }
+            return container;
+        }
+
+        private void emitReference(Hit h, SyntaxNode ref) {
+            List<Range> rs = ranges.computeIfAbsent(h.rule(), k -> new ArrayList<>());
+            rs.removeIf(r -> r.end() <= ref.start());
+            for (Range r : rs) {
+                if (ref.start() >= r.start() && ref.end() <= r.end()) {
+                    return;
+                }
+            }
+            SyntaxNode report = ref;
+            if (h.pattern().reportAt != null) {
+                SyntaxNode op = operationCall(ref, h.pattern().reportAt);
+                if (op != null) {
+                    report = op;
+                }
+            }
+            SyntaxNode attr = null;
+            if (report.is("call")) {
+                SyntaxNode f = report.field("function");
+                attr = f != null && f.is("attribute") ? f.field("attribute") : null;
+            } else if (report.is("attribute")) {
+                attr = report.field("attribute");
+            }
+            int line = attr != null ? attr.line() : report.line();
+            if (!emitted.add(h.rule().id() + "\u0000" + line)) {
+                return;
+            }
+            String param = h.pattern().paramValue;
+            if (h.pattern().paramSelf) {
+                int dot = h.nameUsed().lastIndexOf('.');
+                param = dot < 0 ? null : h.nameUsed().substring(dot + 1);
+            }
+            out.add(new SourceFinding(rel, line, h.rule(), h.nameUsed(), h.nameUsed(),
+                    Texts.truncateCodePoints(report.text(), SNIPPET_MAX), param, test));
         }
 
         private boolean conditionsHold(PythonPattern p, Args a, String method) {
@@ -849,6 +1085,12 @@ public final class PythonAnalyzer {
                     }
                 }
             }
+            if (p.dictItems != null && !dictItemsHold(p.dictItems, a)) {
+                return false;
+            }
+            if (p.notInside != null && operationCall(a.call, p.notInside) != null) {
+                return false;
+            }
             if (p.kwargs != null) {
                 for (Map.Entry<String, Pattern> kw : p.kwargs.entrySet()) {
                     boolean found = false;
@@ -872,6 +1114,73 @@ public final class PythonAnalyzer {
                 }
             }
             return true;
+        }
+
+        /** The dictionary displays among the arguments, directly or through a name bound to one (SPEC 5.6). */
+        private List<Located> dictionaries(Args a) {
+            List<Located> dicts = new ArrayList<>();
+            List<SyntaxNode> args = new ArrayList<>(a.positional);
+            for (Map.Entry<String, SyntaxNode> k : a.keywords) {
+                args.add(k.getValue());
+            }
+            for (SyntaxNode arg : args) {
+                if (arg.is("dictionary")) {
+                    dicts.add(new Located(arg, a.scope));
+                } else if (arg.is("identifier")) {
+                    for (Binding b : bindings(arg.text(), a.scope)) {
+                        if (b.rhs().is("dictionary")) {
+                            dicts.add(new Located(b.rhs(), b.scope()));
+                        }
+                    }
+                }
+            }
+            return dicts;
+        }
+
+        /**
+         * {@code dictItems}: for every entry, some argument (positional or keyword value) is a dictionary
+         * display — or a name bound to one — with a pair whose key has that string value and in one of
+         * whose value's value texts the regex is found (SPEC 5.6).
+         */
+        private boolean dictItemsHold(Map<String, Pattern> items, Args a) {
+            List<Located> dicts = dictionaries(a);
+            for (Map.Entry<String, Pattern> item : items.entrySet()) {
+                boolean found = false;
+                search:
+                for (Located d : dicts) {
+                    for (int i = 0; i < d.node().childCount(); i++) {
+                        SyntaxNode pair = d.node().child(i);
+                        if (!pair.is("pair")) {
+                            continue;
+                        }
+                        SyntaxNode key = pair.field("key");
+                        SyntaxNode value = pair.field("value");
+                        if (key == null || value == null || !item.getKey().equals(stringValue(key))) {
+                            continue;
+                        }
+                        for (String t : valueTexts(value, d.scope())) {
+                            if (item.getValue().matcher(t).find()) {
+                                found = true;
+                                break search;
+                            }
+                        }
+                    }
+                }
+                if (!found) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /** The first listed {@code anySymbol} name that hits the call's symbol set, or null. */
+        private String firstHitSymbol(PythonPattern p, Args a) {
+            for (String n : p.anySymbol) {
+                if (symbolHit(n, a.symbols())) {
+                    return n;
+                }
+            }
+            return null;
         }
 
         private boolean symbolHit(String name, Set<String> symbols) {
@@ -916,9 +1225,51 @@ public final class PythonAnalyzer {
             if (!emitted.add(h.rule().id() + "\u0000" + line)) {
                 return;
             }
-            String param = h.pattern().hasParam ? param(h.pattern(), h.nameUsed(), args) : null;
+            String param = h.pattern().hasParam ? OidTable.map(param(h.pattern(), h.nameUsed(), args)) : null;
             out.add(new SourceFinding(rel, line, h.rule(), h.nameUsed(), h.nameUsed(),
-                    Texts.truncateCodePoints(report.text(), SNIPPET_MAX), param, test));
+                    Texts.truncateCodePoints(report.text(), SNIPPET_MAX), param, matchedOid(h.pattern(), args), test));
+        }
+
+        /**
+         * The OID behind the string that satisfied the pattern (SPEC 5.11): the first string for
+         * {@code firstString}, else the first string containing a needle of {@code stringContains}, else the
+         * value that satisfied the first {@code dictItems} entry; null if that string was not an OID.
+         */
+        private String matchedOid(PythonPattern p, Args a) {
+            if (p.firstString != null) {
+                return a.stringOid(0);
+            }
+            if (p.stringContains != null) {
+                List<String> l = a.strings();
+                for (int i = 0; i < l.size(); i++) {
+                    String low = Texts.lower(l.get(i));
+                    for (String n : p.stringContains) {
+                        if (low.contains(n)) {
+                            return a.stringOid(i);
+                        }
+                    }
+                }
+                return null;
+            }
+            if (p.dictItems != null && !p.dictItems.isEmpty()) {
+                Map.Entry<String, Pattern> item = p.dictItems.entrySet().iterator().next();
+                for (Located d : dictionaries(a)) {
+                    for (int i = 0; i < d.node().childCount(); i++) {
+                        SyntaxNode pair = d.node().child(i);
+                        SyntaxNode key = pair.is("pair") ? pair.field("key") : null;
+                        SyntaxNode value = pair.is("pair") ? pair.field("value") : null;
+                        if (key == null || value == null || !item.getKey().equals(stringValue(key))) {
+                            continue;
+                        }
+                        for (String t : valueTexts(value, d.scope())) {
+                            if (item.getValue().matcher(t).find()) {
+                                return oidNamed(value, d.scope(), t);
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         /** SPEC 8.7. */
@@ -943,6 +1294,9 @@ public final class PythonAnalyzer {
 
         /** SPEC 8.8. */
         private String param(PythonPattern p, String nameUsed, Args a) {
+            if (p.paramValue != null) {
+                return p.paramValue;
+            }
             if (p.paramSelf) {
                 int dot = nameUsed.lastIndexOf('.');
                 return dot < 0 ? null : nameUsed.substring(dot + 1);

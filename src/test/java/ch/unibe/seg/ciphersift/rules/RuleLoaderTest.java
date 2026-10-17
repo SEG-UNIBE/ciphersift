@@ -33,8 +33,8 @@ class RuleLoaderTest {
     @Test
     void bundledRuleSet() throws Exception {
         RuleSet r = RuleLoader.loadBundled();
-        assertEquals(88, r.javaRules().size());
-        assertEquals(79, r.pythonRules().size());
+        assertEquals(103, r.javaRules().size());
+        assertEquals(87, r.pythonRules().size());
         assertEquals(1, r.constantsDocuments());
         assertNotNull(r.dependencyRule("maven"));
         assertNotNull(r.dependencyRule("pypi"));
@@ -56,8 +56,33 @@ class RuleLoaderTest {
         for (RuleLoader.RuleFile f : RuleLoader.bundledFiles()) {
             tests.add(DynamicTest.dynamicTest(f.path(), () -> RuleLoader.load(List.of(f))));
         }
-        assertEquals(170, tests.size());
+        assertEquals(193, tests.size());
         return tests.stream();
+    }
+
+    /** The keys added with the evaluation fixes (SPEC 5.3, 5.6): indicator, ref, dictItems, notInside, param.value. */
+    @Test
+    void evaluationFixKeys() throws Exception {
+        String py = "id: python.t.x\nkind: source\nlanguage: python\nname: t\nasset: {type: algorithm}\n";
+        RuleSet ok = RuleLoader.load(List.of(new RuleLoader.RuleFile("ok.yaml", (py.replace("asset:", "indicator: weakness\nasset:")
+                + "match:\n- ref: a.B.C\n  param: {value: x}\n- ref: a.B.D\n  param: {self: true}\n"
+                + "- call: a.f\n  dictItems: {algorithm: '^sha'}\n- call: a.g\n  notInside: [sign]\n")
+                .getBytes(StandardCharsets.UTF_8))));
+        SourceRule r = ok.pythonRules().get(0);
+        assertEquals("weakness", r.indicator());
+        assertEquals("a.B.C", r.pythonPatterns().get(0).ref);
+        assertEquals("x", r.pythonPatterns().get(0).paramValue);
+        assertTrue(r.pythonPatterns().get(0).matchesReferences());
+        assertFalse(r.pythonPatterns().get(2).matchesReferences(), "a filtered call pattern needs arguments");
+        assertTrue(fail("i.yaml", py.replace("asset:", "indicator: maybe\nasset:") + "match:\n- call: a.b\n").getMessage()
+                .contains("i.yaml: /indicator"));
+        assertTrue(fail("r.yaml", py + "match:\n- ref: a.b\n  firstString: x\n").getMessage().contains("r.yaml: /match/0"));
+        assertTrue(fail("k.yaml", py + "match:\n- ref: a.b\n  param: {keyword: k}\n").getMessage().contains("k.yaml: /match/0"));
+        assertTrue(fail("c.yaml", py + "match:\n- ref: a.b\n  call: a.c\n").getMessage().contains("c.yaml: /match/0"));
+        assertTrue(fail("v.yaml", py + "match:\n- call: a.b\n  param: {value: x, index: 0}\n").getMessage()
+                .contains("v.yaml: /match/0/param"));
+        assertTrue(fail("j.yaml", HEAD + "match:\n- call: a.B.c\n  param: {value: x}\n").getMessage()
+                .contains("only contain \"index\""));
     }
 
     @Test

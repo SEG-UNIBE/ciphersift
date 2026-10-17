@@ -33,7 +33,13 @@ public final class CbomWriter {
 
     /** Document-level inputs. */
     public record Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
-            long filesScanned, long filesSkipped, Long sourceDateEpoch) {}
+            long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded) {
+        /** Metadata of a scan without weakness indicators (the default, DECISIONS E2). */
+        public Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
+                long filesScanned, long filesSkipped, Long sourceDateEpoch) {
+            this(toolVersion, rootName, rulesDigest, testsIncluded, filesScanned, filesSkipped, sourceDateEpoch, false);
+        }
+    }
 
     private CbomWriter() {}
 
@@ -74,9 +80,11 @@ public final class CbomWriter {
     static String fullRef(Component.Crypto c) {
         Asset a = c.rule().asset();
         String type = a.cyclonedxType();
-        String json = "algorithm".equals(type)
-                ? compactArray("algorithm", c.rule().id(), c.name(), c.param() == null ? "" : c.param())
-                : compactArray(type, c.rule().id());
+        String param = c.param() == null ? "" : c.param();
+        // a component with an OID (SPEC 5.11) appends it, so that components without one keep their bom-refs
+        String json = !"algorithm".equals(type) ? compactArray(type, c.rule().id())
+                : c.oid() == null ? compactArray("algorithm", c.rule().id(), c.name(), param)
+                : compactArray("algorithm", c.rule().id(), c.name(), param, c.oid());
         return type + ":" + sha256Hex(json.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -207,6 +215,9 @@ public final class CbomWriter {
         property(g, "ciphersift:testFiles", m.testsIncluded() ? "included" : "excluded");
         property(g, "ciphersift:filesScanned", Long.toString(m.filesScanned()));
         property(g, "ciphersift:filesSkipped", Long.toString(m.filesSkipped()));
+        if (m.weaknessIndicatorsIncluded()) {
+            property(g, "ciphersift:weaknessIndicators", "included");
+        }
         g.writeEndArray();
         g.writeEndObject();
     }
@@ -267,6 +278,10 @@ public final class CbomWriter {
             case "static-iv" -> "initialization-vector";
             case "hardcoded-password" -> "password";
             case "jwt-none-algorithm" -> "token";
+            case "private-key" -> "private-key";
+            case "public-key" -> "public-key";
+            case "cms-signed-data" -> "signature";
+            case "cms-enveloped-data" -> "ciphertext";
             default -> "other";
         };
     }
@@ -317,6 +332,9 @@ public final class CbomWriter {
                 // certificate: no further properties
             }
         }
+        if (c.oid() != null) {
+            g.writeStringField("oid", c.oid());
+        }
         g.writeEndObject();
         g.writeArrayFieldStart("properties");
         property(g, "ciphersift:ruleId", c.rule().id());
@@ -328,6 +346,7 @@ public final class CbomWriter {
         property(g, "ciphersift:family", a.family());
         property(g, "ciphersift:variant", a.variant());
         property(g, "ciphersift:subtype", a.subtype());
+        property(g, "ciphersift:indicator", c.rule().indicator());
         if (testOnly(c.occurrences())) {
             property(g, "ciphersift:testOnly", "true");
         }

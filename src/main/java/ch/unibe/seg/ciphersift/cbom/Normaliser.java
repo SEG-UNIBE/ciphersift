@@ -42,7 +42,7 @@ public final class Normaliser {
         return Texts.compareNullFirst(a.snippet(), b.snippet());
     };
 
-    private record CryptoKey(String ruleId, String name, String param) {}
+    private record CryptoKey(String ruleId, String name, String param, String oid) {}
 
     private record LibraryKey(String ecosystem, String pkg, String version) {}
 
@@ -64,8 +64,8 @@ public final class Normaliser {
         Map<CryptoKey, SourceRule> rules = new HashMap<>();
         for (SourceFinding f : source) {
             boolean alg = "algorithm".equals(f.rule().asset().type());
-            CryptoKey k = alg ? new CryptoKey(f.rule().id(), f.name(), f.param())
-                    : new CryptoKey(f.rule().id(), componentName(f.rule(), f.name()), null);
+            CryptoKey k = alg ? new CryptoKey(f.rule().id(), f.name(), f.param(), f.oid())
+                    : new CryptoKey(f.rule().id(), componentName(f.rule(), f.name()), null, null);
             crypto.computeIfAbsent(k, x -> new ArrayList<>()).add(f);
             rules.putIfAbsent(k, f.rule());
         }
@@ -77,7 +77,7 @@ public final class Normaliser {
                 occ.add(new Component.Occurrence(f.path(), f.line(), f.symbol(), f.rule().id(), f.snippet(), f.param(),
                         null, f.test()));
             }
-            cryptoComponents.add(new Component.Crypto(rules.get(k), k.name(), k.param(), dedupe(occ, true)));
+            cryptoComponents.add(new Component.Crypto(rules.get(k), k.name(), k.param(), k.oid(), dedupe(occ, true)));
         }
         cryptoComponents.sort((a, b) -> {
             int c = Texts.compareCodePoints(a.rule().id(), b.rule().id());
@@ -88,7 +88,11 @@ public final class Normaliser {
             if (c != 0) {
                 return c;
             }
-            return Texts.compareNullFirst(a.param(), b.param());
+            c = Texts.compareNullFirst(a.param(), b.param());
+            if (c != 0) {
+                return c;
+            }
+            return Texts.compareNullFirst(a.oid(), b.oid());
         });
 
         Map<LibraryKey, List<DependencyFinding>> libs = new LinkedHashMap<>();

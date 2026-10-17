@@ -23,7 +23,7 @@ public final class TestSupport {
     public static final ObjectMapper JSON = new ObjectMapper();
 
     static final List<String> SOURCE_FIELDS = List.of("file", "line", "rule", "type", "subtype", "primitive",
-            "family", "variant", "protocol", "version", "param", "name", "test");
+            "family", "variant", "protocol", "version", "param", "oid", "name", "test");
     static final List<String> DEP_FIELDS = List.of("file", "line", "rule", "type", "ecosystem", "package", "version",
             "test");
 
@@ -147,6 +147,7 @@ public final class TestSupport {
                     JsonNode alg = cp.path("algorithmProperties");
                     f.put("param", alg.has("parameterSetIdentifier") ? alg.path("parameterSetIdentifier").asText()
                             : null);
+                    f.put("oid", cp.has("oid") ? cp.path("oid").asText() : null);
                     f.put("name", "algorithm".equals(type) ? comp.path("name").asText() : null);
                 }
                 out.add(key(f));

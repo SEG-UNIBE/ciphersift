@@ -52,8 +52,8 @@ Root package `ch.unibe.seg.ciphersift` (groupId `ch.unibe.seg`, artifactId `ciph
 | `files.FileCollector`, `Glob`, `FileClass`, `TestFiles`, `SourceText` | walk, excludes, classification, test files, size/binary checks, UTF-8 decoding (4) |
 | `lang.java.JavaAnalyzer` | events, rule index lookup, pattern evaluation, specificity selection, nested duplicates, findings (7.2, 7.5–7.8) |
 | `lang.java.JavaContext`, `JExpr`, `JavaResolver`, `JavaStrings`, `JavaContexts`, `JavaRuleIndex` | file context, compact expression form, `value` / lookups / string lists / `isConst`, literal and text-block decoding, cross-file context cache (7.3, 7.4) |
-| `lang.python.PythonAnalyzer`, `PythonRuleIndex` | collection walk, scopes and bindings, name resolution, argument analysis, matching, attribution, params, attribute assignments (8) |
-| `deps.DependencyScanner`, `PythonManifests`, `MavenManifests`, `ManifestEntry` | all manifest formats, per-manifest de-duplication, rule matching (9) |
+| `lang.python.PythonAnalyzer`, `PythonRuleIndex` | collection walk, scopes and bindings, name resolution, argument analysis, matching of calls and bare references, attribution, params, attribute assignments (8) |
+| `deps.DependencyScanner`, `PythonManifests`, `MavenManifests`, `SetupManifests`, `ManifestEntry` | all manifest formats (`setup.py` from its syntax tree, `setup.cfg`), per-manifest de-duplication, rule matching (9) |
 | `model.*` | source and dependency findings (2.1) |
 | `cbom.Normaliser`, `Component`, `CbomWriter`, `Purl` | components and occurrences, ordering, bom-refs, serial number, JSON (10, 11) |
 | `scan.Scanner` | phases 1–4, worker pool, per-thread parsers, per-file error handling (2, 13, 14) |
@@ -315,3 +315,108 @@ pre-follow-up jar, as intended.
 * `Parser` objects of worker threads are closed from the main thread at the end of a scan
   (exceptions ignored); the JVM exits right after in the CLI anyway.
 * The design limitations of SPEC Appendix B apply unchanged.
+
+## Evaluation fixes (2026-10-17)
+
+Work list `ciphersift-eval/ISSUES.md`; decisions E1–E18 in `spec/DECISIONS.md`; SPEC.md updated.
+What changed in the implementation:
+
+* **Bare references (SPEC 8.6.1).** The collection walk of `PythonAnalyzer` also records
+  `identifier` / `attribute` nodes whose parent can make them a value or expression position
+  (cheap parent check), in the same pre-order list as the calls, so the per-rule nesting check
+  (`hmac.new(k, m, hashlib.sha256)` → one SHA-2) works unchanged. `matchReference` resolves the
+  node with `resolveDotted` (memoised as before), looks the names up in `PythonRuleIndex.byRef`
+  (exact names of `ref` patterns and of condition-free `call` patterns), and only then walks up to
+  decide the position (`valuePosition(node, operands)`). No argument analysis, no ranges.
+* **New Python conditions**: `dictItems` (`dictItemsHold`: dictionary displays among the arguments,
+  or names bound to one), `notInside` (the existing 8.7 walk), `param: {value}`; method-only
+  `anySymbol` hits are named after the first hitting listed symbol.
+* **Weakness indicators**: `SourceRule.indicator()`; `CbomWriter` writes `ciphersift:indicator` and
+  the metadata property `ciphersift:weaknessIndicators`; `Scanner` drops indicator findings after
+  extraction (`Options.weaknessIndicators`), so selection and folding of the other findings are
+  untouched. (Since the owner decisions below, indicators are opt-in with `--weakness-indicators`.)
+* **`setup.py` / `setup.cfg`**: `FileClass.SETUP_CFG`; `Scanner.process` parses a `setup.py` whose text
+  contains `install_requires` or `extras_require` even when the pre-filter rejects it, runs the Python
+  analysis as usual and adds `DependencyScanner.setupPy` findings (the file stays a Python file in the
+  counts). `SetupManifests` reads literal requirement lists from the tree and `setup.cfg` line by line.
+* **Java member types (SPEC 7.3.2 step 6)**: `JavaAnalyzer.denotes` accepts an unqualified member-type
+  name only when its enclosing class is imported on demand or statically.
+* **Pre-filter**: `call`/`method` patterns also require their `kwargs` keywords and `dictItems` keys;
+  Java class names of member types also require the top-level class name; `ref` patterns their
+  identifier parts. Without these, `method: [get, post, …]` (E14) and `new: …ConnectionSpec.Builder`
+  (E7) let most files through: the Python stdlib took 21.5 s instead of 11.8 s single-threaded in the
+  first build of the fixes. The soundness test (`AnchorPrefilterTest`) covers the new cases.
+* **Grammar field check** (Appendix C): Python field `key` (of `pair`) added.
+* **Tests**: 326 unit + 100 integration = 426 (new: rule-key loading, indicator property and metadata,
+  `--no-weakness-indicators` through the jar, `setup.cfg`, related-material types, member-type
+  pre-filter; Python analysis tests now include the alias-definition references). Conformance: 43/43
+  cases, 736/736 findings, with the JUnit runner and `spec/tools/conformance.py`;
+  `spec/tools/regex_parity.py`: 69 300 probes, no mismatch (it now also checks `dictItems` values).
+* **Rule generation**: the rule edits were applied with a small script (outside the repository) and
+  then hand-adjusted; generated files that were changed say so in their header.
+* **Speed** (same machine, now shared with other load — load average 5–6, which is why the 1.0
+  jar is slower than in the follow-up table above; both jars measured interleaved, two runs each,
+  wall clock incl. JVM start, `-Xmx2g`):
+
+  | Input | threads | 1.0 follow-up jar | with the fixes |
+  |---|---|---|---|
+  | JDK 25 `lib/src.zip` (15 020 files) | 1 | 28.9 s, 28.9 s | 18.0 s, 17.2 s |
+  | | 8 | 11.1 s, 11.1 s | 6.4 s, 6.2 s |
+  | Python 3.11 stdlib (1 715 files) | 1 | 14.2 s, 14.7 s | 14.5 s, 15.2 s |
+  | | 8 | 5.8 s, 5.3 s | 5.8 s, 5.6 s |
+
+  The JDK scan got faster because the member-type rule of the pre-filter now also applies to the
+  existing nested-class patterns (`KeyStore.Builder`, `Argon2Parameters.Builder`), which let every
+  file mentioning `Builder` through; no JDK finding of the earlier version is lost (175 added). The
+  Python stdlib stays within ~5 % (bare-reference resolution; 68 findings added). Output is
+  byte-identical for 1 and 8 threads (DeterminismIT and spot checks on the evaluation projects).
+
+## Owner decisions (2026-10-17)
+
+Decisions in `spec/DECISIONS.md` ("Owner decisions"); SPEC.md, README, CHANGELOG, rules and the
+conformance suite updated.
+
+* **E2, indicators opt-in.** `ScanCommand` has `--weakness-indicators` instead of
+  `--no-weakness-indicators`; `Scanner.Options` and `CbomWriter.Metadata` default to *off*; the
+  metadata property is now `ciphersift:weaknessIndicators=included` with the option (absent by
+  default). Extraction is unchanged (indicator findings are still computed and then dropped), so
+  the other findings stay byte-identical with and without the option.
+* **E15, OID table.** `lang/OidTable` holds the 128 rows of SPEC 5.11 (one source; `OidTableTest`
+  compares it with the SPEC table row by row). `JavaAnalyzer.strings` maps the resolved string list
+  once per event and keeps a parallel list of OIDs; `matchedIndex` replaces `matchedString`, so the
+  `Selected` pair carries the matched string and its OID; `param` values go through
+  `OidTable.map`. `PythonAnalyzer.Args.strings` does the same; `valueTexts` appends the name after
+  an OID string or constant; `matchedOid` finds the OID for `firstString`, `stringContains` and the
+  first `dictItems` entry. `SourceFinding` and `Component.Crypto` gained `oid` (old constructors
+  kept); the normaliser key and component order include it; `CbomWriter` writes
+  `cryptoProperties.oid` and appends the OID to the bom-ref array only when present, so every
+  other bom-ref is unchanged. `lookup` rejects anything that does not start with a digit or `o`/`O`
+  before running the regex (it runs for every string-list element).
+* **Rules for E15** were generated by a script outside the repository from the same table
+  (`new ASN1ObjectIdentifier` patterns in 39 Java rules; four Python OID constructors in 33 Python
+  rules; the asn1crypto `algos.*` regexes of 20 rules extended with the names). `java.kdf.pbkdf2`
+  accepts `PBKDF2` in `SecretKeyFactory.getInstance`.
+* **E16, Shiro.** Ten rules `java.lib.shiro.*` (hand-written from Shiro's public API, both package
+  generations) and Shiro's `ALGORITHM_NAME` / `DEFAULT_ALGORITHM_NAME` constants in
+  `_constants.yaml`. `setHashAlgorithmName` / `setDefaultAlgorithmName` are `method` patterns (the
+  receiver is a variable), filtered by an algorithm-name `firstString`.
+* **Tests**: 340 unit + 106 integration = 446, all passing (new: `OidTableTest`, CBOM `oid`
+  output and bom-ref, `--weakness-indicators` through the jar and rejection of the old option).
+  Conformance: 46/46 cases, 1021/1021 findings (JUnit runner and `spec/tools/conformance.py`);
+  `spec/tools/regex_parity.py`: 106 722 probes, no mismatch; `spec/tools/check_rules.py`: 103 Java,
+  87 Python rules valid.
+* **Speed** (same machine, load average 3–7; interleaved with the 1.0 follow-up jar as reference,
+  two runs each, wall clock incl. JVM start, `-Xmx2g`):
+
+  | Input | threads | 1.0 follow-up jar | with the owner decisions |
+  |---|---|---|---|
+  | JDK 25 `lib/src.zip` (15 020 files) | 1 | 23.2 s, 24.1 s | 13.5 s, 16.7 s |
+  | | 8 | 11.0 s, 11.1 s | 6.3 s, 6.2 s |
+  | Python 3.11 stdlib (1 715 files) | 1 | 14.2 s, 13.7 s | 13.9 s, 14.5 s |
+  | | 8 | 5.8 s, 5.5 s | 5.5 s, 6.0 s |
+
+  Same ratios as with the evaluation fixes: the OID lookup (a first-character check before the
+  regex) and the ten Shiro rules cost nothing measurable. Against the evaluation-fix outputs the
+  default scan only lost the insecure-PRNG findings (JDK 63, stdlib 350); no other finding changed,
+  and none was added (neither corpus passes OID literals to an anchored API). Output for 1 and 8
+  threads is byte-identical on both corpora.

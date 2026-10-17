@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.sym.aes
+kind: source
+language: java
+name: AES via Apache Shiro cipher services
+description: >-
+  AesCipherService (Shiro 1.x org.apache.shiro.crypto, 2.x org.apache.shiro.crypto.cipher) and DefaultBlockCipherService with the algorithm name AES.
+asset:
+  type: algorithm
+  primitive: block-cipher
+  family: AES
+match:
+- new: org.apache.shiro.crypto.AesCipherService
+- new: org.apache.shiro.crypto.cipher.AesCipherService
+- new: org.apache.shiro.crypto.DefaultBlockCipherService
+  firstString: AES$
+- new: org.apache.shiro.crypto.cipher.DefaultBlockCipherService
+  firstString: AES$

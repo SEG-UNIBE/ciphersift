@@ -46,3 +46,67 @@ First implementation of the CipherSift specification 1.0 (rule format version 1)
   error and symbolic links inside `--rules` directories are rule errors; SPEC 15.4 updated.
 * Conformance suite: 28 cases (added `java/array-comments`, `python/alias-chain-limit`,
   `deps/pyproject-direct-reference`), 573 findings, all passing.
+
+### Evaluation fixes (10-project evaluation, `ciphersift-eval/ISSUES.md`)
+
+* **Python bare references** (E1): a `call` pattern without conditions also matches the name used
+  as a value without a call — in tuples/lists/dicts, as a class attribute, as an argument or keyword
+  value, on the right-hand side of an assignment — but not in annotations, `isinstance`/`cast`,
+  comparisons, `except` clauses, class bases or parameter defaults (SPEC 8.6.1). New anchor `ref:`
+  for names that are only used as values (enum members, cipher classes); it also matches operands.
+* **Weakness indicators** (E2, proposed): rule key `indicator: weakness` on the two insecure-PRNG
+  rules; component property `ciphersift:indicator=weakness`; option `--no-weakness-indicators`
+  (metadata `ciphersift:weaknessIndicators=excluded`). Default output unchanged apart from the
+  new property.
+* **New Python coverage**: asn1crypto certificates, CRLs and algorithm identifiers (new condition
+  `dictItems`) (E3); pyca / pyOpenSSL key loading, rules `python.key.load.private/.public/.parameters`
+  (E4); libsecp256k1 bindings (electrum_ecc, coincurve, secp256k1-py) with the fixed parameter
+  `secp256k1` (new `param: {value: s}`), `ecdsa_sign`/`ecdsa_verify`, pyaes (E5); `padding.PKCS1v15()`
+  outside an operation (new condition `notInside`), Concat KDF, X9.63 KDF, KBKDF, PyJWT algorithm
+  classes, python-pkcs11 mechanisms and key types, signxml methods (E12).
+* **New Java coverage**: PKIX parameters, trust anchors, cert stores, BC certificate holders, CMS
+  signed / enveloped data and time-stamp tokens (`java.cert.cms.signed`, `java.cert.cms.enveloped`),
+  `KeyStore.getDefaultType` (E6); OkHttp `ConnectionSpec` / `CipherSuite` / `TlsVersion` (E7);
+  BouncyCastle JCA provider digest classes such as `Keccak.Digest256` (E8); `*.unresolved` fallbacks
+  for `SecretKeySpec`, `AlgorithmParameterGenerator`, `AlgorithmParameters`, `JcaContentSignerBuilder`
+  and more `AlgorithmParameters` names (E9); `EllipticCurve`, `ECFieldFp`, BC EC parameter classes,
+  `SecP*Curve`, `MGF1ParameterSpec` (E11); `SecureRandom.getInstance` reports its algorithm (E17).
+* **Member types** (SPEC 7.3.2): an unqualified member-type name (`Builder`, `Digest`) denotes an API
+  class only when its enclosing class is imported on demand; `Outer.Inner` as before.
+* **Fixes**: a padding variable bound to several paddings reports all of them at the operation call;
+  method-only findings are named after the matching API symbol instead of the receiver (E13, E17);
+  `verify=False` / `ssl=False` only on HTTP-client calls and methods (E14).
+* **Dependencies** (E10): `setup.py` `install_requires` / `extras_require` (literal, also through
+  module-level names) and `setup.cfg`; list entries `org.apache.shiro.crypto:*`, `electrum-ecc`,
+  `pyaes`, `pysha3`, `safe-pysha3`.
+* CycloneDX related-material types for the subtypes `private-key`, `public-key`, `cms-signed-data`,
+  `cms-enveloped-data`.
+* Pre-filter: also requires `kwargs` keywords, `dictItems` keys and, for member types, the
+  top-level class name (keeps the JDK and Python-stdlib throughput in the earlier range).
+* Bundled rules: 93 Java, 87 Python. Conformance suite: 43 cases (15 new), 736 findings, all passing;
+  seven expectations of six generated cases changed (deviations D10–D14, DECISIONS.md).
+* Not changed: E15 (deferred `final` locals, OIDs) and E16 (Shiro's own hash API, names of an
+  evaluated project); D1–D8 by design. See `spec/DECISIONS.md`.
+
+### Owner decisions (E2, E15, E16; 7.3.2 and setup files confirmed)
+
+* **Weakness indicators off by default** (E2): findings of rules with `indicator: weakness`
+  (`java.rand.prng.insecure`, `python.rand.prng.insecure`) are reported only with the new option
+  `--weakness-indicators`, which replaces `--no-weakness-indicators` (removed; using it is a usage
+  error). With the option the metadata has `ciphersift:weaknessIndicators=included`. **Default
+  output changes**: these findings are gone. Conformance: `common/weakness-indicators` now expects
+  the default (3 findings instead of 8), `common/weakness-indicators-excluded` is replaced by
+  `common/weakness-indicators-enabled` (the option, 8 findings), the two `fork-fixtures` cases pass
+  the option, `common/test-files` loses its `random.random()` finding (deviation D15).
+* **Algorithm OIDs** (E15): built-in table of 128 OIDs (SPEC 5.11). Dotted OIDs (also `OID.…`) in
+  string lists, Python value texts and params are treated like the algorithm name; new patterns for
+  BouncyCastle `ASN1ObjectIdentifier`, pyca `ObjectIdentifier`, asn1crypto `core.ObjectIdentifier`,
+  pyasn1 `univ.ObjectIdentifier`; asn1crypto `algos.*` accept OIDs. Output: `cryptoProperties.oid`;
+  the OID is part of an algorithm component's key, sort order and bom-ref (unchanged for components
+  without OID). `SecretKeyFactory` accepts `PBKDF2`. Deferred `final` locals stay unresolved.
+* **Apache Shiro** (E16): ten rules `java.lib.shiro.*` (MD2, MD5, SHA-1, SHA-2, SHA-3, Argon2,
+  bcrypt, AES, Blowfish, secure random) for Shiro's public 1.x/2.x API; Shiro hash-class constants
+  in the constants table. The Maven list already had `org.apache.shiro:shiro-crypto*` and
+  `org.apache.shiro.crypto:*`.
+* Bundled rules: 103 Java, 87 Python. Conformance suite: 46 cases (new `java/oid-table`,
+  `python/oid-table`, `java/shiro`), all passing.

@@ -1,0 +1,9 @@
+{"case": "python/key-loading", "findings": [
+  {"file": "keys.py", "line": 4, "rule": "python.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "keys.py", "line": 5, "rule": "python.key.load.public", "type": "related-crypto-material", "subtype": "public-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "keys.py", "line": 6, "rule": "python.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "keys.py", "line": 7, "rule": "python.key.load.public", "type": "related-crypto-material", "subtype": "public-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "keys.py", "line": 8, "rule": "python.key.load.parameters", "type": "related-crypto-material", "subtype": "domain-parameters", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "keys.py", "line": 9, "rule": "python.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "keys.py", "line": 10, "rule": "python.key.load.public", "type": "related-crypto-material", "subtype": "public-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null}
+]}

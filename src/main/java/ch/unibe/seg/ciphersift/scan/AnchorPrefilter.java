@@ -25,13 +25,18 @@ import java.util.Map;
  *       is the text of the event's name; the simple name of {@code C} is part of the receiver text
  *       (every case of {@code denotes}) or of the static import that supplies the static candidate.
  *   <li>Java {@code new: C}: the simple name of {@code C} is the last segment of the type text.
+ *   <li>Java member types ({@code a.b.Outer.Inner}, any anchor): the top-level class name occurs in the
+ *       reference or in the import that makes the member type visible (SPEC 7.3.2 step 6).
  *   <li>Java {@code method}/{@code override}: the name (or prefix).
  *   <li>Python {@code call: a.b.c}: a resolved call name is built only from identifier texts,
  *       attribute names and import texts of the file, so every identifier part of the value occurs;
  *       {@code method}: one of the names; {@code anyCall}: each required keyword;
- *       {@code assign}: the attribute name. The symbol conditions {@code anySymbol} /
- *       {@code allSymbols} hit only resolved names, so the identifier parts of one (of all) listed
- *       names occur as well.
+ *       {@code assign}: the attribute name; {@code ref} and bare references matched by {@code call}
+ *       patterns (SPEC 8.6.1) are resolved names like call names, so the same argument applies. The
+ *       symbol conditions {@code anySymbol} / {@code allSymbols} hit only resolved names, so the
+ *       identifier parts of one (of all) listed names occur as well. A {@code kwargs} keyword is the
+ *       text of a keyword-argument name, and a {@code dictItems} key is the string value of a
+ *       dictionary key (escapes are not interpreted, so it is a substring of the text).
  * </ul>
  *
  * A file passes if, for some pattern, all of its required names occur as substrings anywhere in the
@@ -72,12 +77,12 @@ final class AnchorPrefilter {
                 List<List<String>> clauses = new ArrayList<>();
                 switch (p.anchor) {
                     case CALL, FIELD -> {
-                        clauses.add(List.of(simpleName(p.className)));
+                        classClauses(p.className, clauses);
                         if (!p.member.isEmpty()) {
                             clauses.add(List.of(p.member));
                         }
                     }
-                    case NEW -> clauses.add(List.of(simpleName(p.className)));
+                    case NEW -> classClauses(p.className, clauses);
                     default -> {
                         if (!p.member.isEmpty()) {
                             clauses.add(List.of(p.member));
@@ -113,10 +118,29 @@ final class AnchorPrefilter {
                     }
                 } else if (p.assign != null) {
                     clauses.add(List.of(p.assign));
+                } else if (p.ref != null) {
+                    // a bare reference resolves like a call name (SPEC 8.6.1)
+                    for (String part : identifierParts(p.ref)) {
+                        clauses.add(List.of(part));
+                    }
                 }
                 if (clauses.isEmpty()) {
                     pats.add(clauses); // makes the filter accept everything
                     continue;
+                }
+                // kwargs requires the call to have each keyword argument, and dictItems a dictionary key
+                // with each listed string value (SPEC 5.6): those names occur in the text as well
+                if (p.kwargs != null && !p.anyCall) {
+                    for (String k : p.kwargs.keySet()) {
+                        clauses.add(List.of(k));
+                    }
+                }
+                if (p.dictItems != null) {
+                    for (String k : p.dictItems.keySet()) {
+                        if (!k.isEmpty() && k.chars().allMatch(ch -> ch < 128)) {
+                            clauses.add(List.of(k));
+                        }
+                    }
                 }
                 // a symbol hits a listed name if it equals the name or ends with "." + name (SPEC 8.5.2);
                 // symbols are resolved names, so every identifier part of a hit name occurs in the text
@@ -141,6 +165,26 @@ final class AnchorPrefilter {
             }
         }
         return build(pats);
+    }
+
+    /**
+     * The names a reference to {@code className} contains: its simple name, and for a member type
+     * ({@code a.b.Outer.Inner}) also the simple name of its top-level class, which occurs either in the
+     * reference itself or in the import that brings the member type into scope (SPEC 7.3.2).
+     */
+    private static void classClauses(String className, List<List<String>> clauses) {
+        String simple = simpleName(className);
+        clauses.add(List.of(simple));
+        if (className != null) {
+            for (String seg : className.split("\\.", -1)) {
+                if (!seg.isEmpty() && Character.isUpperCase(seg.charAt(0))) {
+                    if (!seg.equals(simple)) {
+                        clauses.add(List.of(seg));
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     private static String simpleName(String className) {

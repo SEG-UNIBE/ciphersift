@@ -52,8 +52,8 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
   analysis).
 * Dependency discovery in Maven `pom.xml`, Gradle `build.gradle`, `build.gradle.kts` and
   version catalogs (`*.versions.toml`), and Python `requirements*.txt`, `pyproject.toml`,
-  `Pipfile.lock`, `poetry.lock`. Only packages on the crypto-library lists of the
-  dependency rules are reported.
+  `Pipfile.lock`, `poetry.lock`, `setup.cfg` and the literal requirements of `setup.py`
+  (9.8). Only packages on the crypto-library lists of the dependency rules are reported.
 * Output: one CycloneDX 1.6 JSON document.
 
 ### 1.2 Out of scope
@@ -141,7 +141,7 @@ check itself, so `java -jar` on Java 8–22 gives the same message and exit code
 
 ```
 ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
-                [--threads N] [--rules DIR] [--quiet | --verbose]
+                [--threads N] [--rules DIR] [--weakness-indicators] [--quiet | --verbose]
 ciphersift rules validate [--rules DIR]
 ciphersift rules export <dir>
 ciphersift --version
@@ -157,6 +157,7 @@ ciphersift --help | ciphersift <command> --help
 | `--exclude-tests` | Test files (section 4.7) are not scanned and not reported. The two test options are mutually exclusive (usage error otherwise); the last one does not win. |
 | `--threads N` | Number of worker threads for phases 3–4. Default: the number of available processors, at most 8. `N` must be ≥ 1. The output does not depend on `N`. |
 | `--rules DIR` | Use the rule documents under `DIR` (recursively) **instead of** the bundled rules. To extend the bundled rules, run `rules export`, edit, and pass the directory. |
+| `--weakness-indicators` | Also report the findings of rules with `indicator: weakness` (5.3), e.g. non-cryptographic random generators. **Off by default**: without the option these findings are dropped after extraction, so every other finding is exactly the one of a scan with the option; the document metadata records the option (11.2.1) *(DECISIONS E2, decided by owner)*. |
 | `--quiet` | Only errors on standard error. |
 | `--verbose` | Debug messages on standard error (one line per skipped file and the reason). |
 
@@ -243,7 +244,7 @@ wins. Comparisons of extensions and names are case-insensitive.
 | Class | Condition |
 |---|---|
 | Java source | extension `.java` |
-| Python source | extension `.py` (including `setup.py`) |
+| Python source | extension `.py` (including `setup.py`, whose requirements are also read, 9.8) |
 | Maven POM | name `pom.xml` |
 | Gradle build script | name `build.gradle` or `build.gradle.kts` |
 | Gradle version catalog | name ends with `.versions.toml` |
@@ -251,6 +252,7 @@ wins. Comparisons of extensions and names are case-insensitive.
 | pyproject | name `pyproject.toml` |
 | Pipfile lock | name `Pipfile.lock` |
 | Poetry lock | name `poetry.lock` |
+| setup.cfg | name `setup.cfg` *(DECISIONS E10)* |
 | ignored | everything else |
 
 ### 4.6 Binary detection
@@ -310,9 +312,14 @@ under `/rules/`. It contains:
 
 | Directory | Documents |
 |---|---|
-| `rules/java/` | 88 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
-| `rules/python/` | 79 source rules (`python.*`) |
+| `rules/java/` | 103 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
+| `rules/python/` | 87 source rules (`python.*`) |
 | `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml` |
+
+Two bundled rules are weakness indicators (`indicator: weakness`, 5.3): `java.rand.prng.insecure`
+and `python.rand.prng.insecure` (non-cryptographic random generators). Their findings appear only
+with `--weakness-indicators` *(DECISIONS E2)*. The Java rules `java.lib.shiro.*` cover Apache
+Shiro's public crypto API *(DECISIONS E16)*.
 
 Rules are processed in ascending order of `id` (code-point order) wherever order matters.
 Patterns are processed in the order they appear in the `match` list.
@@ -350,6 +357,7 @@ match:
 | `language` | yes | `java` or `python`. The rule is applied only to source files of that language. |
 | `name` | yes | Human-readable rule name. Not part of the output except as the component name of non-algorithm, non-protocol assets (10.2). |
 | `description` | no | Free text. |
+| `indicator` | no | `weakness`: the findings are indicators of a possible weakness, not cryptographic assets (e.g. a non-cryptographic random generator, reported wherever it is used). They are reported only with `--weakness-indicators` (3.1); their components then carry the property `ciphersift:indicator` (11.3.4) *(DECISIONS E2, decided by owner)*. |
 | `asset` | yes | What a match denotes (5.4). |
 | `match` | yes | Non-empty list of patterns (5.5 Java, 5.6 Python). |
 
@@ -390,7 +398,7 @@ Conditions (all optional; all present conditions must hold):
 | `constantArg` | integer *i* ≥ 0 | call, new, method | The event has more than *i* arguments and argument *i* (0-based) is constant bytes (7.4.7). |
 | `inType` | list of simple type names | override | The enclosing type extends or implements one of the names (7.6). |
 | `body` | regex | override | The regex is found (`find`, case-sensitive) in the method body text after removing comments, collapsing whitespace runs to one space and trimming (7.6). |
-| `param` | `{index: i}` | call, new, method | *Not a filter.* The resolved string of argument *i* is reported as the finding's param (7.8). Not used by the bundled Java rules. |
+| `param` | `{index: i}` | call, new, method | *Not a filter.* The resolved string of argument *i* is reported as the finding's param (7.8). Used by the bundled Java rules for `SecureRandom.getInstance` *(DECISIONS E17)* and for named-curve OIDs (5.11). Java patterns accept no other `param` key. |
 
 A pattern that has a condition key other than `param` is **specific** (specificity 2); a
 pattern with only its anchor, or only its anchor and `param`, is **bare** (specificity 1):
@@ -399,12 +407,13 @@ drives rule selection (7.7.1).
 
 ### 5.6 Python patterns
 
-A Python pattern has exactly one of `call`, `anyCall` or `assign`, or it has `method`
+A Python pattern has exactly one of `call`, `anyCall`, `assign` or `ref`, or it has `method`
 without `call`:
 
 | Anchor | Value | Fires on |
 |---|---|---|
-| `call` | dotted name, e.g. `cryptography.hazmat.primitives.ciphers.Cipher` | A call whose resolved name (8.4) equals the value or starts with the value followed by `.`. `Crypto.Hash.MD5` fires on `Crypto.Hash.MD5.new`; `hashlib.sha1` does not fire on `hashlib.sha1x`. |
+| `call` | dotted name, e.g. `cryptography.hazmat.primitives.ciphers.Cipher` | A call whose resolved name (8.4) equals the value or starts with the value followed by `.`. `Crypto.Hash.MD5` fires on `Crypto.Hash.MD5.new`; `hashlib.sha1` does not fire on `hashlib.sha1x`. A `call` pattern without filter conditions also fires on a **bare reference** in value position whose resolved name *equals* the value (8.6.1): `MACS = [(b"hmac-sha1", sha1)]`, `digest=hashlib.sha256` *(DECISIONS E1)*. |
+| `ref` | dotted name | A bare reference (8.6.1) in any expression position whose resolved name equals the value, e.g. an enum member `pkcs11.Mechanism.SHA256_RSA_PKCS` or a class used as a value, `algorithms.AES`. Never a call. *(DECISIONS E1)* |
 | `method` | name or list of names | A call whose method name (8.4.3) is one of the names, whatever the receiver. May also be combined with `call` (then both must hold). |
 | `anyCall` | `true`; requires `kwargs` | Any call (e.g. `verify=False` on any function). |
 | `assign` | attribute name | An assignment `expr.NAME = value` or augmented assignment `expr.NAME op= value`. |
@@ -418,12 +427,15 @@ Conditions:
 | `anySymbol` | list of dotted names | call, method, anyCall | Some listed name *hits* the call's symbol set (8.5.2): it equals a symbol, or a symbol ends with `.` + name. |
 | `allSymbols` | list | call, method, anyCall | Every listed name hits the symbol set. |
 | `kwargs` | map keyword → regex | call, method, anyCall | For every entry, the call has that keyword argument and the regex is found (`find`, case-insensitive) in at least one of its value texts (8.5.3). |
+| `dictItems` | map key → regex | call, method, anyCall | For every entry, some argument (positional, or a keyword value) is a `dictionary` display — or an `identifier` with a binding (8.3) whose right-hand side is one — that has a `pair` whose `key` has the entry's key as string value (8.5.1) and in one of whose `value`'s value texts (8.5.3, in the dictionary's scope) the regex is found (case-insensitive). `algos.DigestAlgorithm({'algorithm': 'sha256'})` *(DECISIONS E3)*. |
+| `notInside` | list of method names | call, method, anyCall | The walk of 8.7 from the call finds no enclosing call whose method name is listed: `padding.PKCS1v15()` not passed (directly or nested) to `sign`, `verify`, `encrypt` or `decrypt` *(DECISIONS E12)*. |
 | `value` | regex | assign | The regex is found (case-insensitive) in at least one value text of the right-hand side (8.5.3). |
 | `valueContains` | list | assign | Some value text contains some listed string (case-insensitive). |
-| `param` | `{keyword: k, index: i}` (either or both) or `{self: true}` | call, method, anyCall | *Not a filter.* Names the argument reported as param (8.8). |
+| `param` | `{keyword: k, index: i}` (either or both), `{self: true}` or `{value: s}` | call, method, anyCall, ref (`self` or `value` only) | *Not a filter.* Names the argument reported as param (8.8); `value` reports the fixed string *s* (a library whose curve is implied, e.g. secp256k1 bindings). |
 | `reportAt` | list of method names | call, method, anyCall | *Not a filter.* Report the finding at the enclosing call to one of these methods (8.7). |
 
-`*` prefixes are not supported in Python patterns.
+`*` prefixes are not supported in Python patterns. A `ref` pattern takes no condition and no
+`reportAt`; its `param` can only be `{self: true}` or `{value: s}` (the schema enforces this).
 
 ### 5.7 Regular expressions
 
@@ -433,8 +445,8 @@ named groups `(?P<…>)`, no `\Z`, no inline comments `(?#…)`, no possessive q
 modes use `CASE_INSENSITIVE | UNICODE_CASE`. "Matches at its start" means
 `Matcher.lookingAt()`; "is found" means `Matcher.find()`. `$` has Java's default meaning
 (end of input or before a final line terminator). The tool `spec/tools/regex_parity.py`
-checks all bundled regexes for identical behaviour in both engines (48 894 probes, no
-difference).
+checks all bundled regexes for identical behaviour in both engines (106 722 probes, no
+difference; `kwargs` and `dictItems` values included).
 
 ### 5.8 Validation
 
@@ -498,7 +510,180 @@ constants:
 Used by Java string resolution (7.4): a reference `C.F`, where `C`'s simple name (the last
 segment of the qualifier as written) has an entry with field `F`, resolves to the listed
 string, regardless of imports. The bundled table covers commons-codec
-`MessageDigestAlgorithms` and `HmacAlgorithms` and Android `KeyProperties`.
+`MessageDigestAlgorithms` and `HmacAlgorithms`, Android `KeyProperties`, and the
+`ALGORITHM_NAME` / `DEFAULT_ALGORITHM_NAME` constants of Apache Shiro's hash classes
+*(DECISIONS E16)*.
+
+### 5.11 Algorithm OIDs *(DECISIONS E15, decided by owner)*
+
+CipherSift has a built-in, fixed table of algorithm object identifiers (below; not part of
+the rule set and not configurable). A string is a **table OID** if it is exactly a dotted OID
+(`[0-2](\.(0|[1-9][0-9]*))+`), optionally prefixed with the JCA alias prefix `OID.` (in any
+case), with no surrounding white space, whose dotted form is listed in the table.
+
+* **Matching.** Wherever a string list is built — Java 7.4.6, Python 8.5.1 — every element
+  that is a table OID is replaced by the table's *name* for it, and the element remembers the
+  OID. Python value texts (8.5.3) list the name right after a string value or constant value
+  that is a table OID. A reported param (Java 7.8, Python 8.8) that is a table OID is replaced
+  by its name. Rule conditions therefore see the name, exactly as if the source had used it:
+  `Signature.getInstance("1.2.840.10045.4.3.2")` is matched like
+  `Signature.getInstance("SHA256withECDSA")`, through a constant as well.
+* **Names** are the JCA standard names where Java has one (`SHA256withECDSA`, `SHA-256`,
+  `HmacSHA256`, cipher OIDs as transformations such as `AES_256/CBC/NoPadding`), else the
+  usual name (`PBKDF2`, `PBES2`, `SCRYPT`, `secp256r1`, `ML-KEM-768`).
+* **OID constructors.** The bundled rules match the OID-taking constructors
+  `new org.bouncycastle.asn1.ASN1ObjectIdentifier("…")` (Java) and
+  `cryptography.x509.ObjectIdentifier`, `cryptography.x509.oid.ObjectIdentifier`,
+  `asn1crypto.core.ObjectIdentifier`, `pyasn1.type.univ.ObjectIdentifier` (Python) with a
+  `firstString` of exactly the names the table assigns to that rule (the "reported by" columns
+  below, which also give the family / variant of that rule); the asn1crypto `algos.*Algorithm`
+  / `*AlgorithmId` patterns also accept the table names of those OIDs that asn1crypto maps to the
+  names the pattern already accepts (`DigestAlgorithmId("2.16.840.1.101.3.4.2.1")` like
+  `DigestAlgorithmId("sha256")`). Named curves report the curve name as param. JCA factories need no new patterns: their existing conditions see the
+  name.
+* **Unknown OIDs** (not in the table, or not exactly a dotted OID) stay unchanged; no bundled
+  pattern matches a dotted string, so they produce no finding of their own (a JCA call with an
+  unknown OID still gives its `*.unresolved` fallback, as for any unknown name).
+* **Output.** The OID behind the matched string of a finding is its *oid*: Java — the element
+  that was the matched string (7.7.1); Python — the first string for `firstString`, the first
+  string containing a needle for `stringContains`, the value that satisfied the first
+  `dictItems` entry. An algorithm component with an oid writes it as `cryptoProperties.oid`
+  (11.3) and has the oid in its key (10.1).
+* **Not covered:** OIDs computed at run time or held in library constants
+  (`PKCSObjectIdentifiers.rsaEncryption`, `NISTObjectIdentifiers.id_sha256.getId()`), and
+  Java `final` locals assigned after their declaration (7.4.3, Appendix B). OIDs whose family
+  has no rule in a language (PBES2 and the PQC OIDs in Python) give no Python finding.
+
+| OID | ASN.1 name | treated as | defined in | reported by (Java) | reported by (Python) |
+|---|---|---|---|---|---|
+| `1.2.840.113549.1.1.1` | rsaEncryption | `RSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa` (RSA) |
+| `1.2.840.113549.1.1.7` | id-RSAES-OAEP | `OAEP` | RFC 8017 | `java.asym.rsa.oaep` (RSA) | `python.asym.rsa.oaep` (RSA / OAEP) |
+| `1.2.840.113549.1.1.10` | id-RSASSA-PSS | `RSASSA-PSS` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pss` (RSA / PSS) |
+| `1.2.840.113549.1.1.2` | md2WithRSAEncryption | `MD2withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.4` | md5WithRSAEncryption | `MD5withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.5` | sha1WithRSAEncryption | `SHA1withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.14` | sha224WithRSAEncryption | `SHA224withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.11` | sha256WithRSAEncryption | `SHA256withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.12` | sha384WithRSAEncryption | `SHA384withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.13` | sha512WithRSAEncryption | `SHA512withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.15` | sha512-224WithRSAEncryption | `SHA512/224withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.113549.1.1.16` | sha512-256WithRSAEncryption | `SHA512/256withRSA` | RFC 8017 | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `2.16.840.1.101.3.4.3.13` | id-rsassa-pkcs1-v1_5-with-sha3-224 | `SHA3-224withRSA` | NIST CSOR | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `2.16.840.1.101.3.4.3.14` | id-rsassa-pkcs1-v1_5-with-sha3-256 | `SHA3-256withRSA` | NIST CSOR | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `2.16.840.1.101.3.4.3.15` | id-rsassa-pkcs1-v1_5-with-sha3-384 | `SHA3-384withRSA` | NIST CSOR | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `2.16.840.1.101.3.4.3.16` | id-rsassa-pkcs1-v1_5-with-sha3-512 | `SHA3-512withRSA` | NIST CSOR | `java.asym.rsa` (RSA) | `python.asym.rsa.pkcs1v15.sign` (RSA / PKCS1v15) |
+| `1.2.840.10040.4.1` | id-dsa | `DSA` | RFC 3279 | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `1.2.840.10040.4.3` | id-dsa-with-sha1 | `SHA1withDSA` | RFC 3279 | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.1` | id-dsa-with-sha224 | `SHA224withDSA` | RFC 5758 | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.2` | id-dsa-with-sha256 | `SHA256withDSA` | RFC 5758 | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.3` | id-dsa-with-sha384 | `SHA384withDSA` | NIST CSOR | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.4` | id-dsa-with-sha512 | `SHA512withDSA` | NIST CSOR | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.5` | id-dsa-with-sha3-224 | `SHA3-224withDSA` | NIST CSOR | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.6` | id-dsa-with-sha3-256 | `SHA3-256withDSA` | NIST CSOR | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.7` | id-dsa-with-sha3-384 | `SHA3-384withDSA` | NIST CSOR | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `2.16.840.1.101.3.4.3.8` | id-dsa-with-sha3-512 | `SHA3-512withDSA` | NIST CSOR | `java.asym.dsa` (DSA) | `python.asym.dsa` (DSA) |
+| `1.2.840.10045.2.1` | id-ecPublicKey | `EC` | RFC 5480 | `java.asym.ec` (EC) | `python.asym.ec` (EC) |
+| `1.3.132.1.12` | id-ecDH | `ECDH` | RFC 5480 | `java.asym.ecdh` (EC) | `python.asym.ecdh` (EC) |
+| `1.2.840.10045.4.1` | ecdsa-with-SHA1 | `SHA1withECDSA` | RFC 3279 | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `1.2.840.10045.4.3.1` | ecdsa-with-SHA224 | `SHA224withECDSA` | RFC 5758 | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `1.2.840.10045.4.3.2` | ecdsa-with-SHA256 | `SHA256withECDSA` | RFC 5758 | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `1.2.840.10045.4.3.3` | ecdsa-with-SHA384 | `SHA384withECDSA` | RFC 5758 | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `1.2.840.10045.4.3.4` | ecdsa-with-SHA512 | `SHA512withECDSA` | RFC 5758 | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `2.16.840.1.101.3.4.3.9` | id-ecdsa-with-sha3-224 | `SHA3-224withECDSA` | NIST CSOR | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `2.16.840.1.101.3.4.3.10` | id-ecdsa-with-sha3-256 | `SHA3-256withECDSA` | NIST CSOR | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `2.16.840.1.101.3.4.3.11` | id-ecdsa-with-sha3-384 | `SHA3-384withECDSA` | NIST CSOR | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `2.16.840.1.101.3.4.3.12` | id-ecdsa-with-sha3-512 | `SHA3-512withECDSA` | NIST CSOR | `java.asym.ecdsa` (EC) | `python.asym.ecdsa` (EC) |
+| `1.2.840.10045.3.1.1` | prime192v1 | `secp192r1` | RFC 5480 / SEC 2 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.132.0.33` | secp224r1 | `secp224r1` | RFC 5480 / SEC 2 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.2.840.10045.3.1.7` | prime256v1 | `secp256r1` | RFC 5480 / SEC 2 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.132.0.34` | secp384r1 | `secp384r1` | RFC 5480 / SEC 2 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.132.0.35` | secp521r1 | `secp521r1` | RFC 5480 / SEC 2 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.132.0.10` | secp256k1 | `secp256k1` | RFC 5480 / SEC 2 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.36.3.3.2.8.1.1.1` | brainpoolP160r1 | `brainpoolP160r1` | RFC 5639 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.36.3.3.2.8.1.1.3` | brainpoolP192r1 | `brainpoolP192r1` | RFC 5639 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.36.3.3.2.8.1.1.5` | brainpoolP224r1 | `brainpoolP224r1` | RFC 5639 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.36.3.3.2.8.1.1.7` | brainpoolP256r1 | `brainpoolP256r1` | RFC 5639 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.36.3.3.2.8.1.1.9` | brainpoolP320r1 | `brainpoolP320r1` | RFC 5639 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.36.3.3.2.8.1.1.11` | brainpoolP384r1 | `brainpoolP384r1` | RFC 5639 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.36.3.3.2.8.1.1.13` | brainpoolP512r1 | `brainpoolP512r1` | RFC 5639 | `java.asym.ec` (EC), param | `python.asym.ec` (EC), param |
+| `1.3.101.110` | id-X25519 | `X25519` | RFC 8410 | `java.asym.ecdh` (EC) | `python.asym.x25519` (Curve25519) |
+| `1.3.101.111` | id-X448 | `X448` | RFC 8410 | `java.asym.ecdh` (EC) | `python.asym.x448` (Curve448) |
+| `1.3.101.112` | id-Ed25519 | `Ed25519` | RFC 8410 | `java.asym.ed25519` (Ed25519) | `python.asym.ed25519` (Ed25519) |
+| `1.3.101.113` | id-Ed448 | `Ed448` | RFC 8410 | `java.asym.ed25519` (Ed25519) | `python.asym.ed448` (Ed448) |
+| `1.2.840.113549.1.3.1` | dhKeyAgreement | `DH` | PKCS #3 | `java.asym.dh` (DH) | `python.asym.dh` (DH) |
+| `1.2.840.10046.2.1` | dhpublicnumber | `DH` | RFC 3279 | `java.asym.dh` (DH) | `python.asym.dh` (DH) |
+| `1.2.840.113549.2.2` | md2 | `MD2` | RFC 3279 | `java.hash.md2` (MD2) | `python.hash.md2` (MD2) |
+| `1.2.840.113549.2.5` | md5 | `MD5` | RFC 3279 | `java.hash.md5` (MD5) | `python.hash.md5` (MD5) |
+| `1.3.14.3.2.26` | id-sha1 | `SHA-1` | RFC 3279 | `java.hash.sha1` (SHA1) | `python.hash.sha1` (SHA1) |
+| `2.16.840.1.101.3.4.2.4` | id-sha224 | `SHA-224` | RFC 5754 / NIST CSOR | `java.hash.sha2` (SHA2) | `python.hash.sha2` (SHA2) |
+| `2.16.840.1.101.3.4.2.1` | id-sha256 | `SHA-256` | RFC 5754 / NIST CSOR | `java.hash.sha2` (SHA2) | `python.hash.sha2` (SHA2) |
+| `2.16.840.1.101.3.4.2.2` | id-sha384 | `SHA-384` | RFC 5754 / NIST CSOR | `java.hash.sha2` (SHA2) | `python.hash.sha2` (SHA2) |
+| `2.16.840.1.101.3.4.2.3` | id-sha512 | `SHA-512` | RFC 5754 / NIST CSOR | `java.hash.sha2` (SHA2) | `python.hash.sha2` (SHA2) |
+| `2.16.840.1.101.3.4.2.5` | id-sha512-224 | `SHA-512/224` | RFC 5754 / NIST CSOR | `java.hash.sha2` (SHA2) | `python.hash.sha2` (SHA2) |
+| `2.16.840.1.101.3.4.2.6` | id-sha512-256 | `SHA-512/256` | RFC 5754 / NIST CSOR | `java.hash.sha2` (SHA2) | `python.hash.sha2` (SHA2) |
+| `2.16.840.1.101.3.4.2.7` | id-sha3-224 | `SHA3-224` | NIST CSOR | `java.hash.sha3` (SHA3) | `python.hash.sha3` (SHA3) |
+| `2.16.840.1.101.3.4.2.8` | id-sha3-256 | `SHA3-256` | NIST CSOR | `java.hash.sha3` (SHA3) | `python.hash.sha3` (SHA3) |
+| `2.16.840.1.101.3.4.2.9` | id-sha3-384 | `SHA3-384` | NIST CSOR | `java.hash.sha3` (SHA3) | `python.hash.sha3` (SHA3) |
+| `2.16.840.1.101.3.4.2.10` | id-sha3-512 | `SHA3-512` | NIST CSOR | `java.hash.sha3` (SHA3) | `python.hash.sha3` (SHA3) |
+| `1.2.840.113549.2.7` | id-hmacWithSHA1 | `HmacSHA1` | RFC 8018 | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `1.2.840.113549.2.8` | id-hmacWithSHA224 | `HmacSHA224` | RFC 8018 | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `1.2.840.113549.2.9` | id-hmacWithSHA256 | `HmacSHA256` | RFC 8018 | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `1.2.840.113549.2.10` | id-hmacWithSHA384 | `HmacSHA384` | RFC 8018 | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `1.2.840.113549.2.11` | id-hmacWithSHA512 | `HmacSHA512` | RFC 8018 | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `1.2.840.113549.2.12` | id-hmacWithSHA512-224 | `HmacSHA512/224` | RFC 8018 | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `1.2.840.113549.2.13` | id-hmacWithSHA512-256 | `HmacSHA512/256` | RFC 8018 | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `2.16.840.1.101.3.4.2.13` | id-hmacWithSHA3-224 | `HmacSHA3-224` | NIST CSOR | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `2.16.840.1.101.3.4.2.14` | id-hmacWithSHA3-256 | `HmacSHA3-256` | NIST CSOR | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `2.16.840.1.101.3.4.2.15` | id-hmacWithSHA3-384 | `HmacSHA3-384` | NIST CSOR | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `2.16.840.1.101.3.4.2.16` | id-hmacWithSHA3-512 | `HmacSHA3-512` | NIST CSOR | `java.mac.hmac` (HMAC) | `python.mac.hmac` (HMAC) |
+| `2.16.840.1.101.3.4.1.1` | aes128-ECB | `AES_128/ECB/NoPadding` | NIST CSOR | `java.sym.aes.ecb` (AES / ECB) | `python.sym.aes.ecb` (AES / ECB) |
+| `2.16.840.1.101.3.4.1.2` | aes128-CBC | `AES_128/CBC/NoPadding` | RFC 3565 | `java.sym.aes.cbc` (AES / CBC) | `python.sym.aes.cbc` (AES / CBC) |
+| `2.16.840.1.101.3.4.1.3` | aes128-OFB | `AES_128/OFB/NoPadding` | NIST CSOR | `java.sym.aes.ofb` (AES / OFB) | `python.sym.aes.ofb` (AES / OFB) |
+| `2.16.840.1.101.3.4.1.4` | aes128-CFB | `AES_128/CFB/NoPadding` | NIST CSOR | `java.sym.aes.cfb` (AES / CFB) | `python.sym.aes.cfb` (AES / CFB) |
+| `2.16.840.1.101.3.4.1.5` | id-aes128-wrap | `AES_128/KW/NoPadding` | RFC 3394 | `java.sym.aes.kw` (AES) | `python.sym.aes.keywrap` (AES / KW) |
+| `2.16.840.1.101.3.4.1.6` | id-aes128-GCM | `AES_128/GCM/NoPadding` | RFC 5084 | `java.sym.aes.gcm` (AES / GCM) | `python.sym.aes.gcm` (AES / GCM) |
+| `2.16.840.1.101.3.4.1.7` | id-aes128-CCM | `AES_128/CCM/NoPadding` | RFC 5084 | `java.sym.aes.ccm` (AES / CCM) | `python.sym.aes.ccm` (AES / CCM) |
+| `2.16.840.1.101.3.4.1.8` | id-aes128-wrap-pad | `AES_128/KWP/NoPadding` | RFC 5649 | `java.sym.aes.kw` (AES) | `python.sym.aes.keywrap` (AES / KW) |
+| `2.16.840.1.101.3.4.1.21` | aes192-ECB | `AES_192/ECB/NoPadding` | NIST CSOR | `java.sym.aes.ecb` (AES / ECB) | `python.sym.aes.ecb` (AES / ECB) |
+| `2.16.840.1.101.3.4.1.22` | aes192-CBC | `AES_192/CBC/NoPadding` | RFC 3565 | `java.sym.aes.cbc` (AES / CBC) | `python.sym.aes.cbc` (AES / CBC) |
+| `2.16.840.1.101.3.4.1.23` | aes192-OFB | `AES_192/OFB/NoPadding` | NIST CSOR | `java.sym.aes.ofb` (AES / OFB) | `python.sym.aes.ofb` (AES / OFB) |
+| `2.16.840.1.101.3.4.1.24` | aes192-CFB | `AES_192/CFB/NoPadding` | NIST CSOR | `java.sym.aes.cfb` (AES / CFB) | `python.sym.aes.cfb` (AES / CFB) |
+| `2.16.840.1.101.3.4.1.25` | id-aes192-wrap | `AES_192/KW/NoPadding` | RFC 3394 | `java.sym.aes.kw` (AES) | `python.sym.aes.keywrap` (AES / KW) |
+| `2.16.840.1.101.3.4.1.26` | id-aes192-GCM | `AES_192/GCM/NoPadding` | RFC 5084 | `java.sym.aes.gcm` (AES / GCM) | `python.sym.aes.gcm` (AES / GCM) |
+| `2.16.840.1.101.3.4.1.27` | id-aes192-CCM | `AES_192/CCM/NoPadding` | RFC 5084 | `java.sym.aes.ccm` (AES / CCM) | `python.sym.aes.ccm` (AES / CCM) |
+| `2.16.840.1.101.3.4.1.28` | id-aes192-wrap-pad | `AES_192/KWP/NoPadding` | RFC 5649 | `java.sym.aes.kw` (AES) | `python.sym.aes.keywrap` (AES / KW) |
+| `2.16.840.1.101.3.4.1.41` | aes256-ECB | `AES_256/ECB/NoPadding` | NIST CSOR | `java.sym.aes.ecb` (AES / ECB) | `python.sym.aes.ecb` (AES / ECB) |
+| `2.16.840.1.101.3.4.1.42` | aes256-CBC | `AES_256/CBC/NoPadding` | RFC 3565 | `java.sym.aes.cbc` (AES / CBC) | `python.sym.aes.cbc` (AES / CBC) |
+| `2.16.840.1.101.3.4.1.43` | aes256-OFB | `AES_256/OFB/NoPadding` | NIST CSOR | `java.sym.aes.ofb` (AES / OFB) | `python.sym.aes.ofb` (AES / OFB) |
+| `2.16.840.1.101.3.4.1.44` | aes256-CFB | `AES_256/CFB/NoPadding` | NIST CSOR | `java.sym.aes.cfb` (AES / CFB) | `python.sym.aes.cfb` (AES / CFB) |
+| `2.16.840.1.101.3.4.1.45` | id-aes256-wrap | `AES_256/KW/NoPadding` | RFC 3394 | `java.sym.aes.kw` (AES) | `python.sym.aes.keywrap` (AES / KW) |
+| `2.16.840.1.101.3.4.1.46` | id-aes256-GCM | `AES_256/GCM/NoPadding` | RFC 5084 | `java.sym.aes.gcm` (AES / GCM) | `python.sym.aes.gcm` (AES / GCM) |
+| `2.16.840.1.101.3.4.1.47` | id-aes256-CCM | `AES_256/CCM/NoPadding` | RFC 5084 | `java.sym.aes.ccm` (AES / CCM) | `python.sym.aes.ccm` (AES / CCM) |
+| `2.16.840.1.101.3.4.1.48` | id-aes256-wrap-pad | `AES_256/KWP/NoPadding` | RFC 5649 | `java.sym.aes.kw` (AES) | `python.sym.aes.keywrap` (AES / KW) |
+| `1.2.840.113549.3.7` | des-ede3-cbc | `DESede/CBC/NoPadding` | RFC 8018 | `java.sym.3des` (3DES) | `python.sym.3des` (3DES) |
+| `1.3.14.3.2.7` | desCBC | `DES/CBC/NoPadding` | RFC 8018 | `java.sym.des` (DES) | `python.sym.des` (DES) |
+| `1.2.840.113549.3.2` | rc2CBC | `RC2/CBC/NoPadding` | RFC 8018 | `java.sym.rc2` (RC2) | `python.sym.rc2` (RC2) |
+| `1.2.840.113549.1.5.12` | id-PBKDF2 | `PBKDF2` | RFC 8018 | `java.kdf.pbkdf2` (PBKDF2) | `python.kdf.pbkdf2` (PBKDF2) |
+| `1.2.840.113549.1.5.13` | id-PBES2 | `PBES2` | RFC 8018 | `java.kdf.pbe` (PBE) | — |
+| `1.3.6.1.4.1.11591.4.11` | id-scrypt | `SCRYPT` | RFC 7914 | `java.kdf.scrypt` (scrypt) | `python.kdf.scrypt` (scrypt) |
+| `2.16.840.1.101.3.4.4.1` | id-alg-ml-kem-512 | `ML-KEM-512` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | — |
+| `2.16.840.1.101.3.4.4.2` | id-alg-ml-kem-768 | `ML-KEM-768` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | — |
+| `2.16.840.1.101.3.4.4.3` | id-alg-ml-kem-1024 | `ML-KEM-1024` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | — |
+| `2.16.840.1.101.3.4.3.17` | id-ml-dsa-44 | `ML-DSA-44` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | — |
+| `2.16.840.1.101.3.4.3.18` | id-ml-dsa-65 | `ML-DSA-65` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | — |
+| `2.16.840.1.101.3.4.3.19` | id-ml-dsa-87 | `ML-DSA-87` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | — |
+| `2.16.840.1.101.3.4.3.20` | id-slh-dsa-sha2-128s | `SLH-DSA-SHA2-128s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.21` | id-slh-dsa-sha2-128f | `SLH-DSA-SHA2-128f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.22` | id-slh-dsa-sha2-192s | `SLH-DSA-SHA2-192s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.23` | id-slh-dsa-sha2-192f | `SLH-DSA-SHA2-192f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.24` | id-slh-dsa-sha2-256s | `SLH-DSA-SHA2-256s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.25` | id-slh-dsa-sha2-256f | `SLH-DSA-SHA2-256f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.26` | id-slh-dsa-shake-128s | `SLH-DSA-SHAKE-128s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.27` | id-slh-dsa-shake-128f | `SLH-DSA-SHAKE-128f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.28` | id-slh-dsa-shake-192s | `SLH-DSA-SHAKE-192s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.29` | id-slh-dsa-shake-192f | `SLH-DSA-SHAKE-192f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.30` | id-slh-dsa-shake-256s | `SLH-DSA-SHAKE-256s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.3.31` | id-slh-dsa-shake-256f | `SLH-DSA-SHAKE-256f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
 
 ---
 
@@ -650,7 +835,13 @@ fully-qualified name `C`:
 4. If *F* is a local class, false. (A class declared in the file hides the API class.)
 5. If the first character of *F* is not an upper-case letter (`Character.isUpperCase`),
    false. (A variable, or a package path that is not exactly `C`.)
-6. Otherwise true iff `C` ends with `.` + `ref`. (The class is assumed to come from a
+6. Otherwise, if `C` does not end with `.` + `ref`, false. Let *E* be `C` without that suffix
+   (the qualifier of `ref` within `C`). If the last segment of *E* starts with an upper-case
+   letter, `ref` names a member type below the enclosing class *E* (`Inner` for
+   `a.b.Outer.Inner`, `Digest256` for `…digest.SHA3.Digest256`); such a name is in scope only
+   through an import, so the result is true iff *E* is in *wildcards* or *staticWildcards*, or
+   `staticImports[F]` is *E* *(DECISIONS E7/E8)*. Otherwise true. (A top-level class, or a
+   member type written with its enclosing class (`Outer.Inner`), is assumed to come from a
    wildcard import, the same package or `java.lang`.)
 
 ### 7.4 Constant resolution
@@ -794,7 +985,8 @@ data, not a list of names *(Appendix A, D9)*. Each contributed element (and each
 argument) is evaluated with `value`; resolved values are appended, unresolved ones are
 skipped. Hence the "first string" is the first *resolvable* argument, not
 necessarily argument 0: in `Cipher.getInstance(alg, "BC")` with unresolved `alg` it is
-`"BC"`. `field` and `decl` events have an empty string list.
+`"BC"`. `field` and `decl` events have an empty string list. Finally every element that is a
+table OID is replaced by its name and remembers the OID (5.11) *(DECISIONS E15)*.
 
 #### 7.4.7 Constant bytes
 
@@ -908,7 +1100,8 @@ Each kept (event, rule) pair yields one finding:
 | name | the matched string of the chosen pattern if there is one, else the display name |
 | symbol | `call`: `C` + `.` + the event's method name; `new`: `C`; `method`: the method name; `field`: `C` + `.` + the event's field name; `override`: the method name (`C` from the chosen pattern) |
 | snippet | the node text; for `decl` events, the text up to (not including) the first `{`, trimmed; at most 500 code points |
-| param | if the chosen pattern has `param.index` *i*: the `value` of argument *i*, if resolved; else none |
+| param | if the chosen pattern has `param.index` *i*: the `value` of argument *i*, if resolved, mapped through the OID table (5.11); else none |
+| oid | the OID the matched string was given as (5.11), if any |
 
 ---
 
@@ -920,8 +1113,9 @@ For each Python file:
 
 1. One pre-order walk over the tree collects, with the scope each node belongs to (8.3):
    import statements (8.2; their subtrees are not walked further), simple assignments,
-   function parameters, `call` nodes, and attribute assignments.
-2. Calls are matched in pre-order (8.6).
+   function parameters, `call` nodes, bare-reference candidates (8.6.1), and attribute
+   assignments.
+2. Calls and bare references are matched in pre-order (8.6, 8.6.1).
 3. Attribute assignments are matched in pre-order (8.9).
 
 Within one file, at most one finding is emitted per (rule, line) (calls and assignments
@@ -1043,7 +1237,8 @@ not consist of decimal digits only; a `list`, `tuple`, `set` or `parenthesized_e
 `strings` of its named children, concatenated; anything else → nothing.
 
 The **string list** of a call is `strings` of each positional argument in order, followed by
-`strings` of each keyword-argument value in order.
+`strings` of each keyword-argument value in order; then every element that is a table OID is
+replaced by its name and remembers the OID (5.11) *(DECISIONS E15)*.
 
 #### 8.5.2 Symbol set
 
@@ -1066,7 +1261,8 @@ algorithms.AES(k)` has `algo`, `…algorithms.AES`, `…modes.GCM`, `iv`.
 
 The value texts of an expression *e* are, in order: the text of *e*; its string value (if
 any); if *e* is an `identifier`, its `constantValues`; if *e* is an `identifier` or
-`attribute`, `resolveDotted(e)`; if *e* is a `call`, its `callNames`.
+`attribute`, `resolveDotted(e)`; if *e* is a `call`, its `callNames`. A string value or
+constant value that is a table OID is directly followed by its name (5.11).
 
 ### 8.6 Matching calls
 
@@ -1080,7 +1276,11 @@ Calls are processed in pre-order. For a call with call names *names* (8.4.2) and
    `call` equals the prefix (rules in id order, patterns in file order). The *name used* is
    *n*;
 2. the patterns without `call` whose `method` contains *m* (rule order, file order); name
-   used: *names*[0];
+   used: *names*[0] — but if the pattern has `anySymbol`, the first entry of its `anySymbol`
+   list (in list order) that hits the symbol set: the receiver of a method-only pattern is
+   unknown, so the finding is named after the API that identified it
+   (`cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15`, not `key.sign`)
+   *(DECISIONS E13/E17)*;
 3. if at least one `anyCall` pattern requires a keyword (in `kwargs`) that the call has: all
    `anyCall` patterns (rule order, file order); name used: *names*[0].
 
@@ -1114,6 +1314,54 @@ is not refined if another hit's rule is refined and has the same identity.
 | name, symbol | the name used |
 | snippet | text of the report node, at most 500 code points |
 | param | 8.8 |
+| oid | 5.11 |
+
+### 8.6.1 Bare references *(DECISIONS E1)*
+
+Libraries that define their algorithm suites declaratively name an algorithm without calling
+it: in tables (`MACS = ((b"hmac-sha1", sha1),)`), as class attributes (`SHA256 =
+hashes.SHA256`), as arguments (`hmac_oneshot(k, m, digest=hashlib.sha256)`) or as enum
+members (`Mechanism.SHA256_RSA_PKCS`). Such a *bare reference* is an `identifier` or an
+`attribute` node that is neither the `object` of an `attribute` nor the `function` of a
+`call`. Its *names* are `resolveDotted` of the node (8.4.1); a reference without names is not
+analysed.
+
+**Candidates**: for each name *n* in order, the patterns that may fire on references whose value
+equals *n* exactly (no prefix match), rules in id order, patterns in file order, each at most
+once; name used: *n*. Patterns that may fire on references are the `ref` patterns and the `call`
+patterns without any of `method`, `firstString`, `stringContains`, `anySymbol`, `allSymbols`,
+`kwargs`, `dictItems`, `notInside` (a reference has no arguments). `param` and `reportAt` do not
+prevent it.
+
+**Position.** Walk from the reference *x* to its parent *p*, upwards:
+
+* `parenthesized_expression` and `conditional_expression` are passed through;
+* `list`, `tuple`, `set`, `expression_list`, `dictionary` and `pair` (key or value) are passed
+  through and mark the reference as a *container element*;
+* `argument_list`: a value position iff its parent is a `call` whose method name (8.4.3) is not
+  `isinstance`, `issubclass`, `cast`, `TypeVar` or `NewType` (class bases are not positions);
+* `keyword_argument`: a value position iff *x* is its `value` and the keyword argument belongs
+  to the `argument_list` of such a call;
+* `assignment`: a value position iff *x* is its `right`;
+* any other node: a value position iff *x* is a container element and the node is not a type or
+  test context: `comparison_operator`, `except_clause`, `subscript`, `type`, `generic_type`,
+  `union_type`, `constrained_type`, `member_type`, `splat_type`, `type_alias_statement`,
+  `type_parameter`.
+
+A `call` pattern fires only in a value position. A `ref` pattern fires in any *expression
+position*: the same walk in which `binary_operator`, `unary_operator`, `boolean_operator`,
+`not_operator` and `await` are passed through as well and every reference counts as a container
+element (`Q = P + ecc.GENERATOR * k`, `return Mechanism.ECDSA`). Default values of parameters are
+not positions (8.3: they belong to the function's scope, Appendix B).
+
+**Hits, refinement, emission** as in 8.6, with these differences: there are no conditions; no
+argument range is recorded; the nesting check of step 1 applies (a reference inside the recorded
+arguments of a call with a hit of the same rule is dropped: `hmac.new(k, m, hashlib.sha256)` is
+one SHA-2 finding, at `hmac.new`); the report node is the reference, or with `reportAt` the
+operation call of 8.7 started at the reference; the line is the row of an `attribute`'s
+`attribute` identifier (of the report node, or of the report call's `function`) + 1, otherwise
+the start row + 1; the snippet is the report node's text; param: `{value: s}` → *s*,
+`{self: true}` → as in 8.8, otherwise none.
 
 ### 8.7 Operation-call attribution (`reportAt`)
 
@@ -1132,6 +1380,7 @@ stored in a variable first (`pad = padding.OAEP(…)`) stays at its own line.
 
 ### 8.8 Parameter extraction (`param`)
 
+* `{value: s}`: *s*.
 * `{self: true}`: the last `.`-segment of the name used, if it contains a `.`; else none
   (`ec.SECP256R1()` → `SECP256R1`).
 * Otherwise the argument node is: the value of keyword argument `keyword` if the call has
@@ -1143,6 +1392,8 @@ stored in a variable first (`pad = padding.OAEP(…)`) stays at its own line.
      if it is a `call`: its `callNames`; if it is an `attribute`: `resolveDotted`;
      otherwise no candidates;
   3. the last `.`-segment of the first candidate that contains a `.`; else none.
+
+A param that is a table OID is replaced by its name (5.11).
 
 Examples: `key_size=2048` → `2048`; `key_size=KEY_BITS` with `KEY_BITS = 3072` → `3072`;
 `ec.generate_private_key(ec.SECP384R1())` → `SECP384R1`; `ECC.generate(curve="P-256")` →
@@ -1181,6 +1432,8 @@ yields no entries.
 | `pyproject.toml` | pypi | `pyproject` |
 | `Pipfile.lock` | pypi | `pipfile-lock` |
 | `poetry.lock` | pypi | `poetry-lock` |
+| `setup.cfg` | pypi | `setup-cfg` |
+| `setup.py` (Python source, 9.8) | pypi | `setup-py` |
 
 ### 9.1 Package keys and versions
 
@@ -1294,6 +1547,35 @@ Parsed as TOML. `[versions]`: name → string, or a table from which `strictly`,
 
 Missing or unresolvable versions are none. `[bundles]` and `[plugins]` are ignored.
 
+### 9.8 setup.py and setup.cfg *(DECISIONS E10)*
+
+Nothing is evaluated; only literal requirement strings are read.
+
+* **setup.py** is Python source (4.5) and is analysed as such; if its text contains
+  `install_requires` or `extras_require`, it is parsed even when the pre-filter (14) would skip
+  it, and it also yields dependency findings (manifest label `setup-py`; the file counts as a
+  Python file, 11.2.1). The *module bindings* are the `assignment`s directly below the module
+  (`expression_statement` children of `module`) with an `identifier` on the left. For every
+  `call` (pre-order) whose `function` is the identifier `setup` or an attribute `setup` of
+  `setuptools` or `distutils.core` (text without whitespace), take, in this order, the value of
+  its keyword argument `install_requires`, then each pair value of its `extras_require` value
+  (a `dictionary`, or an identifier whose module bindings are dictionaries, in order). A value
+  contributes its requirement strings: a string with a value (8.5.1) is a PEP 508 string (9.2,
+  `://` skipped); a `list`, `tuple` or `parenthesized_expression` contributes its elements'
+  strings (12 levels at most); an identifier at the top contributes the strings of each of its
+  module bindings (`rsa_require = ['cryptography>=3']`; one level). Anything else contributes
+  nothing.
+* **setup.cfg** is read line by line (LF; a trailing CR is removed). Blank lines and lines whose
+  first non-blank character is `#` or `;` are skipped. A non-indented line `[name]` starts a
+  section (name trimmed, lower case). A non-indented line with `=` or `:` (the first one
+  separates) is a key (trimmed, lower case, `-` → `_`) and its value. Requirements are the key
+  `install_requires` of section `options` and every key of section `options.extras_require`:
+  the value on the key's line, if any, and each following indented line, one requirement per
+  line, comments removed as in 9.2, parsed as PEP 508 (9.2); values starting with `file:` or
+  `attr:` are not followed, values containing `://` are skipped.
+
+Entries are de-duplicated per file as in the introduction of section 9.
+
 ---
 
 ## 10. Normalisation: findings to components
@@ -1302,7 +1584,7 @@ Missing or unresolvable versions are none. `[bundles]` and `[plugins]` are ignor
 
 | Asset type (rule) | Component key |
 |---|---|
-| `algorithm` | (rule id, name, param) |
+| `algorithm` | (rule id, name, param, oid) |
 | `protocol` | (rule id) |
 | `certificate` | (rule id) |
 | `related-crypto-material`, `key-material` | (rule id) |
@@ -1366,6 +1648,7 @@ properties  ciphersift:rulesDigest   "sha256:<hex>" over the rule set (11.6)
             ciphersift:testFiles     "included" | "excluded"
             ciphersift:filesScanned  decimal count of files analysed (source + manifests)
             ciphersift:filesSkipped  decimal count of files skipped (too large, binary, unreadable, failed)
+            ciphersift:weaknessIndicators  "included", only with --weakness-indicators (3.1)
 ```
 
 ### 11.3 Components
@@ -1376,7 +1659,7 @@ Common shape of a cryptographic component:
 type              "cryptographic-asset"
 bom-ref           "<assetType>:<16 hex digits>"            (11.6)
 name              (10.2)
-cryptoProperties  { assetType, <type-specific properties> }
+cryptoProperties  { assetType, <type-specific properties>, oid (only if the component has one, 5.11) }
 properties        [ {name, value}, … ]                     (11.3.4)
 evidence          { occurrences: [ … ] }                   (11.4)
 ```
@@ -1407,8 +1690,10 @@ CycloneDX 1.6 has no field for the algorithm family; it is a property (11.3.4).
 * `related-crypto-material` and `key-material` rules: `assetType` =
   `related-crypto-material` and `relatedCryptoMaterialProperties` = `{"type": T}` with T from
   the subtype: `hardcoded-key` → `secret-key`; `static-iv` → `initialization-vector`;
-  `hardcoded-password` → `password`; `jwt-none-algorithm` → `token`; every other subtype or
-  none → `other`. The rule's original asset type and subtype are properties.
+  `hardcoded-password` → `password`; `jwt-none-algorithm` → `token`; `private-key` →
+  `private-key`; `public-key` → `public-key`; `cms-signed-data` → `signature`;
+  `cms-enveloped-data` → `ciphertext`; every other subtype or none → `other`. The rule's
+  original asset type and subtype are properties.
 
 #### 11.3.4 Component properties
 
@@ -1423,6 +1708,7 @@ In this order, each only if it has a value:
 | `ciphersift:family` | the rule's family |
 | `ciphersift:variant` | the rule's variant |
 | `ciphersift:subtype` | the rule's subtype |
+| `ciphersift:indicator` | the rule's `indicator` (5.3), e.g. `weakness` (only with `--weakness-indicators`, DECISIONS E2) |
 | `ciphersift:testOnly` | `true` if every occurrence is in a test file |
 
 #### 11.3.5 Libraries
@@ -1687,14 +1973,15 @@ object and array element on its own line, 11.6.)
 
 ### 11.6 Ordering, references and serialisation
 
-* **Components**: all cryptographic components first, sorted by (rule id, name, param — none
-  sorts before any value); then library components sorted by (ecosystem, package key,
+* **Components**: all cryptographic components first, sorted by (rule id, name, param, oid —
+  none sorts before any value); then library components sorted by (ecosystem, package key,
   version — none first). All string comparisons in this document are by Unicode code points.
 * **Occurrences**: sorted by (location, line — absent first, symbol, snippet).
 * **Properties**: in the order of the tables above.
 * **bom-ref** of a cryptographic component: the CycloneDX asset type, `:`, and the first 16
   lower-case hex digits of SHA-256 over the UTF-8 bytes of the compact JSON array
-  `["algorithm",<rule id>,<name>,<param or "">]`, or `[<assetType>,<rule id>]` for the
+  `["algorithm",<rule id>,<name>,<param or "">]` — with the oid as a fifth element if the
+  component has one (5.11) — or `[<assetType>,<rule id>]` for the
   other asset types (`<assetType>` being the CycloneDX value, so `key-material` rules use
   `related-crypto-material`). If two components of one document would get the same bom-ref,
   both use all 64 hex digits instead. Libraries use their purl.
@@ -1779,7 +2066,10 @@ A finding is never emitted from a file whose analysis failed.
     name, Python call-name parts, keywords, attribute names), so if, for every pattern, one
     of its required names does not occur in the file's text as a substring, the file's
     findings are empty by construction. Such a file still counts as scanned (11.2.1). The
-    output is identical with and without this check.
+    output is identical with and without this check. (Bare references, 8.6.1, resolve like
+    call names; `kwargs` keywords and `dictItems` keys occur in the text; a member type
+    `a.Outer.Inner` is referred to only with `Outer` in the reference or in an import, 7.3.2.)
+    A `setup.py` that declares requirements is always parsed (9.8).
 * **Reference points** (informational). The conformance suite (about 70 files) runs in a few
   seconds including JVM start-up.
 
@@ -1987,6 +2277,12 @@ bug or gap in the reference tool that CipherSift fixes on purpose.
 | D7 | PyPI manifests: `requirements*.txt`, `requirements/*.txt`, `poetry.lock`, PEP 735 `[dependency-groups]`. | Only files named exactly `requirements.txt`; no Poetry lock, no dependency groups. | 9 |
 | D8 | Maven and Gradle manifests with the CipherSift crypto-library list; versions from `<properties>`; dependencies without version are reported. | Different (third-party) pom support, not carried over. | 9.5–9.7 |
 | D9 | Integer and character elements of array arguments are not part of the Java string list, so `new SecretKeySpec(new byte[] {1, 2, …}, "DES")` has the first string `"DES"`. | The array's numbers became strings (`"1"`, `"2"`, …), so `firstString` saw `"1"` and the DES pattern did not match. | 7.4.6 |
+| D10 | Python bare references in value position (table elements, class attributes, arguments, alias definitions) are matched by `call` patterns; `ref` patterns *(DECISIONS E1)*. | Only calls were matched. | 8.6.1 |
+| D11 | `verify=False` / `ssl=False` disable certificate validation only on `requests`, `httpx`, `aiohttp` calls and HTTP-client method names *(DECISIONS E14)*. | Any call with such a keyword. | 8.6 (rule) |
+| D12 | A PSS / OAEP padding object in a variable is attributed to the operation call like PKCS1v15; method-only patterns with `anySymbol` are named after the symbol *(DECISIONS E13, E17)*. | PSS/OAEP stayed at their own line; names were built from the receiver (`key.sign`). | 8.6 |
+| D13 | `setup.py` `install_requires` / `extras_require` and `setup.cfg` are dependency manifests *(DECISIONS E10)*. | Not read. | 9.8 |
+| D14 | `SecureRandom.getInstance(alg)` reports `alg` as parameter *(DECISIONS E17)*. | No parameter. | rule |
+| D15 | Weakness indicators (insecure PRNGs) are reported only with `--weakness-indicators` *(DECISIONS E2)*; `common/test-files` drops its `random.random()` finding, the fork-fixture cases pass the option. | Always reported. | 3.1, 5.3 |
 
 CBOM layout and component grouping (sections 10 and 11) are new designs and are not
 comparable with the reference tool's components (which, for example, merge Java algorithm
@@ -2005,9 +2301,23 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
   `String.format`, `StringBuilder` or ternaries give a `java.jca.*.unresolved` component;
   Python attributes (`self.mode`), return values and cross-module constants are not
   resolved, so `hashlib.new(name)` with unknown `name` gives nothing.
+* Java: a `final` local declared without initialiser and assigned later
+  (`final String alg; if (c) alg = "A"; else alg = "B";`) is unresolved (7.4.3) and gives the
+  `*.unresolved` fallback, also when every assignment is an OID *(DECISIONS E15)*. OID strings
+  are mapped through the table of 5.11 only when they are literal or resolved constants; OIDs
+  held in library constants (`PKCSObjectIdentifiers.RC2_CBC.getId()`) and OIDs missing from the
+  table are not mapped.
 * Receiver types are not inferred: `method` patterns are heuristics
-  (`setEnabledProtocols`, Python `sign`/`encrypt` with `padding.*`, `verify=False` on any
-  call).
+  (`setEnabledProtocols`, `cipherSuites`, Python `sign`/`encrypt` with `padding.*`,
+  `ecdsa_sign`, `verify=False` on HTTP-client method names such as `get` or `send`).
+  Attribute *reads* are not anchors: asn1crypto certificate fingerprints (`cert.sha256`) are
+  not reported *(DECISIONS E3)*.
+* Python parameter default values are not value positions (8.6.1): `def h(v,
+  f=hashlib.sha256)` reports nothing, at the definition or at the call `f(v)` (D6 of the
+  evaluation, by design).
+* Python import alternatives are all bindings: `try: from secrets import randbits` / `except
+  ImportError: from random import getrandbits as randbits` reports both PRNGs
+  *(DECISIONS E17)*.
 * Java simple names that are neither imported nor declared are assumed to be the API class
   (7.3.2 step 6); a same-named class from the same package or a wildcard import is
   mis-attributed. Reassignment is tracked by simple name across the whole file.
@@ -2018,14 +2328,20 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
   f-strings are never strings.
 * Python resolution is flow-insensitive: all assignments of a scope count, and the first
   one supplies the first string (`alg = "md5"; alg = "sha256"; hashlib.new(alg)` → MD5).
-* Python operation attribution only works when the padding / hash object is written inside
-  the operation call's arguments.
+* Python operation attribution (`reportAt`) only works when the padding / hash object is written
+  inside the operation call's arguments; a padding object in a variable is reported at its own
+  line and, through the symbol set (flow-insensitively: every padding the variable is ever bound
+  to), at the operation call.
 * One algorithm per signature identifier in Java (`SHA1withRSA` → RSA only).
 * Dependency versions: no parent-POM, BOM or Gradle-plugin resolution; ranges give no
   version.
 * Kotlin, Groovy and Scala sources are not analysed.
 * Test detection is path-based: library code that lives in directories named like tests
   (e.g. `django/test/`, `numpy/testing/`) is marked as test code.
+* Only files with the extensions `.java` and `.py` are source: extensionless scripts
+  (`#!/usr/bin/env python3`) are not scanned *(DECISIONS E18)*.
+* tree-sitter-java 0.23.5 rejects some valid literals (a binary literal with a double
+  underscore, `0b1000__0000`); the rest of the file is analysed (6.2) *(DECISIONS E18)*.
 
 ## Appendix C. Tree-sitter node types and fields used
 
@@ -2060,7 +2376,11 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
 `value`); `list_splat`; `dictionary_splat`; `string` (children `string_start`,
 `string_content`, `interpolation`); `concatenated_string`; `integer`; `float`; `list`;
 `tuple`; `set`; `parenthesized_expression`; `conditional_expression`; `identifier`;
-`comment`.
+`comment`; for bare references (8.6.1) and setup.py (9.8) also `dictionary`, `pair` (fields
+`key`, `value`), `expression_list`, `expression_statement`, `binary_operator`,
+`unary_operator`, `boolean_operator`, `not_operator`, `return_statement`, `await`,
+`comparison_operator`, `except_clause`, `subscript`, `type`, `generic_type`, `union_type`,
+`constrained_type`, `member_type`, `splat_type`, `type_alias_statement`, `type_parameter`.
 
 An implementation SHOULD verify at start-up (or in a unit test) that every field name listed
 here exists in the loaded grammar (`Language.getFieldIdForName` returns non-zero), so that a

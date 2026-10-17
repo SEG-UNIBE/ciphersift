@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: python.kdf.x963
+kind: source
+language: python
+name: ANSI X9.63 KDF in Python
+description: Detects the ANSI X9.63 key derivation function via pyca/cryptography X963KDF.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: X963KDF
+match:
+- call: cryptography.hazmat.primitives.kdf.x963kdf.X963KDF

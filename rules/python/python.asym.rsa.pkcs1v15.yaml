@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: python.asym.rsa.pkcs1v15
+kind: source
+language: python
+name: RSA PKCS#1 v1.5 padding in Python
+description: Detects pyca/cryptography padding.PKCS1v15() objects that are not passed directly to a sign, verify,
+  encrypt or decrypt call (e.g. stored in a table or an attribute); inside such a call the operation-specific rules
+  python.asym.rsa.pkcs1v15.sign / .encrypt report it. Also PKCS#11 CKM_RSA_PKCS.
+asset:
+  type: algorithm
+  family: RSA
+  variant: PKCS1v15
+match:
+- call: cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15
+  notInside:
+  - sign
+  - verify
+  - encrypt
+  - decrypt
+- ref: pkcs11.Mechanism.RSA_PKCS
+- ref: pkcs11.mechanisms.Mechanism.RSA_PKCS

@@ -41,7 +41,9 @@ class AnchorPrefilterTest {
                 + "- new: a.b.Outer.Inner\n- method: setProtocols\n- call: x.y.Util.sha256*\n").javaRules());
         assertFalse(f.mayMatch("class A { void f() { getInstance(); } }"), "member without the class name");
         assertTrue(f.mayMatch("import javax.crypto.Cipher; class A { Object o = Cipher.getInstance(\"AES\"); }"));
-        assertTrue(f.mayMatch("x = new Inner();"));
+        assertFalse(f.mayMatch("x = new Inner();"), "a member type needs its top-level class (SPEC 7.3.2)");
+        assertTrue(f.mayMatch("import a.b.Outer.*; class A { Object x = new Inner(); }"));
+        assertTrue(f.mayMatch("x = new Outer.Inner();"));
         assertFalse(f.mayMatch("x = new Outer();"));
         assertTrue(f.mayMatch("s.setProtocols(p);"));
         assertTrue(f.mayMatch("Util.sha256Hex(x)"), "prefix member");

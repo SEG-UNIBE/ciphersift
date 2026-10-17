@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.hash.argon2
+kind: source
+language: java
+name: Argon2 password hashing via Apache Shiro
+description: >-
+  Shiro 2.x Argon2Hash and Argon2HashProvider, and the algorithm names argon2id/argon2i/argon2d given to DefaultHashService.setDefaultAlgorithmName or HashedCredentialsMatcher.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: Argon2
+match:
+- call: org.apache.shiro.crypto.support.hashes.argon2.Argon2Hash.generate
+- call: org.apache.shiro.crypto.support.hashes.argon2.Argon2Hash.fromString
+- new: org.apache.shiro.crypto.support.hashes.argon2.Argon2HashProvider
+- method: setDefaultAlgorithmName
+  firstString: argon2(id|i|d)$
+- new: org.apache.shiro.authc.credential.HashedCredentialsMatcher
+  firstString: argon2(id|i|d)$
+- new: org.apache.shiro.crypto.hash.SimpleHashRequest
+  firstString: argon2(id|i|d)$

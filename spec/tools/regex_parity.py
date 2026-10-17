@@ -37,7 +37,9 @@ md5 sha1 sha256 sha512 sha3_256 blake2b sha224 SHA512 sm3 ripemd160 md4 HS256 RS
 False 0 True CERT_NONE ssl.CERT_NONE ssl.TLSVersion.TLSv1 ssl.TLSVersion.TLSv1_1 ssl.TLSVersion.TLSv1_2
 ssl.TLSVersion.TLSv1_3 ssl.TLSVersion.SSLv3 ssl.PROTOCOL_TLSv1 ssl.PROTOCOL_TLSv1_1 ssl.PROTOCOL_TLSv1_2
 ssl.PROTOCOL_SSLv3 ssl.PROTOCOL_SSLv23 PROTOCOL_TLS_CLIENT bcrypt md5_crypt sha256_crypt des_crypt argon2 pbkdf2_sha256
-AES256_GCM AES128_GCM_RAW AES256_SIV CHACHA20_POLY1305 XCHACHA20_POLY1305 ECDSA_P256 ED25519 RSA_SSA_PKCS1_3072_SHA256_F4
+sha256_rsa rsassa_pkcs1v15 rsassa_pss sha256_ecdsa sha3_256_ecdsa ecdsa dsa sha1_dsa ed25519 aes256_cbc aes128_ofb
+tripledes_3key rsaes_oaep rsaes_pkcs1v15 aes256_wrap_pad pbkdf2 sha512_224 shake256 rsa-sha256 ecdsa-sha256 hmac-sha256
+SHA3-512 KECCAK-256 PBES2 AES256_GCM AES128_GCM_RAW AES256_SIV CHACHA20_POLY1305 XCHACHA20_POLY1305 ECDSA_P256 ED25519 RSA_SSA_PKCS1_3072_SHA256_F4
 HMAC_SHA256_128BITTAG""".split()
 PROBES += ["{ }", "{}", "{ return; }", "{ return true; }", "{ return \"x\".equals(h); }",
            "((h, s) -> true)", "(ALLOW_ALL_HOSTNAME_VERIFIER)", "(x -> { return true; })", "(\"GCM\")", "(a, b)",
@@ -48,7 +50,8 @@ cases = []
 for f in sorted(ROOT.rglob("*.yaml")):
     doc = yaml.safe_load(f.read_text(encoding="utf-8"))
     for p in doc.get("match") or []:
-        items = [(k, p[k]) for k in RX_KEYS if k in p] + [("kw", v) for v in (p.get("kwargs") or {}).values()]
+        items = [(k, p[k]) for k in RX_KEYS if k in p] + [("kw", v) for v in (p.get("kwargs") or {}).values()] \
+            + [("kw", v) for v in (p.get("dictItems") or {}).values()]
         for k, rx in items:
             mode = {"firstString": "match-i", "anyString": "match-i", "argsText": "find",
                     "body": "find", "value": "find-i", "kw": "find-i"}[k]

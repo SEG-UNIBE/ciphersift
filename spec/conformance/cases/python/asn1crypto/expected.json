@@ -1,0 +1,11 @@
+{"case": "python/asn1crypto", "findings": [
+  {"file": "pki.py", "line": 2, "rule": "python.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "asn1crypto.x509.Certificate.load"},
+  {"file": "pki.py", "line": 4, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "asn1crypto.algos.DigestAlgorithm"},
+  {"file": "pki.py", "line": 5, "rule": "python.asym.rsa.pkcs1v15.sign", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": "PKCS1v15", "protocol": null, "version": null, "param": null, "name": "asn1crypto.algos.SignedDigestAlgorithm"},
+  {"file": "pki.py", "line": 6, "rule": "python.asym.rsa.pss", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": "PSS", "protocol": null, "version": null, "param": null, "name": "asn1crypto.algos.SignedDigestAlgorithm"},
+  {"file": "pki.py", "line": 9, "rule": "python.asym.ecdsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "asn1crypto.algos.SignedDigestAlgorithm"},
+  {"file": "pki.py", "line": 10, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "asn1crypto.algos.DigestAlgorithmId"},
+  {"file": "pki.py", "line": 11, "rule": "python.sym.aes.cbc", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": "CBC", "protocol": null, "version": null, "param": null, "name": "asn1crypto.algos.EncryptionAlgorithm"},
+  {"file": "pki.py", "line": 12, "rule": "python.asym.rsa.oaep", "type": "algorithm", "subtype": null, "primitive": "pke", "family": "RSA", "variant": "OAEP", "protocol": null, "version": null, "param": null, "name": "asn1crypto.algos.KeyEncryptionAlgorithm"},
+  {"file": "pki.py", "line": 13, "rule": "python.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "asn1crypto.crl.CertificateList.load"}
+]}

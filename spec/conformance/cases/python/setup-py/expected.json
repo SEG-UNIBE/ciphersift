@@ -1,3 +1,5 @@
 {"case": "python/setup-py", "findings": [
+  {"file": "setup.py", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": null},
+  {"file": "setup.py", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyjwt", "version": "2.8.0"},
   {"file": "setup.py", "line": 7, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha1"}
 ]}

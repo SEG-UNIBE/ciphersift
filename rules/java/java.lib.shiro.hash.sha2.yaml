@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.hash.sha2
+kind: source
+language: java
+name: SHA-2 hashing via Apache Shiro
+description: >-
+  Sha256Hash, Sha384Hash, Sha512Hash, the matching CredentialsMatchers (Shiro 1.x and 2.x) and SHA-2 algorithm names given to SimpleHash, HashedCredentialsMatcher or setHashAlgorithmName.
+asset:
+  type: algorithm
+  primitive: hash
+  family: SHA2
+match:
+- new: org.apache.shiro.crypto.hash.Sha256Hash
+- call: org.apache.shiro.crypto.hash.Sha256Hash.from*
+- new: org.apache.shiro.authc.credential.Sha256CredentialsMatcher
+- new: org.apache.shiro.crypto.hash.Sha384Hash
+- call: org.apache.shiro.crypto.hash.Sha384Hash.from*
+- new: org.apache.shiro.authc.credential.Sha384CredentialsMatcher
+- new: org.apache.shiro.crypto.hash.Sha512Hash
+- call: org.apache.shiro.crypto.hash.Sha512Hash.from*
+- new: org.apache.shiro.authc.credential.Sha512CredentialsMatcher
+- new: org.apache.shiro.crypto.hash.SimpleHash
+  firstString: SHA-?(224|256|384|512)(/(224|256))?$
+- new: org.apache.shiro.authc.credential.HashedCredentialsMatcher
+  firstString: SHA-?(224|256|384|512)(/(224|256))?$
+- method: setHashAlgorithmName
+  firstString: SHA-?(224|256|384|512)(/(224|256))?$
+- new: org.apache.shiro.crypto.hash.SimpleHashRequest
+  firstString: SHA-?(224|256|384|512)(/(224|256))?$

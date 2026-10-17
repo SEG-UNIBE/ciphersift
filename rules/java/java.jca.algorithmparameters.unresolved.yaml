@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: java.jca.algorithmparameters.unresolved
+kind: source
+language: java
+name: AlgorithmParameters with unresolved algorithm in Java
+description: Fallback for AlgorithmParameters.getInstance(...) whose algorithm argument cannot be resolved statically
+  or is not covered by a specific rule. Only reported when no specific rule matches the call.
+asset:
+  type: algorithm
+match:
+- call: java.security.AlgorithmParameters.getInstance

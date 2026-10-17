@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Apache Shiro public crypto API, 1.x (org.apache.shiro.crypto.*) and 2.x (org.apache.shiro.crypto.cipher.*,
+# org.apache.shiro.crypto.hash.*, org.apache.shiro.crypto.support.hashes.*) (spec/DECISIONS.md E16).
+id: java.lib.shiro.hash.bcrypt
+kind: source
+language: java
+name: bcrypt password hashing via Apache Shiro
+description: >-
+  Shiro 2.x BCryptHash and BCryptProvider, and the algorithm names bcrypt/bcrypt2a/2b/2y given to DefaultHashService.setDefaultAlgorithmName or HashedCredentialsMatcher.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: bcrypt
+match:
+- call: org.apache.shiro.crypto.support.hashes.bcrypt.BCryptHash.generate
+- call: org.apache.shiro.crypto.support.hashes.bcrypt.BCryptHash.fromString
+- new: org.apache.shiro.crypto.support.hashes.bcrypt.BCryptProvider
+- method: setDefaultAlgorithmName
+  firstString: bcrypt(2[aby])?$
+- new: org.apache.shiro.authc.credential.HashedCredentialsMatcher
+  firstString: bcrypt(2[aby])?$
+- new: org.apache.shiro.crypto.hash.SimpleHashRequest
+  firstString: bcrypt(2[aby])?$

@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: java.cert.cms.enveloped
+kind: source
+language: java
+name: CMS / PKCS#7 enveloped (encrypted) data in Java
+description: Detects creation and parsing of CMS (PKCS#7) EnvelopedData and AuthEnvelopedData and their recipient
+  infos via the BouncyCastle CMS API and its ASN.1 classes.
+asset:
+  type: related-crypto-material
+  subtype: cms-enveloped-data
+match:
+- new: org.bouncycastle.cms.CMSEnvelopedData
+- new: org.bouncycastle.cms.CMSEnvelopedDataGenerator
+- new: org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator
+- new: org.bouncycastle.cms.CMSEnvelopedDataParser
+- new: org.bouncycastle.cms.CMSAuthEnvelopedData
+- new: org.bouncycastle.cms.CMSAuthEnvelopedDataGenerator
+- new: org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator
+- new: org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient
+- new: org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator
+- new: org.bouncycastle.cms.jcajce.JceKEKRecipientInfoGenerator
+- new: org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator
+- new: org.bouncycastle.asn1.cms.EnvelopedData
+- call: org.bouncycastle.asn1.cms.EnvelopedData.getInstance

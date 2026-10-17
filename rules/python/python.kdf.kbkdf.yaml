@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+id: python.kdf.kbkdf
+kind: source
+language: python
+name: KBKDF (NIST SP 800-108) in Python
+description: Detects key-based key derivation functions of NIST SP 800-108 via pyca/cryptography KBKDFHMAC / KBKDFCMAC
+  and PyCryptodome SP800_108_Counter.
+asset:
+  type: algorithm
+  primitive: kdf
+  family: KBKDF
+match:
+- call: cryptography.hazmat.primitives.kdf.kbkdf.KBKDFHMAC
+- call: cryptography.hazmat.primitives.kdf.kbkdf.KBKDFCMAC
+- call: Crypto.Protocol.KDF.SP800_108_Counter
+- call: Cryptodome.Protocol.KDF.SP800_108_Counter

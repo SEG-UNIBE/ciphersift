@@ -1,0 +1,9 @@
+{"case": "java/bc-provider-digests", "findings": [
+  {"file": "src/d/Digests.java", "line": 10, "rule": "java.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "Keccak.Digest256"},
+  {"file": "src/d/Digests.java", "line": 11, "rule": "java.hash.blake2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "BLAKE2", "variant": null, "protocol": null, "version": null, "param": null, "name": "Blake2b.Blake2b256"},
+  {"file": "src/d/Digests.java", "line": 12, "rule": "java.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA3.Digest256"},
+  {"file": "src/d/Digests.java", "line": 13, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA256.Digest"},
+  {"file": "src/d/Digests.java", "line": 14, "rule": "java.hash.rmd160", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "RIPEMD160", "variant": null, "protocol": null, "version": null, "param": null, "name": "Digest"},
+  {"file": "src/d/Plain.java", "line": 7, "rule": "java.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "Keccak.Digest512"},
+  {"file": "src/d/Wild.java", "line": 6, "rule": "java.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "Digest512"}
+]}

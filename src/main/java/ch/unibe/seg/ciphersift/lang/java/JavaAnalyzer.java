@@ -4,6 +4,7 @@
  */
 package ch.unibe.seg.ciphersift.lang.java;
 
+import ch.unibe.seg.ciphersift.lang.OidTable;
 import ch.unibe.seg.ciphersift.model.SourceFinding;
 import ch.unibe.seg.ciphersift.rules.JavaPattern;
 import ch.unibe.seg.ciphersift.rules.JavaPattern.EventKind;
@@ -55,6 +56,8 @@ public final class JavaAnalyzer {
         final int line;
         private List<SyntaxNode> args;
         private List<String> strings;
+        /** The OID each element of {@link #strings} was given as (SPEC 5.11), or null; parallel to it. */
+        private List<String> stringOids;
         private String collapsedArgs;
 
         Event(EventKind kind, SyntaxNode node, String name, String receiver, List<String> staticCandidates,
@@ -85,7 +88,7 @@ public final class JavaAnalyzer {
         }
     }
 
-    private record Selected(Event event, SourceRule rule, JavaPattern chosen, String matched) {}
+    private record Selected(Event event, SourceRule rule, JavaPattern chosen, String matched, String oid) {}
 
     /**
      * Analyses one parsed Java file.
@@ -239,7 +242,19 @@ public final class JavaAnalyzer {
         if (f.isEmpty() || !Character.isUpperCase(f.charAt(0))) {
             return false;
         }
-        return cls.endsWith("." + ref);
+        if (!cls.endsWith("." + ref)) {
+            return false;
+        }
+        // A member type is in scope by its simple name only through an import: if the reference starts
+        // below an enclosing class of C (Inner for a.b.Outer.Inner), that class must be imported on demand
+        // or statically; Outer.Inner itself is assumed like a top-level class (SPEC 7.3.2 step 6).
+        String enclosing = cls.substring(0, cls.length() - ref.length() - 1);
+        String last = Texts.lastSegment(enclosing);
+        if (!last.isEmpty() && Character.isUpperCase(last.charAt(0))) {
+            return ctx.wildcards.contains(enclosing) || ctx.staticWildcards.contains(enclosing)
+                    || enclosing.equals(ctx.staticImports.get(f));
+        }
+        return true;
     }
 
     // ------------------------------------------------------------------ evaluation and selection (7.6, 7.7.1)
@@ -268,7 +283,8 @@ public final class JavaAnalyzer {
         List<Selected> out = new ArrayList<>();
         chosen.forEach((r, p) -> {
             if (p.specificity == maxByType.get(r.asset().type())) {
-                out.add(new Selected(ev, r, p, matchedString(p, ev, ctx, resolver)));
+                int i = matchedIndex(p, ev, ctx, resolver);
+                out.add(new Selected(ev, r, p, i < 0 ? null : ev.strings.get(i), i < 0 ? null : ev.stringOids.get(i)));
             }
         });
         return out;
@@ -386,8 +402,24 @@ public final class JavaAnalyzer {
 
     private List<String> strings(Event ev, JavaContext ctx, JavaResolver resolver) {
         if (ev.strings == null) {
-            ev.strings = ev.kind == EventKind.CALL || ev.kind == EventKind.NEW
+            List<String> raw = ev.kind == EventKind.CALL || ev.kind == EventKind.NEW
                     ? resolver.stringList(ev.args(), ctx) : List.of();
+            // a dotted OID of the built-in table is treated like the algorithm name it maps to (SPEC 5.11)
+            List<String> mapped = raw;
+            List<String> oids = null;
+            for (int i = 0; i < raw.size(); i++) {
+                OidTable.Entry x = OidTable.lookup(raw.get(i));
+                if (x != null) {
+                    if (oids == null) {
+                        mapped = new ArrayList<>(raw);
+                        oids = new ArrayList<>(java.util.Collections.nCopies(raw.size(), (String) null));
+                    }
+                    mapped.set(i, x.name());
+                    oids.set(i, x.oid());
+                }
+            }
+            ev.strings = mapped;
+            ev.stringOids = oids == null ? java.util.Collections.nCopies(raw.size(), (String) null) : oids;
         }
         return ev.strings;
     }
@@ -413,18 +445,24 @@ public final class JavaAnalyzer {
         return null;
     }
 
-    private String matchedString(JavaPattern p, Event ev, JavaContext ctx, JavaResolver resolver) {
+    /**
+     * Index in the string list of the matched string of the chosen pattern (SPEC 7.7.1), or -1: the first
+     * string for {@code firstString}, else the first containing a needle, else the first matching
+     * {@code anyString}.
+     */
+    private int matchedIndex(JavaPattern p, Event ev, JavaContext ctx, JavaResolver resolver) {
         if (p.firstString != null) {
-            List<String> s = strings(ev, ctx, resolver);
-            return s.isEmpty() ? null : s.get(0);
+            return strings(ev, ctx, resolver).isEmpty() ? -1 : 0;
         }
         if (p.stringContains != null) {
-            return firstContaining(p.stringContains, strings(ev, ctx, resolver));
+            String s = firstContaining(p.stringContains, strings(ev, ctx, resolver));
+            return s == null ? -1 : ev.strings.indexOf(s);
         }
         if (p.anyString != null) {
-            return firstMatching(p.anyString, strings(ev, ctx, resolver));
+            String s = firstMatching(p.anyString, strings(ev, ctx, resolver));
+            return s == null ? -1 : ev.strings.indexOf(s);
         }
-        return null;
+        return -1;
     }
 
     /** Owner text of a method declaration for {@code inType} (SPEC 7.6). */
@@ -501,10 +539,10 @@ public final class JavaAnalyzer {
         if (p.paramIndex != null) {
             List<SyntaxNode> args = ev.args();
             if (p.paramIndex < args.size()) {
-                param = resolver.value(JExpr.of(args.get(p.paramIndex), true), ctx, 0);
+                param = OidTable.map(resolver.value(JExpr.of(args.get(p.paramIndex), true), ctx, 0));
             }
         }
-        return new SourceFinding(rel, ev.line, s.rule(), name, symbol, snippet, param, test);
+        return new SourceFinding(rel, ev.line, s.rule(), name, symbol, snippet, param, s.oid(), test);
     }
 
     static String displayName(Event ev) {
