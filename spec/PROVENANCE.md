@@ -123,3 +123,30 @@ and its reproducers, `go-eval` reports, judgments and the scanned projects' own 
 | The modules' / packages' own documentation (purpose statements) | F3 list entries |
 | Python language reference (`try` statement, exception hierarchy), tree-sitter-python 0.25.0 `node-types.json` (`try_statement`, `except_clause`) | F2 |
 | POSIX / Linux interpreter-line convention (`#!`), `env(1)` (`-S`) | F7 |
+
+## Wrapper propagation, tier 1 (2026-10-17)
+
+Same clean-room process. **No Crypsy / Crypistry / Cryben material** (and nothing under
+`work/lit-gt/`) and no other scanner's rules or sources were consulted. Inputs: this repository;
+the recall assessment (`ciphersift-recall-assess/REPORT.md`, its simulation scripts and judged
+samples) and the deep-mode assessment (`ciphersift-radical-assess/REPORT.md`), both of which
+used only CipherSift's own outputs, the evaluation projects' sources and other tools' *outputs*;
+the evaluation projects' code (for judging); public API documentation for the AG rules (API names
+and documented purpose only):
+
+| Input (pkg.go.dev, version shown on the page) | Used for |
+|---|---|
+| `filippo.io/age` v1.3.2, `filippo.io/age/agessh` v1.3.2 | age functions (T11) |
+| `github.com/sigstore/sigstore/pkg/cryptoutils` v1.11.1 | certificate / key PEM functions, key generation, `SKID` |
+| `crypto/x509` (go1.27.2) | `Marshal*` key encoders |
+| `github.com/secure-systems-lab/go-securesystemslib/encrypted` v0.11.1 | functions; package doc "scrypt … NaCl secret box" |
+| `github.com/google/go-containerregistry/pkg/v1` v0.22.1 | `SHA256` |
+| `github.com/cloudflare/circl` v1.6.5 (`sign/mldsa/mldsa44|65|87`, `kem/mlkem/mlkem512|768|1024`, `sign/ed25519`, `sign/ed448`, `dh/x25519`, `dh/x448`) | package functions |
+| `github.com/flynn/noise` v1.1.0 | cipher-suite variables |
+| `github.com/miekg/pkcs11` v1.1.2 | `CKM_ECDSA*` constants |
+| `github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys` v1.5.0 | RSA `EncryptionAlgorithm`, `SignatureAlgorithm`, `KeyType` constants |
+
+The package choice came from the evaluation's seed-1 misses (benchmark-informed, DECISIONS T11);
+the patterns were written from the documentation above, not from the evaluated projects' code.
+Written new: `SPEC.md` section 18 and Appendix D, DECISIONS T1–T14, `wrappers/`, the scanner
+integration, the five conformance cases and the tests.

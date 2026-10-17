@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-59 cases, 1243 expected findings. A conforming implementation produces exactly the expected
+64 cases, 1403 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -76,6 +76,11 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `python/import-fallback` | 1 | 8 | import alternatives: a binding made in an import-failure handler (`ImportError`, `ModuleNotFoundError`, `Exception`, `BaseException`, bare `except`) of a `try` whose body imports the same local name is dropped; other handlers, other names and `finally` keep theirs (SPEC 8.2, DECISIONS F2) |
 | `go/hpke-mldsa-keys` | 3 | 32 | `crypto/hpke` / `filippo.io/hpke` KEM, KDF and AEAD identifiers (DHKEM with its curve, hybrid ML-KEM), `crypto/mldsa` and the TLS ML-DSA schemes, key structs, `elliptic.CurveParams`, Ed25519 key conversions, `ecdsa.ParseRawPrivateKey` / `ParseUncompressedPublicKey`, `rsa.EncryptOAEPWithOptions` (DECISIONS F4–F6) |
 | `common/shebang-scripts` | 8 | 4 | extensionless files with a Python interpreter line are Python source (`env`, `env -S`, versioned interpreter, CRLF, test directory); shell, other interpreters, no interpreter line and files with an extension are not (SPEC 4.5, DECISIONS F7) |
+| `java/wrappers` | 6 | 30 | wrapper propagation (SPEC 18): `Class.m`, FQN, static import, enclosing-class calls, overload groups with the caller removed, depth 1–3 and the depth limit, mutual recursion, thin wrappers (two families, CSPRNG only: not), folding (two calls on a line, a direct finding on the line), a collision through two on-demand imports, a class of the file shadowing them, test-file wrappers |
+| `python/wrappers` | 7 | 20 | absolute, aliased, relative and package imports, a re-export through `__init__.py`, `self` and class methods, a parameter shadowing a wrapper, an ambiguous module name, thin wrappers off by default, test files |
+| `python/thin-wrappers` | 1 | 8 | `--python-thin-wrappers`: thin wrappers, a thin wrapper of a thin wrapper, two families, nine lines, CSPRNG only |
+| `go/wrappers` | 8 | 17 | `pkg.F` through `go.mod` and `vendor/`, same package, receiver / `&T{}` / `var` / struct-field types, build-tag variants as one group, a local variable shadowing a wrapper, an untyped value, test files, thin wrappers off for Go |
+| `go/api-ag` | 1 | 85 | the third-party Go APIs of SPEC 17.11 (age, agessh, sigstore cryptoutils, `x509.Marshal*`, securesystemslib `encrypted`, CIRCL, flynn/noise, go-containerregistry `v1.SHA256`, pkcs11 `CKM_ECDSA*`, azkeys) and non-anchors (types, size constants, other members, a switch case) |
 | `deps/crypto-services` | 3 | 21 | the list policy of SPEC 9.9 in all three ecosystems: cloud KMS key clients, HPKE, Noise, WireGuard, PIV, Sigstore signing and time-stamping are listed; storage, secret stores, general SDKs, the Vault API client, transparency logs and data-model modules are not (DECISIONS F3) |
 
 ## Format of expected.json
@@ -104,6 +109,7 @@ Source findings:
 | `param` | parameter-set identifier (SPEC 8.8) or `null` |
 | `oid` | the algorithm OID (`cryptoProperties.oid`, SPEC 5.11) or `null`; written only where it is non-null |
 | `name` | component name (SPEC 10.2) for `algorithm` findings, `null` for other types |
+| `via`, `origin` | for findings of wrapper propagation (SPEC 18.7): the `via` array and the `origin` string of the occurrence's `additionalContext`; absent (`null`) otherwise |
 | `test` | present and `true` only for findings in test files (SPEC 4.7) |
 
 Dependency findings: `file`, `line` (always `null`), `rule` (`dep.maven` / `dep.pypi` /
@@ -120,7 +126,7 @@ covered by SPEC.md section 11 and by unit tests.
    finding with
    * `file` = occurrence `location`, `line` = occurrence `line` (or `null`),
    * `rule` = `ruleId` from the JSON in the occurrence's `additionalContext`,
-   * `test` = `true` if that JSON has `"test": true`,
+   * `test` = `true` if that JSON has `"test": true`; `via` and `origin` = the JSON's values if present,
    * for libraries: `type` = `library`, `ecosystem` = property `ciphersift:ecosystem`,
      `package` = `group:name` (Maven) or `name` (PyPI, Go), `version` = component `version`;
    * for cryptographic assets: `type` = property `ciphersift:assetType` if present, else
@@ -220,3 +226,15 @@ B=<reference tool bundle>
 $B/venv/bin/python -I spec/tools/make_expected.py --registry $B/crypistry --rules rules \
     --cases spec/conformance/cases --deviations spec/conformance/deviations.yaml
 ```
+
+The five cases of the recall extension (`../DECISIONS.md` T1–T14) are hand-written like the Go
+cases, with an extended comment syntax for propagated findings:
+`want: <rule> <name> [<param>] via=<label>,… origin=<label>`, where `@<label>=<Display>` marks a
+definition's name line and `@<label>` an evidence line. The comments were written from SPEC section
+18 and 17.11 before the implementation was run; `expected.json` was derived from them and the
+rules' asset blocks. The direct findings of these inputs were checked against CipherSift 097290e
+(phase 3 is unchanged); two comments were corrected that way (`hmac.new` also reports SHA-2; the
+curve parameter is `SECP256K1`). Two later behaviour decisions changed expectations of these new
+cases only: transitive thin wrappers (T3, + one `twice(x)` finding) and thin wrappers off for Go
+(T14, − the `newBlock` call). No existing expectation changed.
+

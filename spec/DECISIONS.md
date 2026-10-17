@@ -231,3 +231,54 @@ Python CBOMs are byte-identical apart from the rule digest / serial number, the 
 and three new library entries (web3j `software.amazon.awssdk:kms`, electrum `noiseprotocol`,
 pyhanko `sigstore`). Go: 99 new and 11 vanished occurrences (the vanished ones are curve calls
 folded into a new enclosing key construction or `ParseRaw…` call, F4).
+
+# Recall extension, tier 1 (2026-10-17)
+
+Requested by the owner: implement "tier 1" of the recall assessment
+(`ciphersift-recall-assess/REPORT.md`: W7, W6, AG) and record tier 2 as a roadmap. Same clean-room
+rules as before (`PROVENANCE.md`, "Wrapper propagation"). Every item is **benchmark-informed**: the
+design was chosen by simulating it on the evaluation projects (`ciphersift-eval`, `go-eval`), so
+those projects are no longer an independent test of it. Decided by the implementer unless marked
+otherwise; the owner's decision rule (default on in a language only if it is "confidently better"
+there) is applied in "Evaluation" below.
+
+| item | decision | where in SPEC.md |
+|---|---|---|
+| T1 wrapper propagation as a separate pass | **benchmark-informed.** A pass between extraction and normalisation with the contract "callable *X* carries family *F*, evidence: chain → finding"; a project-wide definition index first, then the propagation; it only adds findings, never changes those of phase 3; within one language and the scan root. | 2, 18 |
+| T2 W7, name-consistent wrappers | **benchmark-informed.** A Java/Python/Go function or method whose name names a family key (18.6) that one of its body findings has carries that key; transitively (a name-consistent function calling a callable that carries the key) up to a chain of 3 definitions, computed by levels repeated until nothing changes, so that order and cycles do not matter (a fixed number of levels would cut chains through overload groups such as web3j's `sha3String` → `sha3(byte[])`, whose members are found at different levels). Its call sites are reported with the body finding's component. On in all three languages. | 18.5 |
+| T3 W6, thin wrappers | **benchmark-informed.** (Go: off, T14.) A definition of at most 8 lines (name row to last row) whose body findings have exactly one family key carries it whatever its name; transitively as in the assessment (a thin definition whose body findings and called wrappers give exactly one family key), the test made once, at the first level where it holds (bitcoinj's `hashTwice` → `newDigest()`). On for Java and Go; for Python off by default and enabled with `--python-thin-wrappers` (the assessment judged 12/20 of the new Python findings, many debatable: base58check helpers, examples); the metadata records the option. | 3.1, 11.2.1, 18.5 |
+| T4 family key, propagatable findings | **benchmark-informed.** Family key = `family`, else `subtype` (`x509`), else the rule id (`java.cert.keystore`). Weakness indicators and `prng-secure` findings are not propagated (a helper that draws random bytes is not an algorithm wrapper; with them W6 would report every `randomBytes()` call). | 18.1 |
+| T5 tokeniser and alias list | **benchmark-informed** (the list follows the assessment's token table, extended to every family of the bundled rules that has an unambiguous name). Explicit split rules (camelCase, snake_case, digit runs kept with letters, a digit-only token also joined to its predecessor) and whole-token decomposition into aliases and neutral parts, so that `aesthetic`, `ecb`, `description` name nothing; the body check makes a false name match harmless. | 18.6 |
+| T6 resolution | **benchmark-informed.** Declaration-based, no typing: Java `Class.m` (imports, same file, `S.java` in the same directory, on-demand imports), static imports, same class and enclosing classes, arity filter; Python imports (absolute, relative, suffix-matched module names, re-exports up to 4 hops), same module, `self`/`cls`; Go `pkg.F` through `go.mod` (and `vendor/`), same package, the declared type of a receiver, parameter or local, one struct-field hop in the same file. The caller is removed from its own candidates (overload, not recursion). | 18.4 |
+| T7 name collisions | **benchmark-informed.** Candidates with more than one owner are skipped and counted (debug line); candidates of one owner (overloads, redefinitions, build-tag variants) form a group that carries a key only if every member does. | 18.4, 18.5 |
+| T8 folding, components, tests, vendored code | **benchmark-informed.** A propagated finding is dropped where a direct finding of the same family key is on the same line; one propagated finding per (file, line, family key), the leftmost call's; it joins the evidence's component (no new components; a test-only component can become non-test). Test-file definitions serve test call sites only; test call sites are reported and marked. Vendored code takes part like other code (`--exclude` removes it). | 18.7 |
+| T9 index scope and speed | **benchmark-informed.** Files skipped by the pre-filter are parsed for the index only if their text contains a callable's name (Java: or the simple name of its class), iterated until no new name appears; Python module names come from all files: the same result as indexing all files (every call and every competing definition contains the name), at a fraction of the cost; an identifier Bloom filter built in phase 3 avoids rereading files that cannot match. Only definitions and call sites are kept; snippets are cut from a second read of the reporting files. | 14, 18.2 |
+| T10 explainability | **benchmark-informed.** Each propagated occurrence carries `via` (the wrapper chain, called wrapper first) and `origin` (the body finding) in `additionalContext`; the conformance normalisation compares both. | 11.4, 18.7 |
+| T11 AG, Go API rules | **benchmark-informed** in the choice of packages (seed-1 misses), not in the patterns: written from the pkg.go.dev documentation of `filippo.io/age` (+`agessh`), sigstore `cryptoutils`, `crypto/x509` `Marshal*`, go-securesystemslib `encrypted`, go-containerregistry `v1.SHA256`, CIRCL (`mldsa`, `mlkem`, `ed25519`, `ed448`, `x25519`, `x448`; call anchors only), flynn/noise cipher-suite values, miekg/pkcs11 `CKM_ECDSA*`, azkeys RSA constants; filed under the existing rules (key marshalling under `go.key.load.*`, whose names stay unchanged so that existing components keep their names) plus the new rules `go.asym.ed448` and `go.asym.x448` (69 Go rules). Not added: other azkeys algorithms (EC, HMAC, AES), other pkcs11 mechanisms, go-piv. | 17.11 |
+| T12 C1 and A1 | **Considered, rejected: did not generalise.** C1 (Go identifier constants such as go-jose `jose.RS256` and `crypto.Hash` in case/map-key positions, reversing G6) gained +13 sites on seed 1 but +3 on seed 2 (one go-jose allowlist file); A1 (asn1crypto `.sha1`/`.sha256` attribute reads, reversing E3) +7 on seed 1, +2 on seed 2 (one pyhanko file). G6 and E3 stay. | — |
+| T14 defaults by the owner's decision rule | **Decided by owner's rule, benchmark-informed.** The owner's rule: tier 1 becomes the default where it is "confidently better" than `ciphersift-final` (recall up on seed 1 and seed 2 in every language; strict precision not significantly lower: Wilson CIs overlap and the point estimate drops by at most about 2 pp; micro unchanged; no open bugs; at least 1/4 of the old throughput); else the component stays off in that language. Applied to the fair rescore (tool `ciphersift-t1`, "Evaluation" below): with Go W6 on, Go strict precision was 112/125 = 89.6 % vs 117/125 = 93.6 % (−4.0 pp; CIs overlap), and the three non-TP verdicts attributable to tier 1 were all Go thin wrappers (`packet.Config.Hash()` returning a configured hash with a SHA-256 default, twice; nebula's logging fingerprint `GetRuleHash`). **Go W6 is therefore off** (like Python's, but without an option: the rule allows no further opt-in flag). With it off, Go strict precision is 114/125 = 91.2 % (−2.4 pp, CIs [85–95] vs [88–97]); all 11 non-TP items are pre-existing finding kinds (10 `// indirect` go.mod entries, one `crypto/rand.Read`), and the 30 sampled new Go findings are all TP, so the remaining difference is sampling of unchanged behaviour; Go passes. Java (99 vs 98 %) and Python (98 vs 100 %, −2 pp, both non-TP pre-existing) pass. Tier 1 is the default in all three languages. A tokeniser fix found in the same step (an alias ending in a digit may be followed by at most two characters: `Blake2b`; neutral parts `sum`, `hex`: `md5sum`) is part of T5. | 18 |
+| T13 tier 2, deep mode | **Potentially later, not implemented.** Recorded as a roadmap from `ciphersift-radical-assess/REPORT.md`: build-free typed call graph as a separate optional component (Java first, then Go through `go/types` behind a helper boundary, Python only with a fast resolver), a `confidence` field, Java virtual constants and small partial-evaluation rules; rejected options (CodeQL/Joern front-end, bytecode, an LLM pass in the CBOM); engineering debt (polyglot helper, toolchain pinning, test-matrix growth, large-repository blow-ups). | Appendix D |
+
+**Conformance**: new cases with hand-written `want:` comments (written from SPEC 18 and 17.11
+before the implementation was run): `java/wrappers`, `python/wrappers`, `python/thin-wrappers`
+(with `--python-thin-wrappers`), `go/wrappers`, `go/api-ag`. Propagated expectations carry
+`via`/`origin`. Existing expectations: see "Evaluation" below.
+
+**Evaluation (2026-10-17, implementation frozen at the tier-1 jar; native scans of `$TMPDIR` copies,
+default options; `ciphersift-t1-eval/`).** Before = 097290e (= `ciphersift-final` behaviour).
+Micro: micro-java 11/11 → 11/11, micro-python 11/11 → 11/11, micro-go 10/11 → 10/11 (11/11 with
+the rule id). Recall on the evaluation sites (`ciphersift-eval` and `go-eval` matching):
+
+| Language | Seed 1 before → after (assessment's prediction) | Seed 2 before → after |
+|---|---|---|
+| Java | 64.5 → 86.5 % (86.0) | 43.5 → 66.5 % |
+| Python | 69.0 → 78.3 % (~76, W7 only) | 58.1 → 66.0 % |
+| Go | 41.5 → 53.0 % (53.0 for W7+W6+AG as simulated; the report's 59.5 includes C1) | 48.0 → 59.0 % |
+
+With `--python-thin-wrappers`: Python 80.4 % / 70.2 %. Fair precision rescore (tool-compare,
+`TC_CST1=1`, samples `ciphersift-t1:<p>:1`, verdicts reused only for identical findings and never
+for propagated ones; the rest judged by LLM judges from the code): strict P Java 99 % [96–100],
+Python 98 % [94–100], Go 91 % [85–95] (`ciphersift-final`: 98, 100, 94); all sampled tier-1
+findings TP (Java 40, Python 26, Go 30). Output outside the new behaviour is byte-identical on all
+22 inputs (only `rulesDigest` / `serialNumber` change); scans are byte-identical across reruns,
+`--threads 1`/`8` and with the pre-filter off. **No existing conformance expectation changed.**

@@ -39,9 +39,11 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 15. Build, packaging and licensing
 16. Testing and conformance
 17. Go source analysis (added after 1.0)
+18. Wrapper propagation (added after 1.0)
 - Appendix A. Intentional differences from the reference tool
 - Appendix B. Known limitations (by design)
 - Appendix C. Tree-sitter node types and fields used
+- Appendix D. Roadmap: deep mode (potentially later)
 
 ---
 
@@ -65,7 +67,8 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 Ruby, Kotlin and other languages; configuration files (nginx, sshd, …); parsing of
 certificate, key or keystore files; weakness / CVE assessment; data-flow analysis beyond
-the constant resolution described here; reading compiled code (jars, wheels).
+the constant resolution and the call-site propagation of the project's own wrappers (section 18)
+described here; type inference; reading compiled code (jars, wheels).
 
 ### 1.3 Terms
 
@@ -107,6 +110,9 @@ A scan runs five phases in this order. Phases 3 and 4 run per file and MAY run i
    detect binary content.
 3. **Extraction**: Java analysis (section 7), Python analysis (section 8), Go analysis
    (section 17), manifest parsing (sections 9, 17.10). Each produces findings.
+   Then, across files, **wrapper propagation** (section 18): the call sites of the project's own
+   crypto wrappers become further findings. It needs a project-wide definition index, so it runs
+   after all files are extracted (its parsing MAY run in parallel).
 4. **Normalisation** (section 10): group findings into components by identity; build
    occurrences; deduplicate.
 5. **CBOM writing** (section 11): serialise components in a fixed order.
@@ -146,8 +152,8 @@ check itself, so `java -jar` on Java 8–22 gives the same message and exit code
 
 ```
 ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
-                [--threads N] [--rules DIR] [--weakness-indicators] [--cyclonedx-version V]
-                [--quiet | --verbose]
+                [--threads N] [--rules DIR] [--weakness-indicators] [--python-thin-wrappers]
+                [--cyclonedx-version V] [--quiet | --verbose]
 ciphersift rules validate [--rules DIR]
 ciphersift rules export <dir>
 ciphersift --version
@@ -164,6 +170,7 @@ ciphersift --help | ciphersift <command> --help
 | `--threads N` | Number of worker threads for phases 3–4. Default: the number of available processors, at most 8. `N` must be ≥ 1. The output does not depend on `N`. |
 | `--rules DIR` | Use the rule documents under `DIR` (recursively) **instead of** the bundled rules. To extend the bundled rules, run `rules export`, edit, and pass the directory. |
 | `--weakness-indicators` | Also report the findings of rules with `indicator: weakness` (5.3), e.g. non-cryptographic random generators. **Off by default**: without the option these findings are dropped after extraction, so every other finding is exactly the one of a scan with the option; the document metadata records the option (11.2.1) *(DECISIONS E2, decided by owner)*. |
+| `--python-thin-wrappers` | Also treat thin Python functions (at most 8 lines, one family; section 18.5, W6) as crypto wrappers whose call sites are reported. **Off by default** for Python (on for Java and Go, where it has no option); the metadata records the option (11.2.1) *(DECISIONS T3)*. |
 | `--cyclonedx-version V` | CycloneDX version of the output: `1.7` (default) or `1.6`. Any other value is a usage error (exit 2). The findings, components, their order and bom-refs are the same for both; 1.7 adds the registry fields of 11.3.1 *(DECISIONS C1)*. |
 | `--quiet` | Only errors on standard error. |
 | `--verbose` | Debug messages on standard error (one line per skipped file and the reason). |
@@ -1674,7 +1681,8 @@ rules.
 
 Each finding becomes an occurrence of its component. Within a component, occurrences with
 the same (path, line) — for libraries, the same path — are one occurrence: sort them by
-(symbol, snippet) in code-point order and keep the first.
+(symbol, snippet, `via` chain — absent first, 18.7) in code-point order and keep the first. (A
+propagated finding never shares a line with a finding of phase 3 of the same family key, 18.7.)
 
 ---
 
@@ -1719,6 +1727,7 @@ properties  ciphersift:rulesDigest   "sha256:<hex>" over the rule set (11.6)
             ciphersift:filesScanned  decimal count of files analysed (source + manifests)
             ciphersift:filesSkipped  decimal count of files skipped (too large, binary, unreadable, failed)
             ciphersift:weaknessIndicators  "included", only with --weakness-indicators (3.1)
+            ciphersift:pythonThinWrappers  "included", only with --python-thin-wrappers (3.1, 18)
 ```
 
 ### 11.3 Components
@@ -1859,6 +1868,9 @@ additionalContext  a string holding compact JSON (no whitespace) with keys in th
                                "path@version", 17.10)
                    "param"     the param, if any
                    "manifest"  manifest label (9), dependency findings only
+                   "via"       wrapper propagation only (18.7): array of the wrapper chain,
+                               "<path>:<line> <display name>", the called wrapper first
+                   "origin"    wrapper propagation only: "<path>:<line>" of the body finding
                    "test"      true, only for findings in test files
 ```
 
@@ -2099,7 +2111,7 @@ another `serialNumber`. The RSA component has no `algorithmFamily`: its rule nam
 * **Components**: all cryptographic components first, sorted by (rule id, name, param, oid —
   none sorts before any value); then library components sorted by (ecosystem, package key,
   version — none first). All string comparisons in this document are by Unicode code points.
-* **Occurrences**: sorted by (location, line — absent first, symbol, snippet).
+* **Occurrences**: sorted by (location, line — absent first, symbol, snippet, then the `via` chain of 18.7 — absent first, then element-wise).
 * **Properties**: in the order of the tables above.
 * **bom-ref** of a cryptographic component: the CycloneDX asset type, `:`, and the first 16
   lower-case hex digits of SHA-256 over the UTF-8 bytes of the compact JSON array
@@ -2156,6 +2168,7 @@ with `LC_ALL=C.UTF-8` when the current locale is not UTF-8.
 | Invalid UTF-8 | replacement characters (4.4); analysis continues |
 | Syntax errors | best-effort analysis (6.2); debug message |
 | Exception or stack overflow while analysing one file | warning naming the file, the file's findings are discarded, counted as skipped (`failed`), scan continues |
+| Internal failure of wrapper propagation (18) | warning; the propagated findings are omitted, all findings of phase 3 are written |
 | Malformed manifest | warning, no entries |
 | Cross-file constant file unreadable or unparseable | treated as absent (7.4.5), no warning |
 | Native library cannot be loaded | error, exit 1 |
@@ -2164,7 +2177,9 @@ with `LC_ALL=C.UTF-8` when the current locale is not UTF-8.
 | Output not writable | error, exit 5, no partial file |
 | Interrupt (SIGINT) | no output file is written; exit 130 is acceptable |
 
-A finding is never emitted from a file whose analysis failed.
+A finding is never emitted from a file whose analysis failed. If parsing or indexing a file
+for wrapper propagation (18.2) fails, the file contributes no definitions and no call sites
+(debug message); its findings of phase 3 are kept.
 
 ---
 
@@ -2193,6 +2208,11 @@ A finding is never emitted from a file whose analysis failed.
     call names; `kwargs` keywords and `dictItems` keys occur in the text; a member type
     `a.Outer.Inner` is referred to only with `Outer` in the reference or in an import, 7.3.2.)
     A `setup.py` that declares requirements is always parsed (9.8).
+  * *(DECISIONS T9)* Wrapper propagation (18) parses, in addition, only the files that phase 3
+    skipped and whose text contains the name of a crypto callable; it keeps per file only the
+    definitions and call sites (not the tree), and reads the text of a file again only to cut the
+    snippets of its reported calls. Measured cost: section "Wrapper propagation" of
+    `IMPLEMENTATION-NOTES.md`.
 * **Reference points** (informational). The conformance suite (59 cases, about 140 input files)
   takes about half a second of JVM start-up and scan per case (2026-10-17: about 35 s for all
   cases with `spec/tools/conformance.py`, one JVM per case, on a shared 32-core machine).
@@ -2386,6 +2406,10 @@ arguments decodable (section 12).
 * **Determinism test**: scan the conformance cases (also with `--cyclonedx-version 1.6`) with `--threads 1` and `--threads 8`, and
   from two different absolute locations whose last path segment is the same (it is
   `metadata.component.name`); outputs MUST be byte-identical.
+* **Wrapper propagation** (18): unit tests of the tokeniser and alias list, the resolution of each
+  language, levels and cycles, collisions, folding and the test-file rule; conformance cases
+  `java/wrappers`, `python/wrappers`, `python/thin-wrappers` (with the option), `go/wrappers`,
+  `go/api-ag`; the determinism test covers them.
 * **Rule regex parity**: `spec/tools/regex_parity.py` (optional in CI; requires Python).
 
 ---
@@ -2638,7 +2662,7 @@ Go cryptographic modules (`golang.org/x/crypto`, `filippo.io/age`, `github.com/c
 
 ### 17.11 Go coverage of the bundled rules *(DECISIONS G14, G15)*
 
-`rules/go/` (67 source rules) covers the Go standard library `crypto/...` packages
+`rules/go/` (69 source rules) covers the Go standard library `crypto/...` packages
 (`aes`, `cipher` modes, `des`, `rc4`, `rsa`, `dsa`, `ecdsa`, `ecdh`, `elliptic`, `ed25519`,
 `hmac`, `md5`, `sha1`, `sha256`, `sha512`, `sha3`, `hkdf`, `pbkdf2`, `mlkem`, `rand`, `tls`,
 `x509`, the `crypto.Hash` constants; Go 1.25 `ecdsa.ParseRawPrivateKey` /
@@ -2651,6 +2675,30 @@ and the `tls.MLDSA*` signature schemes *(DECISIONS F4–F6)*) and `golang.org/x/
 no fitting CycloneDX asset), third-party APIs (JWT, JOSE, age, circl — their modules are reported
 through `go.mod`; the exception is `filippo.io/hpke`, whose API is that of `crypto/hpke`), method calls on values whose type is not known (`key.Sign(…)`, `aead.Seal(…)`;
 receiver types are not inferred), and algorithm names in strings (`ssh.Config{Ciphers: […]}`).
+
+**Third-party APIs** *(DECISIONS T11, benchmark-informed)*: package functions and values of
+selected libraries, written from their pkg.go.dev documentation and filed under the existing rules
+(two new rules, `go.asym.ed448` and `go.asym.x448`, mirror the Python ones):
+
+| Package | Members | Rule |
+|---|---|---|
+| `filippo.io/age` | `Encrypt`, `EncryptReader`, `Decrypt`, `DecryptReaderAt` (the format's payload AEAD) | `go.sym.chacha20poly1305` |
+| | `NewScryptIdentity`, `NewScryptRecipient` | `go.kdf.scrypt` |
+| | `GenerateX25519Identity`, `ParseX25519Identity`, `ParseX25519Recipient` | `go.asym.x25519` |
+| | `GenerateHybridIdentity`, `ParseHybridIdentity`, `ParseHybridRecipient` (ML-KEM-768 + X25519) | `go.pqc.mlkem` (ML-KEM-768) |
+| `filippo.io/age/agessh` | `NewEd25519Identity`, `NewEd25519Recipient` / `NewRSAIdentity`, `NewRSARecipient` / `ParseIdentity`, `NewEncryptedSSHIdentity` / `ParseRecipient` | `go.asym.ed25519` / `go.asym.rsa` / `go.key.load.private` / `go.key.load.public` |
+| `github.com/sigstore/sigstore/pkg/cryptoutils` | certificate PEM functions, `ParseCSR` / PEM key (un)marshalling / `GeneratePEMEncodedECDSAKeyPair` (curve as parameter), `GeneratePEMEncodedRSAKeyPair` (bits) / `SKID` | `go.cert.x509` / `go.key.load.*` / `go.asym.ecdsa`, `go.asym.rsa` / `go.hash.sha1` |
+| `crypto/x509` | `MarshalPKCS1PrivateKey`, `MarshalPKCS8PrivateKey`, `MarshalECPrivateKey` / `MarshalPKIXPublicKey`, `MarshalPKCS1PublicKey` | `go.key.load.private` / `go.key.load.public` |
+| `github.com/secure-systems-lab/go-securesystemslib/encrypted` | `Encrypt`, `Decrypt`, `Marshal`, `Unmarshal` and the `…WithCustomKDFParameters` variants (scrypt + NaCl secretbox) | `go.kdf.scrypt` and `go.sym.nacl.secretbox` |
+| `github.com/google/go-containerregistry/pkg/v1` | `SHA256` | `go.hash.sha2` |
+| `github.com/cloudflare/circl` (call anchors only) | `sign/mldsa/mldsa44/65/87`, `kem/mlkem/mlkem512/768/1024` (parameter set), `sign/ed25519`, `sign/ed448`, `dh/x25519`, `dh/x448` package functions | `go.pqc.mldsa`, `go.pqc.mlkem`, `go.asym.ed25519`, `go.asym.ed448`, `go.asym.x25519`, `go.asym.x448` |
+| `github.com/flynn/noise` (values) | `CipherAESGCM` / `CipherChaChaPoly` / `DH25519` / `HashSHA256`, `HashSHA512` / `HashBLAKE2b`, `HashBLAKE2s` | `go.sym.aes.gcm` / `go.sym.chacha20poly1305` / `go.asym.x25519` / `go.hash.sha2` / `go.hash.blake2` |
+| `github.com/miekg/pkcs11` | `CKM_ECDSA*` | `go.asym.ecdsa` |
+| `…/keyvault/azkeys` | `EncryptionAlgorithmRSA15` / `RSAOAEP`, `RSAOAEP256` / `SignatureAlgorithmRS*` / `PS*` / `KeyTypeRSA`, `KeyTypeRSAHSM` | `go.asym.rsa.pkcs1v15.encrypt` / `go.asym.rsa.oaep` / `go.asym.rsa.pkcs1v15.sign` / `go.asym.rsa.pss` / `go.asym.rsa` |
+
+The `go-containerregistry` package is named `v1`; it is recognised only when imported with that
+explicit name (17.4 skips a `vN` segment). Methods of these libraries' types (`identity.Unwrap`,
+`scheme.Sign`) are not anchors (receiver types are not inferred).
 
 **Key construction** *(DECISIONS F4)*: as the Java `*KeySpec` constructors and the Python
 `*Numbers` classes are reported, the Go key types are reported where a key is built from its
@@ -2673,6 +2721,245 @@ no algorithm.
 curves (`java.asym.ec`, `python.asym.ec`, `python.asym.secp256k1`, `go.asym.ec`) declare no
 primitive: a key or curve is used for signatures and key agreement alike. ECDSA and ECDH are
 reported by the rules for those operations.
+
+---
+
+## 18. Wrapper propagation *(DECISIONS T1–T14, benchmark-informed)*
+
+A project often reaches a cryptographic API through its own small functions (`Hash.sha3(x)`,
+`sha256(x)`, `hmacSha512(k, d)`, `newAESGCM(k)`). Sections 7, 8 and 17 report the API call inside
+such a function once; its call sites are not reported. *Wrapper propagation* reports them: a
+project function whose body already yields a finding, and which is a *crypto callable* by the
+criteria below, makes each call that resolves to it an occurrence of the body finding's component,
+with the wrapper chain recorded in the occurrence (11.4).
+
+It is a separate pass after extraction (phase 3) and before normalisation (phase 4), with this
+contract: **input** the findings of phase 3 and the syntax trees of the project's source files;
+**output** additional source findings, each saying "this call reaches callable *X*, which carries
+family *F*; evidence: the chain *X* → … → the finding at *path:line*". It never removes or changes a
+finding of phase 3. It works within one language (a Java call never reaches a Python function) and
+only within the scan root.
+
+| Component | Java | Python | Go |
+|---|---|---|---|
+| Name-consistent wrappers (W7, 18.5) | on | on | on |
+| Thin wrappers (W6, 18.5) | on | off; on with `--python-thin-wrappers` | off *(DECISIONS T14)* |
+
+### 18.1 Terms
+
+* **Family key** of a finding: the rule's `family` if it has one, else its `subtype` (e.g. `x509`),
+  else the rule id. Two findings have the same family key if the strings are equal.
+* **Propagatable finding**: a finding of phase 3 that is in the output (after the weakness-indicator
+  filter of 3.1), whose rule has no `indicator`, and whose rule's subtype is not `prng-secure` (a
+  random-number call in a helper does not make the helper a cryptographic algorithm).
+* **Definition**: a function or method declaration of the project (18.2). Its **span** is the
+  lines from the row of its name to its last row, inclusive; its **body findings** are the
+  propagatable findings whose file is the definition's file and whose line lies in the span, and for
+  which this definition is the innermost one (the one with the greatest start line; equal start
+  lines: the more deeply nested declaration).
+* **Name families** of a definition: the family keys its name names by the tokeniser (18.6).
+
+### 18.2 Definition index
+
+Every source file of the language that is scanned contributes its definitions:
+
+| Language | Definition | Owner | Addressable as |
+|---|---|---|---|
+| Java | `method_declaration` (with a name; with or without body) | the chain of enclosing `class_declaration`, `interface_declaration`, `enum_declaration`, `record_declaration` names; package from `package_declaration` | `pkg.Outer.Inner#m/arity` — not for methods of anonymous classes or of classes declared inside a method body |
+| Python | `function_definition` (also inside `decorated_definition`) | the module (relative path without `.py`, `/` → `.`, a trailing `.__init__` removed) and, for a method, the enclosing `class_definition` | module-level functions; methods of module-level classes — not nested functions |
+| Go | `function_declaration`, `method_declaration` | the package: (directory of the file, package name of its `package_clause`); for a method also the receiver's type name (pointer and type arguments removed) | always |
+
+Constructors (Java `constructor_declaration`, Python classes and `__init__`, Go composite literals)
+are not definitions. Arity of a Java method: the number of formal parameters; a method with a
+variable-arity parameter accepts any number ≥ arity − 1.
+
+**Files read for the index.** The source files parsed by phase 3 contribute directly. A file that
+phase 3 did not parse (pre-filter, 14) contributes if its text contains an identifier (a maximal run
+of `[A-Za-z0-9_$]` not starting with a digit) equal to the name of a crypto callable found so far;
+or, for Java, equal to the simple name of a class enclosing such a callable; it is then parsed and
+indexed, and the computation of 18.5 is repeated until no new name appears. Every call of a
+callable and every other definition with the same name contains that name, a same-named class that
+could shadow the callable's class contains the class name, and Python module names are known for
+all files; so the result equals that of indexing every file *(DECISIONS T9)*.
+
+### 18.3 Call sites
+
+| Language | Call site | Line | Symbol |
+|---|---|---|---|
+| Java | `method_invocation` without object, with object `this`, or with an `identifier`, `field_access` or `scoped_identifier` object | row of `name` + 1 | object text (whitespace removed) + `.` + name, or the name |
+| Python | `call` whose `function` is an `identifier` or an `attribute` chain of identifiers (`a.b.f`) | row of the last `attribute` identifier + 1, else start row + 1 | the function text without whitespace |
+| Go | `call_expression` whose `function` is an `identifier`, or a `selector_expression` whose operand is an `identifier` or a `selector_expression` of an `identifier` (`x.f.M`) | row of the selector's `field` + 1, else start row + 1 | the function text without whitespace |
+
+The snippet is the text of the call node (at most 500 code points). A call site belongs to the
+innermost definition whose span contains its line (its *caller*), or to none.
+
+### 18.4 Resolution
+
+A call site resolves to a set of candidate definitions; the caller itself is removed from it (a
+same-named overload is the more likely target than recursion). Then:
+
+* **empty**: the call is not a project call; nothing happens;
+* **name collision**: the candidates have more than one owner (two classes, modules, packages or
+  receiver types): the call is **skipped and counted** (debug line, 18.7);
+* otherwise the candidates form one **group** (overloads, redefinitions, build-tag variants of one
+  owner).
+
+Definitions in test files (4.7) are candidates only for call sites in test files.
+
+**Java** (call with name *m*, *n* arguments; enclosing classes C1 innermost … Ck):
+
+1. No object or `this`: the first class among C1 … Ck (for `this`: C1 only) that declares a method
+   named *m*; else the class of a single-static import of *m* (`import static p.C.m;`); else all
+   classes imported with static on-demand imports (`import static p.C.*;`).
+2. Object text *Q*: if *Q* has a `.` and its first segment starts with a lower-case letter, *Q* is a
+   fully qualified class name. Otherwise its first segment *S* must start with an upper-case letter
+   and is resolved, in this order: a class named *S* declared in the file (at any nesting); the
+   single-type import of *S*; the same package (a class `p.S` of the calling file's package `p` declared in the
+   project, or a file `S.java` in the calling file's directory);
+   the on-demand imports `p.*` (`p.S` declared in the project). Further segments name member
+   classes. A *Q* that starts with a lower-case letter and has no `.` is a variable: not resolved.
+3. Candidates: the methods named *m* declared in the body of the resolved project class (not
+   inherited) whose arity accepts *n*.
+
+**Python** (call in module *M*):
+
+* `f(…)`: if *f* is a parameter or an assigned name of the caller, not resolved; else the import
+  binding of *f* in the file (any `import` or `from … import` statement of the file); else a
+  module-level function *f* of *M*.
+* `self.f(…)`, `cls.f(…)` in a method of a module-level class *K*: the methods *f* of *K*.
+* `X.f(…)`, `a.b.f(…)`: *X* (or the root *a*) bound by an import: the target module (a function
+  *f*) or class (a method *f*); *X* a module-level class of *M*: its methods *f*.
+* Import targets: `import a.b` binds `a`; `import a.b as x` binds `x` to `a.b`; `from a import b`
+  binds `b` to the module `a.b` if it exists, else to the member `b` of `a`; relative imports
+  (`from .m import f`, `from .. import m`) resolve against the package of *M*. A dotted module name
+  *D* denotes the project module *D*, else the single project module whose name ends with `.D`
+  (source roots such as `src/` are not known); several → not resolved. A member `b` of module *K* is
+  *K*'s module-level function or class `b`, else, if *K* imports `b`, that binding's target (re-export,
+  at most 4 hops). A local name with import bindings to different targets is not resolved.
+
+**Go** (call in package *P* = (dir, name)):
+
+* `F(…)`: if *F* is a parameter, receiver or variable of the caller, not resolved; else the
+  functions *F* of *P*.
+* `x.F(…)`: if *x* is a variable of the caller with a **declared type** *T*: the methods *F* with
+  receiver type *T* (in *P*, or for `p.T` in the imported project package); else if *x* is the
+  local name of an import (17.4) of a project package: its functions *F*.
+* `x.f.M(…)`: *x* with declared type *T*, *T* a struct type declared in the same file with a field
+  *f* of type *U*: the methods *M* with receiver type *U*.
+* Declared types of a function's names: the receiver (`r *T`), parameters (`a T`, `b *p.U`),
+  `var v T`, and `v := T{…}`, `v := &T{…}`, `v := new(T)` (also `p.T`); generic arguments removed.
+  A name with two different declared types in one function is not typed.
+* Project packages: an import path resolves through the `go.mod` files under the scan root (module
+  path → directory; the longest matching module path wins; the rest of the import path is the
+  subdirectory) or, failing that, to `vendor/<path>` below such a module directory; the package is
+  that directory's package whose name does not end in `_test`. (Below a module directory, the one of
+  the calling file's nearest enclosing `go.mod`.)
+
+### 18.5 Crypto callables
+
+A **crypto callable** is a definition together with the family keys it **carries**; for each
+carried key it records its **depth** (1–3: the number of definitions on its chain), its
+**evidence** (the body finding at the end of the chain) and its **chain** (the definitions from it
+to the one holding the evidence). The callables are computed by levels, repeated until a level adds
+nothing; level *k* sees only what levels below *k* produced, so the result does not depend on the
+order in which definitions are visited, and cycles (recursion, mutual recursion) cannot add anything:
+
+* **Level 1, W7 (name-consistent)**: a definition carries every family key that is both one of its
+  name families and the family key of one of its body findings. Evidence: the first such body
+  finding (by line, then rule id).
+* **Level 1, W6 (thin)**, where enabled: a definition whose span has at most 8 lines and whose body
+  findings have exactly one family key carries that key (whatever its name). Evidence as above.
+* **Level *k* ≥ 2, W7**: a definition that does not yet carry a key *F* carries *F* if *F* is one of
+  its name families and a call site of its body resolves to a group carrying *F* below level *k*.
+* **Level *k* ≥ 2, W6**, where enabled: a definition of at most 8 lines that carries nothing yet
+  carries *F* if the family keys of its body findings together with the keys carried (below level
+  *k*) by the groups its call sites resolve to are exactly {*F*} (a thin wrapper of a wrapper; the
+  test is made once, at the first level where it holds).
+* In both, evidence and chain are those of the group's **representative** for *F* with the definition
+  prepended (of several such calls, the one whose representative has the smallest depth, then the
+  first call); no carry is made whose chain would have more than 3 definitions.
+
+A **group carries** *F* if every definition of the group carries *F*; its representative for *F* is
+the member with the smallest depth for *F* (then path, then line).
+
+### 18.6 Name tokeniser and aliases
+
+A name is split into tokens at `_` and `$`, between a lower-case letter or digit and an upper-case
+letter, and between two upper-case letters when the second is followed by a lower-case letter
+(`hmacSha512` → `hmac`, `sha512`; `HMACSha256` → `HMAC`, `Sha256`; `sha3_256` → `sha3`, `256`;
+`newAESGCM` → `new`, `AESGCM`). Letters and digits stay together (`x509`, `ed25519`, `p256`). Tokens
+are lower-cased (`Locale.ROOT`). Each pair of adjacent tokens is also tried joined (`sha_256` → also
+`sha256`, `KeyStore` → also `keystore`, `tripleDES` → also `tripledes`).
+
+A token of at most 128 characters **names** the family keys of the aliases it consists of, if it decomposes completely: it
+starts with an alias (the longest alias wins at each position), and every alias is followed by the
+end of the token, another alias, a neutral part (`with`, `and`, `gcm`, `ccm`, `cbc`, `ctr`, `ecb`,
+`cfb`, `ofb`, `siv`, `xts`, `kw`, `pss`, `oaep`, `d`, `sum`, `hex`) or a run of digits; after a digit
+run, or an alias ending in a digit, the same holds, or at most two characters end the token (`aesgcm`
+→ AES, `sha256withrsa` → SHA2 and RSA, `sha256d` → SHA2, `md5sum` → MD5, `blake2b` → BLAKE2,
+`aes256gcm` → AES, `chacha20poly1305` → ChaCha20 and Poly1305, `secp256k1` → EC;
+`aesthetic`, `ecb`, `description`, `rsassa` → nothing). The alias list *(DECISIONS T5)*:
+
+| Family key | Aliases |
+|---|---|
+| SHA1 | `sha1` |
+| SHA2 | `sha2`, `sha224`, `sha256`, `sha384`, `sha512` |
+| SHA3 | `sha3`, `keccak`, `shake` |
+| MD5, MD4, MD2 | `md5`; `md4`; `md2` |
+| RIPEMD160 | `ripemd`, `rmd160` |
+| BLAKE2 | `blake2` |
+| SM3 | `sm3` |
+| HMAC | `hmac` |
+| CMAC | `cmac` |
+| Poly1305 | `poly1305` |
+| AES | `aes`, `rijndael` |
+| DES | `des` |
+| 3DES | `3des`, `desede`, `tripledes` |
+| ChaCha20 | `chacha`, `xchacha` |
+| Salsa20, XSalsa20 | `salsa20`; `xsalsa20` |
+| RC4, RC2 | `rc4`, `arcfour`; `rc2` |
+| Blowfish, Twofish, Camellia, CAST5, Serpent, SM4 | `blowfish`; `twofish`; `camellia`; `cast5`; `serpent`; `sm4` |
+| RSA | `rsa` |
+| DSA | `dsa` |
+| DH | `dh` |
+| EC | `ec`, `ecc`, `ecdsa`, `ecdh`, `ecdhe`, `ecies`, `secp`, `prime256v1`, `p256`, `p384`, `p521`, `brainpool` |
+| Ed25519, Ed448 | `ed25519`, `eddsa`; `ed448` |
+| Curve25519, Curve448 | `x25519`, `curve25519`; `x448`, `curve448` |
+| ML-KEM, ML-DSA, SLH-DSA | `mlkem`, `kyber`; `mldsa`, `dilithium`; `slhdsa`, `sphincs` |
+| PBKDF2, HKDF, scrypt, Argon2, bcrypt | `pbkdf2`; `hkdf`; `scrypt`; `argon2`; `bcrypt` |
+| x509 (subtype) | `x509` |
+| `java.cert.keystore` (rule id) | `keystore`, `truststore` |
+
+### 18.7 Reporting, folding and interactions
+
+For each call site (any scanned file of the language, test files included) that resolves to a group
+carrying at least one key: for each carried key *F*, in code-point order, one finding with the
+call's file, line, symbol, snippet and test flag and the evidence's rule, name, param and oid. Its
+occurrence records the chain (11.4): `via` = the group representative and the definitions after it,
+each as `<path>:<line of the name> <display name>` (Java `Outer.Inner.m`, Python `module.f` or
+`module.Class.m`, Go `pkg.F` or `pkg.Type.M`), and `origin` = `<path>:<line>` of the evidence.
+
+* **Folding of nested duplicates**: a propagated finding is dropped if a finding of phase 3 at the
+  same (file, line) has the same family key (the direct finding is more specific); of several
+  propagated findings with the same (file, line, family key) only the one of the leftmost call is
+  kept (`sha256(sha256(x))` is one occurrence). Calls nested across lines are not folded.
+* **Components**: a propagated finding belongs to the component of its evidence (same key, 10.1);
+  it never creates a component of its own, but it can make a component that was test-only a
+  non-test one (11.3.4).
+* **Test files**: wrappers defined in test files serve only call sites in test files; call sites in
+  test files are reported and marked like every test occurrence; `--exclude-tests` removes both.
+* **Vendored code** (`vendor/`, copied libraries) is project code: it defines callables and holds
+  call sites like any other directory; `--exclude` removes it from both sides.
+* **Partial scans**: only files under the scan root take part. Scanning a subdirectory therefore may
+  give fewer propagated findings (wrappers defined outside it are unknown; Go `pkg.F` calls need the
+  `go.mod` under the scan root) and may resolve differently (a Python module name is matched by
+  suffix, a collision partner outside the root is not seen). The output of one scan root is
+  deterministic.
+* **Name collisions**: as 18.4; such calls are skipped and counted.
+* With `--verbose` the pass ends with one debug line:
+  `wrapper propagation: <c> callables, <n> occurrences, <a> ambiguous calls skipped`.
+* Determinism (12): the index, the levels and the folding depend only on the file contents; files
+  are visited in relative-path order, definitions in (path, line) order.
 
 ---
 
@@ -2777,6 +3064,17 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
 * Go: a nested-duplicate fold (17.8) of a curve function into an enclosing key construction
   (`ecdsa.PublicKey{Curve: elliptic.P256(), …}`) drops the curve's finding and its parameter;
   the construction (a composite) has no parameter *(DECISIONS F4)*.
+* Wrapper propagation (18) is name- and declaration-based, not typed: Java calls on variables
+  (`key.sign(h)`), inherited methods, interface calls and constructors; Python calls on
+  attributes other than `self`/`cls` (`self._key.sign`), on parameters, and through
+  `getattr`; Go calls through interfaces or on values whose type is not declared in the function
+  (`x := pkg.New()`; `x.M()`) are not resolved. A wrapper whose name names no family is a callable
+  only as a thin wrapper (W6; Python only with `--python-thin-wrappers`). Calls nested across lines
+  are not folded.
+  Overloads of one Java class with the same arity are one group (reported only if all of them carry
+  the family). Java "same package" also counts a file `S.java` in the calling file's directory (a class of that
+  package that the index did not read).
+  *(DECISIONS T1–T14)*
 * tree-sitter-java 0.23.5 rejects some valid literals (a binary literal with a double
   underscore, `0b1000__0000`); the rest of the file is analysed (6.2) *(DECISIONS E18)*.
 
@@ -2838,3 +3136,38 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
 An implementation SHOULD verify at start-up (or in a unit test) that every field name listed
 here exists in the loaded grammar (`Language.getFieldIdForName` returns non-zero), so that a
 grammar upgrade that renames a field fails loudly.
+
+## Appendix D. Roadmap: deep mode (potentially later, not implemented) *(DECISIONS T13)*
+
+Recorded from the assessment of more radical designs (2026-10-17) so that a later round can start
+from it. Nothing of this appendix is implemented or specified as behaviour.
+
+* **Build-free typed call graph, as a separate optional component** (a "deep mode", off by
+  default, its own option): receivers and interface implementations resolved from the declared
+  types of the project's own sources and a class-hierarchy analysis, with the crypto summaries of
+  section 18 propagated along the typed edges; owner-name consistency (the class, type or package
+  name names the family, as Go's `ecdsa`, `x25519`, sops' `aes.Cipher`, bitcoinj's `ECKey`);
+  KMS/HSM SDK anchors gated by the file's imports. No build, no network, deterministic.
+* **Order: Java first** (a project symbol table from declared types), **then Go** through
+  `go/types` over the project packages and the standard library from source (external modules
+  as empty packages, type errors ignored), behind a clear helper boundary: a separate helper
+  process with a versioned JSON interface (call edges with the resolution kind), so that the
+  JVM tool does not link a Go toolchain. **Python only with a fast resolver** (pyright or an own
+  module/attribute resolver); jedi was too slow (about 0.5 kLOC/s) and depends on the installed
+  packages.
+* **A `confidence` field per finding** (high / medium / low), fed by the resolution kind, depth,
+  name consistency and a return-flow filter; the deep mode's broad tier (direct wrappers of any
+  name) would ship only as low confidence.
+* **Java virtual constants** (an overriding method that returns an algorithm literal used by a
+  `getInstance(m())` of an ancestor makes each `new Subclass()` a finding) and **small
+  partial-evaluation rules** (`getattr(hashlib, f"sha…")`, `hashes.Hash(var)`, typed algorithm
+  literals and enums); these are cheap and could also enter the default mode.
+* **Rejected options**: CodeQL or Joern as front-end (rules would become queries; CodeQL's CLI
+  licence, Joern's runtime and memory), bytecode or binary analysis (needs build artefacts, loses
+  source constants), and an LLM pass inside the CBOM (not deterministic, not reproducible, network;
+  at most a separate triage tool outside the CBOM).
+* **Engineering debt to plan for**: a polyglot helper (Go, perhaps Node for pyright) with its own
+  build, licences and release; toolchain pinning (the result must not change with the installed
+  Go or Python version; go1.19 lacked `crypto/ecdh`); a growing test matrix (languages × modes ×
+  helper versions); blow-ups on large repositories (call-graph size, class-hierarchy fan-out,
+  memory), which need explicit limits and a documented "limit reached" outcome.

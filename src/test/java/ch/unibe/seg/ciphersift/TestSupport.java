@@ -23,7 +23,7 @@ public final class TestSupport {
     public static final ObjectMapper JSON = new ObjectMapper();
 
     static final List<String> SOURCE_FIELDS = List.of("file", "line", "rule", "type", "subtype", "primitive",
-            "family", "variant", "protocol", "version", "param", "oid", "name", "test");
+            "family", "variant", "protocol", "version", "param", "oid", "name", "via", "origin", "test");
     static final List<String> DEP_FIELDS = List.of("file", "line", "rule", "type", "ecosystem", "package", "version",
             "test");
 
@@ -95,6 +95,11 @@ public final class TestSupport {
         if (n.isBoolean()) {
             return n.asBoolean();
         }
+        if (n.isArray()) {
+            List<String> l = new ArrayList<>();
+            n.forEach(x -> l.add(x.asText()));
+            return l.toString();
+        }
         return n.asText();
     }
 
@@ -126,6 +131,9 @@ public final class TestSupport {
                 if (ctx.path("test").asBoolean(false)) {
                     f.put("test", true);
                 }
+                // wrapper propagation (SPEC 18.7, 11.4)
+                f.put("via", value(ctx.get("via")));
+                f.put("origin", value(ctx.get("origin")));
                 if ("library".equals(comp.path("type").asText())) {
                     String eco = props.get("ciphersift:ecosystem");
                     f.put("type", "library");

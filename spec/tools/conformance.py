@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parent
 CASES = HERE.parent / "conformance" / "cases"
 
 SOURCE_FIELDS = ("file", "line", "rule", "type", "subtype", "primitive", "family", "variant",
-                 "protocol", "version", "param", "oid", "name", "test")
+                 "protocol", "version", "param", "oid", "name", "via", "origin", "test")
 DEP_FIELDS = ("file", "line", "rule", "type", "ecosystem", "package", "version", "test")
 
 
@@ -59,6 +59,9 @@ def normalise(cbom: dict) -> list[dict]:
                 "oid": cp.get("oid"),
                 "name": comp["name"] if rtype == "algorithm" else None,
             })
+            if ctx.get("via") is not None:  # wrapper propagation (SPEC 18.7)
+                out[-1]["via"] = ctx["via"]
+                out[-1]["origin"] = ctx.get("origin")
             if ctx.get("test"):
                 out[-1]["test"] = True
     return out
@@ -66,7 +69,7 @@ def normalise(cbom: dict) -> list[dict]:
 
 def key(r: dict) -> tuple:
     fields = DEP_FIELDS if r.get("type") == "library" else SOURCE_FIELDS
-    return tuple((f, r.get(f)) for f in fields)
+    return tuple((f, tuple(r[f]) if isinstance(r.get(f), list) else r.get(f)) for f in fields)
 
 
 def compare(case: str, got: list[dict], expected: list[dict]) -> list[str]:
