@@ -56,6 +56,7 @@ Root package `ch.unibe.seg.ciphersift` (groupId `ch.unibe.seg`, artifactId `ciph
 | `deps.DependencyScanner`, `PythonManifests`, `MavenManifests`, `SetupManifests`, `ManifestEntry` | all manifest formats (`setup.py` from its syntax tree, `setup.cfg`), per-manifest de-duplication, rule matching (9) |
 | `model.*` | source and dependency findings (2.1) |
 | `cbom.Normaliser`, `Component`, `CbomWriter`, `Purl` | components and occurrences, ordering, bom-refs, serial number, JSON (10, 11) |
+| `cbom.CycloneDxVersion`, `CryptoRegistry` | output version (`--cyclonedx-version`), CycloneDX 1.7 registry mapping: `algorithmFamily`, `ellipticCurve` (11.3.1, DECISIONS C1) |
 | `scan.Scanner` | phases 1–4, worker pool, per-thread parsers, per-file error handling (2, 13, 14) |
 
 Other files: `native/build-natives.sh` (+ `sources.lock`, `vendor/` with the unpacked
@@ -420,3 +421,26 @@ conformance suite updated.
   default scan only lost the insecure-PRNG findings (JDK 63, stdlib 350); no other finding changed,
   and none was added (neither corpus passes OID literals to an anchored API). Output for 1 and 8
   threads is byte-identical on both corpora.
+
+## CycloneDX 1.7 output (2026-10-17, DECISIONS C1)
+
+* **Output**: `specVersion` `"1.7"` by default; `--cyclonedx-version 1.6` writes the previous
+  document byte for byte (no new fields). New `cbom.CycloneDxVersion` (option values, default) and
+  `cbom.CryptoRegistry` (SPEC tables 11.3.1a/b): `algorithmFamily` after `primitive` and
+  `ellipticCurve` after `parameterSetIdentifier`, the order of the 1.7 schema. Components, order,
+  properties and bom-refs do not depend on the version; the content-derived serial number does.
+* **Schemas**: CycloneDX specification tag 1.7.2 (`bom-1.7`, `bom-1.6`, `cryptography-defs`,
+  `spdx`, `jsf-0.82`) vendored in `src/test/resources/cyclonedx/` (`SOURCE.txt`: URLs, SHA-256).
+  cyclonedx-core-java 13.2.0 already ships the identical `bom-1.7.schema.json` and
+  `cryptography-defs.schema.json` (and `Version.VERSION_17`), so the pin stays; the test helper
+  `CycloneDxSchemas` validates with both cyclonedx-core-java and json-schema-validator 2.0.4
+  (draft-07, `$ref`s to the vendored files) and checks `specVersion`.
+* **Tests**: 347 unit + 154 integration, all passing. New: `CycloneDx17Test` (mapping tables
+  against the vendored registry, every bundled family mapped or listed, one component per bundled
+  rule valid in both versions, validators reject a non-registry family and a 1.7 field in 1.6),
+  `CliIT.cycloneDxVersionOption` (default, `1.6`, bad values exit 2), a second conformance pass with
+  `--cyclonedx-version 1.6` (same findings, valid 1.6, no 1.7 fields), determinism (1 vs 8 threads,
+  location, locale) also for `--cyclonedx-version 1.6`. `spec/tools/conformance.py`: 46/46.
+* **Runtime image**: a jlink'ed runtime with `java.base,java.desktop,java.sql,jdk.zipfs,jdk.unsupported`
+  (~57 MB) runs the conformance suite (46/46) and gives byte-identical output to the full JDK;
+  BF-CBOM's CipherSift worker uses it.

@@ -31,9 +31,23 @@ import java.util.Map;
 public final class CbomWriter {
     private static final JsonFactory FACTORY = JsonFactory.builder().build();
 
-    /** Document-level inputs. */
+    /** Document-level inputs; {@code cyclonedx} is the output version (SPEC 11.2). */
     public record Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
-            long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded) {
+            long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded,
+            CycloneDxVersion cyclonedx) {
+        public Metadata {
+            if (cyclonedx == null) {
+                cyclonedx = CycloneDxVersion.DEFAULT;
+            }
+        }
+
+        /** Metadata of a scan in the default CycloneDX version. */
+        public Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
+                long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded) {
+            this(toolVersion, rootName, rulesDigest, testsIncluded, filesScanned, filesSkipped, sourceDateEpoch,
+                    weaknessIndicatorsIncluded, CycloneDxVersion.DEFAULT);
+        }
+
         /** Metadata of a scan without weakness indicators (the default, DECISIONS E2). */
         public Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
                 long filesScanned, long filesSkipped, Long sourceDateEpoch) {
@@ -153,7 +167,7 @@ public final class CbomWriter {
             g.setPrettyPrinter(prettyPrinter());
             g.writeStartObject();
             g.writeStringField("bomFormat", "CycloneDX");
-            g.writeStringField("specVersion", "1.6");
+            g.writeStringField("specVersion", meta.cyclonedx().spec());
             if (serial != null) {
                 g.writeStringField("serialNumber", serial);
             }
@@ -163,7 +177,7 @@ public final class CbomWriter {
             List<String> libraryRefs = new ArrayList<>();
             for (Component c : components) {
                 if (c instanceof Component.Crypto cc) {
-                    writeCrypto(g, cc, refs.get(c));
+                    writeCrypto(g, cc, refs.get(c), meta.cyclonedx());
                 } else if (c instanceof Component.Library l) {
                     writeLibrary(g, l, refs.get(c));
                     libraryRefs.add(refs.get(c));
@@ -286,7 +300,8 @@ public final class CbomWriter {
         };
     }
 
-    private static void writeCrypto(JsonGenerator g, Component.Crypto c, String ref) throws IOException {
+    private static void writeCrypto(JsonGenerator g, Component.Crypto c, String ref, CycloneDxVersion cdx)
+            throws IOException {
         Asset a = c.rule().asset();
         String type = a.cyclonedxType();
         g.writeStartObject();
@@ -297,10 +312,19 @@ public final class CbomWriter {
         g.writeStringField("assetType", type);
         switch (type) {
             case "algorithm" -> {
+                boolean defs = cdx.hasCryptographyDefs();
                 g.writeObjectFieldStart("algorithmProperties");
                 g.writeStringField("primitive", a.primitive() == null ? "unknown" : a.primitive());
+                String family = defs ? CryptoRegistry.algorithmFamily(a, c.name()) : null;
+                if (family != null) {
+                    g.writeStringField("algorithmFamily", family);
+                }
                 if (c.param() != null) {
                     g.writeStringField("parameterSetIdentifier", c.param());
+                }
+                String curve = defs ? CryptoRegistry.ellipticCurve(a, c.param()) : null;
+                if (curve != null) {
+                    g.writeStringField("ellipticCurve", curve);
                 }
                 String mode = mode(a.variant());
                 if (mode != null) {

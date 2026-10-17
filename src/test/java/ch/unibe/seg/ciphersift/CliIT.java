@@ -4,6 +4,7 @@
  */
 package ch.unibe.seg.ciphersift;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -92,6 +93,8 @@ class CliIT {
                 "--exclude-tests").exit());
         assertEquals(2, JarRunner.run("scan", d.toString(), "-o", out.toString(), "--quiet", "--verbose").exit());
         assertEquals(2, JarRunner.run("scan", d.toString(), "-o", out.toString(), "--bogus").exit());
+        assertEquals(2, JarRunner.run("scan", d.toString(), "-o", out.toString(), "--cyclonedx-version", "1.5").exit());
+        assertEquals(2, JarRunner.run("scan", d.toString(), "-o", out.toString(), "--cyclonedx-version").exit());
         assertEquals(3, JarRunner.run("scan", tmp.resolve("missing").toString(), "-o", out.toString()).exit());
         assertEquals(3, JarRunner.run("scan", d.resolve("src/A.java").toString(), "-o", out.toString()).exit());
         Path badRules = tmp.resolve("rules");
@@ -103,6 +106,36 @@ class CliIT {
         assertEquals(5, JarRunner.run("scan", d.toString(), "-o", tmp.resolve("no/such/dir/o.json").toString()).exit());
         assertFalse(Files.exists(out));
         assertEquals(0, JarRunner.run("scan", d.toString(), "-o", out.toString()).exit());
+    }
+
+    /** {@code --cyclonedx-version} (SPEC 3.1, 11.2): 1.7 by default, 1.6 on request; nothing else differs in kind. */
+    @Test
+    void cycloneDxVersionOption() throws Exception {
+        Path d = demo();
+        Path o17 = tmp.resolve("v17.json");
+        Path o16 = tmp.resolve("v16.json");
+        Path o17x = tmp.resolve("v17x.json");
+        assertEquals(0, JarRunner.run("scan", d.toString(), "-o", o17.toString()).exit());
+        assertEquals(0, JarRunner.run("scan", d.toString(), "-o", o16.toString(), "--cyclonedx-version", "1.6").exit());
+        assertEquals(0, JarRunner.run("scan", d.toString(), "-o", o17x.toString(), "--cyclonedx-version", "1.7").exit());
+        assertArrayEquals(Files.readAllBytes(o17), Files.readAllBytes(o17x), "1.7 is the default");
+        var j17 = TestSupport.JSON.readTree(o17.toFile());
+        var j16 = TestSupport.JSON.readTree(o16.toFile());
+        assertEquals("1.7", j17.path("specVersion").asText());
+        assertEquals("1.6", j16.path("specVersion").asText());
+        assertEquals("SHA-2", j17.at("/components/0/cryptoProperties/algorithmProperties/algorithmFamily").asText());
+        assertTrue(j16.at("/components/0/cryptoProperties/algorithmProperties/algorithmFamily").isMissingNode());
+        assertTrue(CycloneDxSchemas.validate(Files.readAllBytes(o17), ch.unibe.seg.ciphersift.cbom.CycloneDxVersion.V1_7)
+                .isEmpty());
+        assertTrue(CycloneDxSchemas.validate(Files.readAllBytes(o16), ch.unibe.seg.ciphersift.cbom.CycloneDxVersion.V1_6)
+                .isEmpty());
+        assertEquals(TestSupport.normalise(Files.readAllBytes(o17)).size(),
+                TestSupport.normalise(Files.readAllBytes(o16)).size());
+        // same components and bom-refs in both versions
+        assertEquals(j17.path("components").size(), j16.path("components").size());
+        for (int i = 0; i < j17.path("components").size(); i++) {
+            assertEquals(j17.path("components").get(i).path("bom-ref"), j16.path("components").get(i).path("bom-ref"));
+        }
     }
 
     @Test

@@ -27,7 +27,7 @@ public final class Main {
     /** The root command {@code ciphersift}. */
     @Command(name = "ciphersift", mixinStandardHelpOptions = true, versionProvider = VersionProvider.class,
             description = "Finds cryptographic assets in Java and Python sources and dependency manifests "
-                    + "and writes a CycloneDX 1.6 CBOM.",
+                    + "and writes a CycloneDX 1.7 (or 1.6) CBOM.",
             subcommands = {ScanCommand.class, RulesCommand.class})
     public static final class Root implements Runnable {
         @picocli.CommandLine.Spec

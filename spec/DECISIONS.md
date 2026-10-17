@@ -118,3 +118,18 @@ unknown and non-OID strings; a deferred `final` local), `python/oid-table` (ever
 `x509.ObjectIdentifier`, no finding for OIDs without a Python rule; `x509.oid.ObjectIdentifier`,
 asn1crypto `core.ObjectIdentifier`, `algos.*Id` and `algos.*Algorithm` dicts, pyasn1, a constant, a
 curve parameter, unknown OIDs), `java/shiro` (E16 reproducer and the 1.x / 2.x API).
+
+# CycloneDX 1.7 output (2026-10-17)
+
+Requested by the owner: upgrade the output to CycloneDX 1.7 (specification release 1.7.2). Details
+decided by the implementer as below; `SPEC.md` has been updated accordingly.
+
+| item | decision | where in SPEC.md |
+|---|---|---|
+| C1 CycloneDX 1.7 | `specVersion` `"1.7"` by default; `--cyclonedx-version 1.6` writes the former 1.6 document unchanged (no new fields), for consumers that accept only 1.6. In 1.7, `algorithmProperties` gains `algorithmFamily` (CycloneDX cryptography registry, table 11.3.1a: written only where the rule's family, primitive, variant and subtype determine the registry family; e.g. `SHA2` → `SHA-2`, `EC` + `signature` → `ECDSA`, `RSA` without a scheme → none; the mapping follows the rule's declared primitive, so the generic `python.asym.ec` rule, which declares `key-agree`, gives `ECDH`: a rule issue to revisit, not changed here because it would change the findings) and `ellipticCurve` (table 11.3.1b: a family-`EC` param that is a registry curve name, or the curve named by the family). The `ciphersift:family` property and all other properties stay in both versions; nothing is removed. Not used: the `key-wrap` primitive (the rules do not mark key wrapping consistently and the comparison takes the primitive from the rule), the new protocol types, `relatedCryptographicAssets` and the new certificate / related-material fields (no values). Components, their order and bom-refs are the same in both versions; the content-derived `serialNumber` differs. Tests validate every conformance CBOM against the 1.7 schema and, with the option, the 1.6 schema, both with cyclonedx-core-java 13.2.0 (which already bundles the 1.7.2 `bom-1.7.schema.json` and `cryptography-defs.schema.json` byte for byte, so the pin stays) and with json-schema-validator 2.0.4 against the schemas vendored in `src/test/resources/cyclonedx/`. | 3.1, 11.1, 11.2, 11.3.1, 11.5, 16 |
+
+**Conformance expectations: unchanged.** The comparison (`spec/conformance/README.md`) reads the
+rule's asset fields from the `ciphersift:*` properties and `parameterSetIdentifier`, `oid`,
+`protocolProperties` and occurrences, all of which are identical in 1.6 and 1.7; `expected.json`
+does not contain `specVersion`. The JUnit runner checks this by running every case in both
+versions.

@@ -6,6 +6,7 @@ package ch.unibe.seg.ciphersift.cli;
 
 import ch.unibe.seg.ciphersift.CipherSift;
 import ch.unibe.seg.ciphersift.cbom.CbomWriter;
+import ch.unibe.seg.ciphersift.cbom.CycloneDxVersion;
 import ch.unibe.seg.ciphersift.cli.ExitCodes.ExitException;
 import ch.unibe.seg.ciphersift.files.Glob;
 import ch.unibe.seg.ciphersift.natives.NativeLoadException;
@@ -33,7 +34,7 @@ import picocli.CommandLine.Spec;
 
 /** {@code ciphersift scan} (SPEC 3.1). */
 @Command(name = "scan", mixinStandardHelpOptions = true, versionProvider = Main.VersionProvider.class,
-        description = "Scan a directory and write a CycloneDX 1.6 CBOM.",
+        description = "Scan a directory and write a CycloneDX 1.7 (or 1.6) CBOM.",
         sortOptions = false)
 public final class ScanCommand implements Callable<Integer> {
     @Spec
@@ -71,6 +72,10 @@ public final class ScanCommand implements Callable<Integer> {
             description = "Also report weakness indicators (rules with indicator: weakness, e.g. non-cryptographic random generators); off by default.")
     boolean weaknessIndicators;
 
+    @Option(names = "--cyclonedx-version", paramLabel = "VERSION",
+            description = "CycloneDX version of the output: 1.7 (default) or 1.6.")
+    String cyclonedxVersion;
+
     static final class Verbosity {
         @Option(names = "--quiet", description = "Only errors on standard error.")
         boolean quiet;
@@ -90,6 +95,12 @@ public final class ScanCommand implements Callable<Integer> {
         int n = threads == null ? Math.min(8, Math.max(1, Runtime.getRuntime().availableProcessors())) : threads;
         if (n < 1) {
             throw new CommandLine.ParameterException(spec.commandLine(), "--threads must be at least 1");
+        }
+        CycloneDxVersion cdx = cyclonedxVersion == null ? CycloneDxVersion.DEFAULT
+                : CycloneDxVersion.of(cyclonedxVersion);
+        if (cdx == null) {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    "--cyclonedx-version must be 1.7 or 1.6, not '" + cyclonedxVersion + "'");
         }
         boolean excludeTests = testMode != null && testMode.exclude;
         List<Glob> globs = new ArrayList<>();
@@ -114,7 +125,7 @@ public final class ScanCommand implements Callable<Integer> {
         }
         String rootName = ch.unibe.seg.ciphersift.files.FileNames.name(root);
         CbomWriter.Metadata meta = new CbomWriter.Metadata(CipherSift.version(), rootName, rules.digest(),
-                !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch(), weaknessIndicators);
+                !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch(), weaknessIndicators, cdx);
         byte[] doc = CbomWriter.write(meta, result.components());
         write(out, doc);
         double secs = (System.nanoTime() - start) / 1e9;

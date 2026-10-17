@@ -54,7 +54,7 @@ class DeterminismIT {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "--exclude-tests", "--exclude vendor/** --exclude **/*_pb2.py"})
+    @ValueSource(strings = {"", "--exclude-tests", "--exclude vendor/** --exclude **/*_pb2.py", "--cyclonedx-version 1.6"})
     void byteIdentical(String options) throws Exception {
         byte[] t1 = scan(a, tmp, List.of(), Map.of(), "1", options);
         byte[] t8 = scan(a, a, List.of(), Map.of(), "8", options);

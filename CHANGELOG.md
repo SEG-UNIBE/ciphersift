@@ -5,6 +5,20 @@
 
 ## 1.0.0 (unreleased)
 
+### CycloneDX 1.7 output (DECISIONS C1)
+
+* Output is CycloneDX **1.7** by default (`specVersion` `"1.7"`, schema of specification release
+  1.7.2). `--cyclonedx-version 1.6` writes the former 1.6 document unchanged.
+* New in 1.7 output: `algorithmProperties.algorithmFamily` with the registry name of the rule's
+  family (`SHA2` → `SHA-2`, `DH` → `FFDH`, `EC` → `ECDSA` / `ECDH` by primitive, `RSA` by scheme,
+  …; SPEC table 11.3.1a) and `algorithmProperties.ellipticCurve` for named curves
+  (`secg/secp256r1`, `nist/P-256`, …; table 11.3.1b), only where the rule determines them.
+* Nothing removed: `ciphersift:family` and all other properties stay; components, order and
+  bom-refs are the same in both versions. Conformance expectations unchanged.
+* Tests validate every conformance CBOM against 1.7 and, in a second pass with the option, against
+  1.6 — with cyclonedx-core-java 13.2.0 (unchanged pin; it bundles the 1.7.2 schema) and with
+  json-schema-validator against the schemas vendored in `src/test/resources/cyclonedx/`.
+
 First implementation of the CipherSift specification 1.0 (rule format version 1).
 
 * `scan`, `rules validate`, `rules export`, `--version`; exit codes 0–5 as specified.

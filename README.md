@@ -12,8 +12,8 @@ specification, without Crypsy's source code; the process is documented in
 
 CipherSift is a static scanner that finds cryptographic assets (algorithms, protocols,
 certificates, keys and related material, crypto libraries) in **Java** and **Python** source code
-and in **Maven/Gradle** and **PyPI** dependency manifests. It writes a **CycloneDX 1.6**
-Cryptography Bill of Materials (CBOM) as JSON. Detection is rule-driven: the cryptographic
+and in **Maven/Gradle** and **PyPI** dependency manifests. It writes a **CycloneDX 1.7**
+Cryptography Bill of Materials (CBOM) as JSON (CycloneDX 1.6 on request). Detection is rule-driven: the cryptographic
 knowledge lives in YAML rule files, and the scanner provides the language analysis (name
 resolution, constant resolution, argument analysis).
 
@@ -47,7 +47,8 @@ needs write permission there).
 
 ```
 ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
-                [--threads N] [--rules DIR] [--weakness-indicators] [--quiet | --verbose]
+                [--threads N] [--rules DIR] [--weakness-indicators] [--cyclonedx-version V]
+                [--quiet | --verbose]
 ciphersift rules validate [--rules DIR]
 ciphersift rules export <dir>
 ciphersift --version
@@ -78,6 +79,7 @@ Extra JVM options can be passed in `CIPHERSIFT_JAVA_OPTS` (e.g. `-Xmx4g`).
 | `--threads N` | Worker threads (default: processors, at most 8). The output does not depend on it. |
 | `--rules DIR` | Use the rules under `DIR` instead of the bundled ones (`rules export` gives you a copy to edit). |
 | `--weakness-indicators` | Also report *weakness indicators* (see below), e.g. non-cryptographic random generators. Off by default; all other findings are exactly those of a default scan. |
+| `--cyclonedx-version V` | `1.7` (default) or `1.6`. The 1.6 document is the former output format: the same components, bom-refs and properties, without the 1.7 registry fields `algorithmFamily` and `ellipticCurve`. |
 | `--quiet`, `--verbose` | Only errors / also debug messages (one line per skipped file) on standard error. |
 
 Exit codes: `0` success (unreadable or unparsable files are skipped with a warning), `1` internal
@@ -116,7 +118,7 @@ export CIPHERSIFT_JAVA_OPTS="-XX:AOTCache=$HOME/.cache/ciphersift/app.aot -Xlog:
 
 ## Output format (for consumers)
 
-A CycloneDX 1.6 JSON document with `bomFormat`, `specVersion`, a content-derived
+A CycloneDX 1.7 JSON document (1.6 with `--cyclonedx-version 1.6`) with `bomFormat`, `specVersion`, a content-derived
 `serialNumber`, `version`, `metadata` (tool, root component named after the scan root,
 properties `ciphersift:rulesDigest`, `ciphersift:testFiles`, `ciphersift:filesScanned`,
 `ciphersift:filesSkipped`), `components` and, when libraries were found, `dependencies`.
@@ -129,8 +131,8 @@ properties `ciphersift:rulesDigest`, `ciphersift:testFiles`, `ciphersift:filesSc
   (`GCMBlockCipher`, `MessageDigest.getInstance`); Python — the resolved call
   (`cryptography.hazmat.primitives.ciphers.Cipher`, `hashlib.new`); protocols — `TLS 1.2`, `SSH`;
   other types — the rule name;
-* `cryptoProperties`: `assetType` and `algorithmProperties` (`primitive`, `parameterSetIdentifier`,
-  `mode`, `padding`, `classicalSecurityLevel`), `protocolProperties` (`type`, `version`) or
+* `cryptoProperties`: `assetType` and `algorithmProperties` (`primitive`, `algorithmFamily`,
+  `parameterSetIdentifier`, `ellipticCurve`, `mode`, `padding`, `classicalSecurityLevel`), `protocolProperties` (`type`, `version`) or
   `relatedCryptoMaterialProperties` (`type`); `oid` when the algorithm was given as an object
   identifier (see below);
 * `properties`: `ciphersift:ruleId`, `ciphersift:language`, `ciphersift:assetType` (only for
@@ -140,6 +142,15 @@ properties `ciphersift:rulesDigest`, `ciphersift:testFiles`, `ciphersift:filesSc
 * `evidence.occurrences`: `location` (path relative to the scan root, `/`-separated), `line`,
   `symbol` (the API, e.g. `javax.crypto.Cipher.getInstance`) and `additionalContext`, a string
   holding compact JSON `{"ruleId":…,"snippet":…,"param":…,"test":true}`.
+
+**CycloneDX 1.7 registry fields.** `algorithmFamily` and `ellipticCurve` use the names of the
+CycloneDX cryptography registry (`cryptography-defs`): `SHA-2`, `SHA-3`, `RIPEMD`, `CAMELLIA`,
+`FFDH` for DH, `EdDSA` for Ed25519/Ed448, `ECDSA` / `ECDH` for EC signatures / key agreement,
+`RSAES-OAEP`, `RSASSA-PSS`, `RSAES-PKCS1`, `RSASSA-PKCS1` for RSA with a known scheme, and so on
+(full table: SPEC 11.3.1a); curves as `secg/secp256r1`, `nist/P-256`, `brainpool/brainpoolP256r1`,
+`other/Curve25519` (SPEC 11.3.1b). A field is absent where the rule does not determine it (plain
+RSA key generation, EC key generation without a primitive, PBE, ConcatKDF, X9.63 KDF). The rule's
+own family stays in the property `ciphersift:family`, in both versions.
 
 **Library components** (`"type": "library"`): `bom-ref` = `purl`
 (`pkg:maven/<group>/<artifact>[@<version>]`, `pkg:pypi/<name>[@<version>]`), Maven `group`,
@@ -279,6 +290,7 @@ linux-x86_64 only.
 ## Testing
 
 `mvn verify` runs the unit tests (surefire) and, against the fat jar, the conformance suite in
-`spec/conformance/` with CycloneDX 1.6 schema validation of every produced CBOM, determinism
+`spec/conformance/` with CycloneDX 1.7 schema validation of every produced CBOM (and a second
+pass with `--cyclonedx-version 1.6`, validated against 1.6, with the same findings), determinism
 checks and CLI checks (failsafe). The Python reference comparator also works:
 `python3 spec/tools/conformance.py --cmd "java -jar target/ciphersift-1.0.0-SNAPSHOT-all.jar"`.

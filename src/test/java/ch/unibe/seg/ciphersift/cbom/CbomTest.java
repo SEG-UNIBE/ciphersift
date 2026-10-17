@@ -185,7 +185,8 @@ class CbomTest {
         assertNull(((Component.Crypto) comps.get(0)).oid(), "no OID sorts first");
         String s = new String(CbomWriter.write(new CbomWriter.Metadata("1", "r", "sha256:0", true, 1, 0, null), comps),
                 StandardCharsets.UTF_8);
-        assertTrue(s.contains("\"primitive\": \"hash\"\n        },\n        \"oid\": \"2.16.840.1.101.3.4.2.1\"\n      }"), s);
+        assertTrue(s.contains("\"primitive\": \"hash\",\n          \"algorithmFamily\": \"SHA-2\"\n        },\n"
+                + "        \"oid\": \"2.16.840.1.101.3.4.2.1\"\n      }"), s);
         assertEquals(1, s.split("\"oid\"", -1).length - 1);
         String plain = CbomWriter.fullRef((Component.Crypto) comps.get(0));
         assertEquals("algorithm:" + CbomWriter.sha256Hex(CbomWriter.compactArray("algorithm", "java.hash.sha2", "SHA-256", "")

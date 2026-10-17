@@ -7,8 +7,8 @@ Version 1.0 of the specification (rule format version 1). Status: ready for impl
 
 CipherSift is an open-source (Apache-2.0) static scanner written in Java. It finds
 cryptographic assets in **Java** and **Python** source code and in **Maven/Gradle** and
-**PyPI** dependency manifests, and writes a **CycloneDX 1.6** Cryptography Bill of Materials
-(CBOM) as JSON.
+**PyPI** dependency manifests, and writes a **CycloneDX 1.7** Cryptography Bill of Materials
+(CBOM) as JSON (CycloneDX 1.6 on request, `--cyclonedx-version 1.6`).
 
 This document is the only description of the behaviour. It is written for an engineer who
 implements CipherSift from it, together with the rule files in `rules/` and the conformance
@@ -54,7 +54,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
   version catalogs (`*.versions.toml`), and Python `requirements*.txt`, `pyproject.toml`,
   `Pipfile.lock`, `poetry.lock`, `setup.cfg` and the literal requirements of `setup.py`
   (9.8). Only packages on the crypto-library lists of the dependency rules are reported.
-* Output: one CycloneDX 1.6 JSON document.
+* Output: one CycloneDX 1.7 JSON document (1.6 with `--cyclonedx-version 1.6`).
 
 ### 1.2 Out of scope
 
@@ -141,7 +141,8 @@ check itself, so `java -jar` on Java 8–22 gives the same message and exit code
 
 ```
 ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
-                [--threads N] [--rules DIR] [--weakness-indicators] [--quiet | --verbose]
+                [--threads N] [--rules DIR] [--weakness-indicators] [--cyclonedx-version V]
+                [--quiet | --verbose]
 ciphersift rules validate [--rules DIR]
 ciphersift rules export <dir>
 ciphersift --version
@@ -158,6 +159,7 @@ ciphersift --help | ciphersift <command> --help
 | `--threads N` | Number of worker threads for phases 3–4. Default: the number of available processors, at most 8. `N` must be ≥ 1. The output does not depend on `N`. |
 | `--rules DIR` | Use the rule documents under `DIR` (recursively) **instead of** the bundled rules. To extend the bundled rules, run `rules export`, edit, and pass the directory. |
 | `--weakness-indicators` | Also report the findings of rules with `indicator: weakness` (5.3), e.g. non-cryptographic random generators. **Off by default**: without the option these findings are dropped after extraction, so every other finding is exactly the one of a scan with the option; the document metadata records the option (11.2.1) *(DECISIONS E2, decided by owner)*. |
+| `--cyclonedx-version V` | CycloneDX version of the output: `1.7` (default) or `1.6`. Any other value is a usage error (exit 2). The findings, components, their order and bom-refs are the same for both; 1.7 adds the registry fields of 11.3.1 *(DECISIONS C1)*. |
 | `--quiet` | Only errors on standard error. |
 | `--verbose` | Debug messages on standard error (one line per skipped file and the reason). |
 
@@ -367,7 +369,7 @@ match:
 |---|---|---|
 | `type` | `algorithm`, `protocol`, `certificate`, `related-crypto-material`, `key-material` | Asset type. `key-material` is written to CycloneDX as `related-crypto-material` (11.3.3). |
 | `subtype` | string | Refinement, e.g. `hardcoded-key`, `static-iv`, `prng-insecure`, `cert-validation-disabled`, `rc4-cipher`, `pkcs1-v1_5-encrypt`. |
-| `primitive` | CycloneDX 1.6 primitive: `block-cipher`, `stream-cipher`, `hash`, `mac`, `signature`, `pke`, `kem`, `kdf`, `key-agree`, `ae`, `drbg`, `xof`, `combiner`, `other` | Algorithm primitive. Absent = unknown. |
+| `primitive` | CycloneDX primitive (1.6 set, valid in 1.7): `block-cipher`, `stream-cipher`, `hash`, `mac`, `signature`, `pke`, `kem`, `kdf`, `key-agree`, `ae`, `drbg`, `xof`, `combiner`, `other` | Algorithm primitive. Absent = unknown. |
 | `family` | string | Algorithm family, e.g. `AES`, `SHA2`, `RSA`, `EC`. Absent = unknown (the `*.unresolved` fallback rules). |
 | `variant` | string | Mode, padding or scheme variant, e.g. `GCM`, `OAEP`, `PKCS1v15`. |
 | `securityLevel` | integer | Classical security level in bits. |
@@ -1623,13 +1625,18 @@ use `org.cyclonedx:cyclonedx-core-java` for writing, because (a) byte-stable out
 full control over key order, number formatting and escaping, (b) only a small subset of the
 model is needed, and (c) the library adds dependencies to the fat jar. `cyclonedx-core-java`
 13.2.0 is used **in tests only**, to validate every produced document against the CycloneDX
-1.6 JSON schema (`JsonParser#validate(…, Version.VERSION_16)`).
+1.7 JSON schema (`JsonParser#validate(…, Version.VERSION_17)`; `VERSION_16` for
+`--cyclonedx-version 1.6`). The tests also validate against the schemas of the CycloneDX
+specification release 1.7.2 (`bom-1.7.schema.json`, `bom-1.6.schema.json`,
+`cryptography-defs.schema.json`, `spdx.schema.json`, `jsf-0.82.schema.json`), vendored in
+`src/test/resources/cyclonedx/`, with json-schema-validator. 13.2.0 bundles the same
+`bom-1.7.schema.json` and `cryptography-defs.schema.json` byte for byte.
 
 ### 11.2 Document
 
 ```
 bomFormat      "CycloneDX"
-specVersion    "1.6"
+specVersion    "1.7" (or "1.6" with --cyclonedx-version 1.6)
 serialNumber   "urn:uuid:<uuid>"           (11.6)
 version        1
 metadata       (11.2.1)
@@ -1672,12 +1679,60 @@ only when they have a value:
 | Key | Value |
 |---|---|
 | `primitive` | the rule's `primitive`, or `unknown` |
+| `algorithmFamily` | 1.7 only: the registry family of table 11.3.1a |
 | `parameterSetIdentifier` | the param |
+| `ellipticCurve` | 1.7 only: the registry curve of table 11.3.1b |
 | `mode` | from the variant (case-insensitive): `ECB`→`ecb`, `CBC`→`cbc`, `CCM`→`ccm`, `GCM`→`gcm`, `CFB`→`cfb`, `OFB`→`ofb`, `CTR`→`ctr`; `EAX`, `OCB`, `SIV`, `GCM-SIV`, `XTS`, `KW` → `other`; otherwise absent |
 | `padding` | `OAEP`→`oaep`, `PKCS1v15`→`pkcs1v15`, `PSS`→`other`; or `pkcs1v15` when the rule subtype is `pkcs1-v1_5-encrypt`; otherwise absent |
 | `classicalSecurityLevel` | the rule's `securityLevel` |
 
-CycloneDX 1.6 has no field for the algorithm family; it is a property (11.3.4).
+CycloneDX 1.6 has no field for the algorithm family; it is a property (11.3.4). CycloneDX 1.7
+adds `algorithmFamily` and `ellipticCurve`, whose values must come from the CycloneDX
+cryptography registry (`cryptography-defs.schema.json`, enums `algorithmFamiliesEnum` and
+`ellipticCurvesEnum`). In 1.7 output CipherSift writes them **in addition to** the
+`ciphersift:family` property (which stays, unchanged, in both versions), and only where the
+rule determines the value; otherwise the field is absent *(DECISIONS C1)*.
+
+**Table 11.3.1a: rule family → `algorithmFamily`.** A family that is not in the table gets no
+`algorithmFamily`. Exact string comparison on the rule's `family`, `primitive`, `variant` (case-insensitive)
+and `subtype`:
+
+| Rule family | `algorithmFamily` |
+|---|---|
+| `3DES`, `AES`, `Argon2`, `bcrypt`, `Blowfish`, `CAST5`, `ChaCha20`, `CMAC`, `DES`, `DSA`, `ElGamal`, `HKDF`, `HMAC`, `IDEA`, `MD2`, `MD4`, `MD5`, `ML-DSA`, `ML-KEM`, `PBKDF2`, `Poly1305`, `RC2`, `RC4`, `Salsa20`, `scrypt`, `SEED`, `Serpent`, `SLH-DSA`, `SM3`, `SM4`, `Twofish` | the same name |
+| `Camellia` | `CAMELLIA` |
+| `SHA1` / `SHA2` | `SHA-1` / `SHA-2` |
+| `SHA3` | `SHA-3`; none if the component name contains `keccak` (case-insensitive; pre-standard Keccak, which the SHA3 rules also list) |
+| `BLAKE2` | `BLAKE2`; `BLAKE3` if the component name contains `blake3` (the BLAKE2 rule also lists the BLAKE3 classes) |
+| `RIPEMD160` | `RIPEMD` |
+| `XSalsa20` | `Salsa20` (XSalsa20 is the extended-nonce Salsa20) |
+| `KBKDF` | `SP800-108` |
+| `DH` | `FFDH` |
+| `Ed25519`, `Ed448` | `EdDSA` |
+| `EC` | primitive `signature` → `ECDSA`; `key-agree` → `ECDH`; otherwise none. This follows the primitive the rule declares and the CBOM already states: `python.asym.ec` (EC key generation and use) declares `key-agree`, so its components get `ECDH` (to be revisited with the rules) |
+| `Curve25519`, `Curve448` | primitive `key-agree` → `ECDH` (X25519 / X448); otherwise none |
+| `RSA` | variant `OAEP` → `RSAES-OAEP`; `PSS` → `RSASSA-PSS`; subtype `pkcs1-v1_5-encrypt`, or variant `PKCS1v15` with primitive `pke` → `RSAES-PKCS1`; variant `PKCS1v15` with primitive `signature` → `RSASSA-PKCS1`; otherwise none (the registry has no family for RSA without a scheme) |
+| `ConcatKDF`, `X963KDF` | none (no registry family) |
+| `PBE` | none (PBES1 or PBES2; the rule does not say which) |
+
+A unit test checks that every value of the table is in the vendored registry and that every
+family of the bundled rules is in the table.
+
+**Table 11.3.1b: `ellipticCurve`.** For family `EC`: the param, if it equals the name of a
+registry curve in the namespaces `secg`, `x962`, `nist` or `brainpool` without the namespace
+prefix, compared case-insensitively (`SECP256R1` → `secg/secp256r1`, `prime256v1` →
+`x962/prime256v1`, `P-256` → `nist/P-256`, `BrainpoolP256R1` → `brainpool/brainpoolP256r1`);
+otherwise none. Families `Curve25519`, `Curve448`, `Ed25519`, `Ed448` → `other/Curve25519`,
+`other/Curve448`, `other/Ed25519`, `other/Ed448`. No other family gets a curve. Synonyms are
+not resolved: `secp256r1`, `prime256v1` and `P-256` stay three registry names, as the
+registry lists them.
+
+Not used from 1.7: the `key-wrap` primitive (the rules record key wrapping inconsistently —
+the Python AES-KW rule as variant `KW`, the Java one not at all — and the comparison takes the
+primitive from the rule, so key wrapping stays `block-cipher` with mode `other`); the new
+protocol types (`dtls`, `quic`, …; no rule detects them); `relatedCryptographicAssets`,
+certificate and related-material fields (CipherSift has no values for them); the deprecated
+`curve` is not written. Evidence occurrences are unchanged in 1.7.
 
 #### 11.3.2 Protocols
 
@@ -1766,7 +1821,7 @@ exact):
 ```json
 {
   "bomFormat": "CycloneDX",
-  "specVersion": "1.6",
+  "specVersion": "1.7",
   "serialNumber": "urn:uuid:5c1f0d7e-…",
   "version": 1,
   "metadata": {
@@ -1870,7 +1925,7 @@ exact):
       "name": "AES",
       "cryptoProperties": {
         "assetType": "algorithm",
-        "algorithmProperties": {"primitive": "block-cipher"}
+        "algorithmProperties": {"primitive": "block-cipher", "algorithmFamily": "AES"}
       },
       "properties": [
         {"name": "ciphersift:ruleId", "value": "java.sym.aes"},
@@ -1895,7 +1950,7 @@ exact):
       "name": "AES/GCM/NoPadding",
       "cryptoProperties": {
         "assetType": "algorithm",
-        "algorithmProperties": {"primitive": "block-cipher", "mode": "gcm"}
+        "algorithmProperties": {"primitive": "block-cipher", "algorithmFamily": "AES", "mode": "gcm"}
       },
       "properties": [
         {"name": "ciphersift:ruleId", "value": "java.sym.aes.gcm"},
@@ -1969,7 +2024,9 @@ exact):
 ```
 
 (The example is printed with some objects on one line for brevity; real output indents every
-object and array element on its own line, 11.6.)
+object and array element on its own line, 11.6. With `--cyclonedx-version 1.6` the document is
+the same except `"specVersion": "1.6"`, no `algorithmFamily` / `ellipticCurve`, and therefore
+another `serialNumber`. The RSA component has no `algorithmFamily`: its rule names no scheme.)
 
 ### 11.6 Ordering, references and serialisation
 
@@ -2115,7 +2172,8 @@ rules/  spec/                          as delivered
   `com.networknt:json-schema-validator:2.0.4` (rule validation against the schema; the same
   version cyclonedx-core-java 13.2.0 uses, so there is no API clash on the test classpath).
 * Test dependencies: `org.junit.jupiter:junit-jupiter:6.1.3`,
-  `org.cyclonedx:cyclonedx-core-java:13.2.0` (output schema validation only).
+  `org.cyclonedx:cyclonedx-core-java:13.2.0` (output schema validation only; validates
+  CycloneDX 1.6 and 1.7 with json-schema-validator 2.0.4, the runtime version above).
 * Plugins: `maven-resources-plugin` copies `rules/` and `spec/rule-schema.json` into the jar;
   `exec-maven-plugin` runs `native/build-natives.sh` in `generate-resources` when the
   libraries for the build platform are missing from `target/native/`, and in
@@ -2252,8 +2310,9 @@ arguments decodable (section 12).
   `spec/tools/conformance.py`), and compare it with `expected.json`. All cases MUST pass.
   The JUnit conformance runner SHOULD implement the same comparison in Java.
 * **Schema validation**: every CBOM produced by the conformance runner is validated against
-  the CycloneDX 1.6 schema (11.1).
-* **Determinism test**: scan the conformance cases with `--threads 1` and `--threads 8`, and
+  the CycloneDX 1.7 schema; the runner repeats every case with `--cyclonedx-version 1.6`,
+  which MUST give the same normalised findings and a valid CycloneDX 1.6 document (11.1).
+* **Determinism test**: scan the conformance cases (also with `--cyclonedx-version 1.6`) with `--threads 1` and `--threads 8`, and
   from two different absolute locations whose last path segment is the same (it is
   `metadata.component.name`); outputs MUST be byte-identical.
 * **Rule regex parity**: `spec/tools/regex_parity.py` (optional in CI; requires Python).
