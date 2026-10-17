@@ -27,3 +27,8 @@ match:
 - call: crypto/cipher.NewGCMWithRandomNonce
   anySymbol:
   - crypto/aes.NewCipher
+# HPKE identifiers (crypto/hpke, Go 1.26, and filippo.io/hpke, the same API), DECISIONS F5.
+- call: crypto/hpke.AES128GCM
+- call: crypto/hpke.AES256GCM
+- call: filippo.io/hpke.AES128GCM
+- call: filippo.io/hpke.AES256GCM

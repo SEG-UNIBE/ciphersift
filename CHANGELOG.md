@@ -5,6 +5,27 @@
 
 ## 1.0.0 (unreleased)
 
+### Fix round (DECISIONS F1–F8)
+
+* **EC keys are not key agreement** (F1): `python.asym.ec`, `python.asym.secp256k1` and
+  `go.asym.ec` declare no primitive, like `java.asym.ec`; their components no longer carry
+  `algorithmFamily` `ECDH` / `ECDSA` or `ciphersift:primitive`.
+* **Python import alternatives** (F2): a binding of an `except ImportError` (or
+  `ModuleNotFoundError`, `Exception`, `BaseException`, bare `except`) handler is dropped when the
+  `try` body imports the same name; the `secrets` / `random` fallback no longer reports both PRNGs.
+* **Library lists** (F3): written list policy (SPEC 9.9); cloud KMS key clients, HPKE, Noise,
+  WireGuard, PIV, TPM, PKCS #7, Sigstore signing and time-stamping modules in all three ecosystems
+  (Go 14 new patterns, `github.com/sigstore/sigstore*` widened; PyPI 6; Maven 5).
+* **Go** (F4–F6): key construction (`rsa`/`ecdsa` key structs, `elliptic.CurveParams`, Ed25519
+  key conversions), Go 1.25 `ecdsa.ParseRawPrivateKey` / `ParseUncompressedPublicKey`, Go 1.26
+  `rsa.EncryptOAEPWithOptions` and `crypto/hpke` (also `filippo.io/hpke`) identifiers, new rule
+  `go.pqc.mldsa` for Go 1.27 `crypto/mldsa` and the TLS ML-DSA schemes (67 Go rules).
+* **Extensionless Python scripts** (F7): files without `.` whose first line is a Python
+  interpreter line are scanned as Python.
+* Documented (F8): Go block ciphers created in another function stay a design limitation.
+* Conformance: four new cases, 59 cases and 1243 findings; 36 expected findings changed their
+  primitive (F1).
+
 ### Go support (DECISIONS G1–G16, SPEC section 17)
 
 * New language **Go**: `.go` files are parsed with tree-sitter-go **v0.25.0** (ABI 15; pinned with

@@ -20,3 +20,8 @@ match:
 - call: golang.org/x/crypto/curve25519.ScalarBaseMult
 - ref: golang.org/x/crypto/curve25519.Basepoint
 - ref: crypto/tls.X25519
+# HPKE identifiers (crypto/hpke, Go 1.26, and filippo.io/hpke, the same API), DECISIONS F5.
+- call: crypto/hpke.DHKEM
+  anySymbol: [crypto/ecdh.X25519]
+- call: filippo.io/hpke.DHKEM
+  anySymbol: [crypto/ecdh.X25519]

@@ -29,3 +29,9 @@ match:
 - call: golang.org/x/crypto/nacl/sign.Open
 - ref: crypto/x509.Ed25519
 - ref: crypto/x509.PureEd25519
+# DECISIONS F4 (benchmark-informed): key construction, as the Java *KeySpec and Python *Numbers patterns.
+# Conversions of raw key bytes to the key types (written like calls).
+- call: crypto/ed25519.PrivateKey
+- call: crypto/ed25519.PublicKey
+- call: golang.org/x/crypto/ed25519.PrivateKey
+- call: golang.org/x/crypto/ed25519.PublicKey

@@ -1,0 +1,23 @@
+{"case": "deps/crypto-services", "findings": [
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "cloud.google.com/go/kms", "version": "v1.32.0"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "filippo.io/hpke", "version": "v0.4.0"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys", "version": "v1.5.0"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/aws/aws-sdk-go-v2/service/kms", "version": "v1.54.1"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/flynn/noise", "version": "v1.1.0"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/go-piv/piv-go/v2", "version": "v2.4.0"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/sigstore/sigstore-go", "version": "v1.2.2"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/sigstore/sigstore/pkg/signature/kms/aws", "version": "v1.10.0"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/sigstore/timestamp-authority/v2", "version": "v2.0.0"},
+  {"file": "go/go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "golang.zx2c4.com/wireguard", "version": "v0.0.0-20250521234502-f333402bd9cb"},
+  {"file": "java/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.amazonaws:aws-java-sdk-kms", "version": "1.12.780"},
+  {"file": "java/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.azure:azure-security-keyvault-keys", "version": "4.9.0"},
+  {"file": "java/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.google.cloud:google-cloud-kms", "version": "2.60.0"},
+  {"file": "java/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "dev.sigstore:sigstore-java", "version": "1.3.0"},
+  {"file": "java/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "software.amazon.awssdk:kms", "version": "2.30.0"},
+  {"file": "py/requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "aws-encryption-sdk", "version": "4.0.1"},
+  {"file": "py/requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "azure-keyvault-keys", "version": "4.10.0"},
+  {"file": "py/requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "google-cloud-kms", "version": "3.2.0"},
+  {"file": "py/requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "noiseprotocol", "version": "0.3.1"},
+  {"file": "py/requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyhpke", "version": "0.6.0"},
+  {"file": "py/requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "sigstore", "version": "3.6.1"}
+]}

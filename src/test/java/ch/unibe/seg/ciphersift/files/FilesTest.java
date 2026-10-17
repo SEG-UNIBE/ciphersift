@@ -224,4 +224,33 @@ class FilesTest {
         Files.writeString(big, "ok", java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
         assertEquals("ok", new String(SourceText.readBounded(big), StandardCharsets.UTF_8));
     }
+
+    /** SPEC 4.5, DECISIONS F7: extensionless files with a Python interpreter line are Python source. */
+    @Test
+    void pythonShebangs(@TempDir Path root) throws Exception {
+        java.util.function.Predicate<String> py = l -> {
+            byte[] b = l.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+            return FileClass.isPythonShebang(b, b.length);
+        };
+        assertTrue(py.test("#!/usr/bin/env python3\n"));
+        assertTrue(py.test("#!/usr/bin/python\n"));
+        assertTrue(py.test("#! /usr/local/bin/python3.12 -u\r\n"));
+        assertTrue(py.test("#!/usr/bin/env -S python3 -I\n"));
+        assertTrue(py.test("#!/usr/bin/env python"));
+        assertTrue(!py.test("#!/bin/sh\n"));
+        assertTrue(!py.test("#!/usr/bin/env pythonista\n"));
+        assertTrue(!py.test("#!python\n"));
+        assertTrue(!py.test("# !/usr/bin/python\n"));
+        assertTrue(!py.test("import os\n"));
+        assertTrue(FileClass.mayBeScript("bin/run_electrum"));
+        assertTrue(!FileClass.mayBeScript("bin/run.sh"));
+        Files.createDirectories(root.resolve("bin"));
+        Files.writeString(root.resolve("bin/tool"), "#!/usr/bin/env python3\nimport hashlib\n");
+        Files.writeString(root.resolve("bin/sh"), "#!/bin/sh\n");
+        Files.writeString(root.resolve("bin/tool.sh"), "#!/usr/bin/env python3\n");
+        Files.writeString(root.resolve("Makefile"), "all:\n");
+        var all = new FileCollector(root, List.of(), false).collect();
+        assertEquals(List.of("bin/tool"), all.stream().map(FileCollector.CollectedFile::relativePath).toList());
+        assertEquals(FileClass.PYTHON, all.get(0).fileClass());
+    }
 }

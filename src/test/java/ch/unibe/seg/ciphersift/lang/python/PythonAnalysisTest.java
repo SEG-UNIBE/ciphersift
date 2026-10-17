@@ -163,4 +163,32 @@ class PythonAnalysisTest {
         long ms = (System.nanoTime() - t0) / 1_000_000;
         org.junit.jupiter.api.Assertions.assertTrue(ms < 30_000, "took " + ms + " ms");
     }
+
+    /** DECISIONS F2: a binding of an import-failure handler is dropped when the try body binds the name. */
+    @Test
+    void importFailureHandlers() {
+        assertEquals("5:python.hash.sha2:hashlib.sha256",
+                summary("try:\n    from hashlib import sha256 as H\nexcept ImportError:\n    from hashlib import md5 as H\nH()\n"));
+        assertEquals("5:python.hash.sha2:hashlib.sha256",
+                summary("try:\n    from hashlib import sha256 as H\nexcept:\n    from hashlib import md5 as H\nH()\n"));
+        // another exception: both alternatives stay (flow-insensitive, Appendix B)
+        assertEquals("5:python.hash.sha2:hashlib.sha256 5:python.hash.md5:hashlib.md5",
+                summary("try:\n    from hashlib import sha256 as H\nexcept KeyError:\n    from hashlib import md5 as H\nH()\n"));
+        // the handler binds a name the body does not bind: kept
+        assertEquals("5:python.hash.md5:hashlib.md5",
+                summary("try:\n    from hashlib import sha256\nexcept ImportError:\n    from hashlib import md5\nmd5()\n"));
+        // the decision is per try statement: an import of the same name in another try does not count
+        assertEquals("9:python.hash.sha2:hashlib.sha256 9:python.hash.md5:hashlib.md5",
+                summary("try:\n    from hashlib import sha256 as H\nexcept KeyError:\n    pass\ntry:\n    pass\n"
+                        + "except ImportError:\n    from hashlib import md5 as H\nH()\n"));
+    }
+
+    /** DECISIONS F1: EC key generation is not key agreement. */
+    @Test
+    void ecKeyGenerationHasNoPrimitive() {
+        SourceFinding f = analyze("from cryptography.hazmat.primitives.asymmetric import ec\n"
+                + "ec.generate_private_key(ec.SECP256R1())\n").get(0);
+        assertEquals("python.asym.ec", f.rule().id());
+        assertEquals(null, f.rule().asset().primitive());
+    }
 }

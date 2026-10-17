@@ -165,4 +165,33 @@ class GoAnalysisTest {
         assertEquals(List.of(), a.analyze(SyntaxTrees.parse(parser, Grammars.get().go(),
                 file("import \"crypto/md5\"", " md5.Sum(k)")), "x.go", false));
     }
+
+    /** DECISIONS F4-F6: key construction, HPKE identifiers, ML-DSA. */
+    @Test
+    void keysHpkeMldsa() {
+        assertEquals("5:go.asym.rsa:crypto/rsa.PublicKey",
+                summary(file("import \"crypto/rsa\"", " _ = &rsa.PublicKey{E: 3}")));
+        assertEquals("5:go.asym.ec:crypto/elliptic.CurveParams",
+                summary(file("import \"crypto/elliptic\"", " _ = &elliptic.CurveParams{Name: \"x\"}")));
+        assertEquals("5:go.asym.ecdsa:crypto/ecdsa.ParseRawPrivateKey[P-521]",
+                summary(file("import (\"crypto/ecdsa\"; \"crypto/elliptic\")", " ecdsa.ParseRawPrivateKey(elliptic.P521(), k)")));
+        assertEquals("5:go.asym.ed25519:crypto/ed25519.PublicKey",
+                summary(file("import \"crypto/ed25519\"", " _ = ed25519.PublicKey(k)")));
+        assertEquals("", summary(file("import \"crypto/ed25519\"", " var x interface{} = k\n _, _ = x.(ed25519.PublicKey)")));
+        assertEquals("5:go.asym.ecdh:crypto/hpke.DHKEM[P-384]",
+                summary(file("import (\"crypto/ecdh\"; \"crypto/hpke\")", " hpke.DHKEM(ecdh.P384())")));
+        assertEquals("5:go.hash.sha2:filippo.io/hpke.HKDFSHA512 5:go.kdf.hkdf:filippo.io/hpke.HKDFSHA512",
+                summary(file("import \"filippo.io/hpke\"", " hpke.HKDFSHA512()")));
+        assertEquals("5:go.pqc.mlkem:crypto/hpke.MLKEM768P256[ML-KEM-768]",
+                summary(file("import \"crypto/hpke\"", " hpke.MLKEM768P256()")));
+        assertEquals("5:go.pqc.mldsa:crypto/mldsa.GenerateKey[ML-DSA-44]",
+                summary(file("import \"crypto/mldsa\"", " mldsa.GenerateKey(mldsa.MLDSA44())")));
+        assertEquals("", summary(file("import \"crypto/hpke\"", " hpke.ExportOnly()")));
+    }
+
+    /** DECISIONS F1: the crypto/elliptic curves are not key agreement. */
+    @Test
+    void ellipticCurvesHaveNoPrimitive() {
+        assertEquals(null, analyze(file("import \"crypto/elliptic\"", " elliptic.P256()")).get(0).rule().asset().primitive());
+    }
 }

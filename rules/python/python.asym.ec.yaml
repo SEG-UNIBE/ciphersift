@@ -12,7 +12,6 @@ description: >-
   and the ecdsa package.
 asset:
   type: algorithm
-  primitive: key-agree
   family: EC
 match:
 - call: cryptography.hazmat.primitives.asymmetric.ec.generate_private_key

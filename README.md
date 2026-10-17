@@ -91,8 +91,8 @@ Scanned inputs: `*.java`, `*.py` (including `setup.py`, whose literal `install_r
 `extras_require` are also read as dependencies), `pom.xml`, `build.gradle(.kts)`,
 `*.versions.toml`, `requirements*.txt` and `requirements/*.txt`, `pyproject.toml`,
 `Pipfile.lock`, `poetry.lock`, `setup.cfg`. Files without one of these names or extensions are
-not scanned, also executable scripts without extension (`#!/usr/bin/env python3`); pass them
-through a copy with a `.py` name if they matter. `.git`, `.hg`, `.svn` and symbolic links are never followed; files
+not scanned, except files without any `.` in their name whose first line is a Python interpreter
+line (`#!/usr/bin/env python3`, `#!/usr/bin/python3.12`): they are scanned as Python (SPEC 4.5). `.git`, `.hg`, `.svn` and symbolic links are never followed; files
 over 10 MiB and binary source files are skipped.
 
 The output is byte-identical for identical inputs, regardless of thread count, file-system
@@ -198,11 +198,20 @@ parameter; OAEP, PKCS #1 v1.5, PSS), `dsa`, `ecdsa`, `ecdh`, `elliptic` (curves 
 constants — and `golang.org/x/crypto` (`chacha20`, `chacha20poly1305`, `poly1305`, `salsa20`,
 `nacl/box`, `nacl/secretbox`, `nacl/sign`, `nacl/auth`, `curve25519`, `ed25519`, `scrypt`,
 `argon2`, `bcrypt`, `hkdf`, `pbkdf2`, `sha3`, `blake2b`, `blake2s`, `md4`, `ripemd160`,
-`blowfish`, `cast5`, `twofish`, `xts`, `pkcs12`, `ssh`). Functions passed as values count as uses
+`blowfish`, `cast5`, `twofish`, `xts`, `pkcs12`, `ssh`), and the newer `crypto/hpke` (also
+`filippo.io/hpke`; reported through its KEM, KDF and AEAD identifiers), `crypto/mldsa`, the
+Go 1.25 raw ECDSA key encodings and key construction (`rsa.PublicKey{…}`, `ed25519.PublicKey(b)`,
+`elliptic.CurveParams{…}`). Functions passed as values count as uses
 (`hmac.New(sha256.New, k)` reports HMAC and SHA-2); TLS constants in comparisons and `switch`
 cases do not. `go.mod` and `go.sum` report the modules of `rules/dependencies/dep.golang.yaml`
 (`golang.org/x/crypto`, `filippo.io/age`, `github.com/cloudflare/circl`, JWT/JOSE libraries, …).
 `vendor/` directories are scanned like any other; pass `--exclude vendor` to skip vendored modules.
+
+**Which libraries are listed.** The lists follow a written policy (SPEC 9.9): packages whose
+documented purpose is cryptographic primitives, a cryptographic protocol or format, key management
+in a KMS or hardware module (AWS KMS, Google Cloud KMS, Azure Key Vault keys, PKCS #11, PIV, TPM),
+or signing / certificates / time-stamping of artefacts (Sigstore). General SDKs, secret stores,
+the HashiCorp Vault API client, transparency logs and data-model packages are not listed.
 
 **Debatable library entries.** The dependency lists also contain packages that support
 cryptography without implementing it, e.g. `certifi` (a CA bundle) and `commons-codec`

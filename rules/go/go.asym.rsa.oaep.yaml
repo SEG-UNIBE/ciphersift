@@ -17,3 +17,5 @@ match:
 - call: crypto/rsa.EncryptOAEP
 - call: crypto/rsa.DecryptOAEP
 - composite: crypto/rsa.OAEPOptions
+# Go 1.26 (separate OAEP and MGF1 hashes).
+- call: crypto/rsa.EncryptOAEPWithOptions

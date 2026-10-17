@@ -31,3 +31,12 @@ match:
 - ref: crypto/tls.CurveP521
   param:
     value: P-521
+# HPKE identifiers (crypto/hpke, Go 1.26, and filippo.io/hpke, the same API), DECISIONS F5.
+- call: crypto/hpke.DHKEM
+  anySymbol: [crypto/ecdh.P256, crypto/ecdh.P384, crypto/ecdh.P521]
+  param:
+    index: 0
+- call: filippo.io/hpke.DHKEM
+  anySymbol: [crypto/ecdh.P256, crypto/ecdh.P384, crypto/ecdh.P521]
+  param:
+    index: 0

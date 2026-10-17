@@ -1,0 +1,3 @@
+#!/usr/bin/env python
+import hashlib
+hashlib.sha512(b"x")  # want: python.hash.sha2 hashlib.sha512

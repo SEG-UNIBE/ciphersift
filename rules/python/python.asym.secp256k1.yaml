@@ -8,7 +8,6 @@ description: Detects elliptic-curve keys on secp256k1 via the libsecp256k1 bindi
   GENERATOR), coincurve (PrivateKey, PublicKey, PublicKeyXOnly) and secp256k1-py (PrivateKey, PublicKey).
 asset:
   type: algorithm
-  primitive: signature
   family: EC
 match:
 - call: electrum_ecc.ECPrivkey

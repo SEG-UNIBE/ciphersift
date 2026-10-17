@@ -21,3 +21,6 @@ match:
   param:
     index: 2
 - ref: crypto/x509.RSA
+# DECISIONS F4 (benchmark-informed): key construction, as the Java *KeySpec and Python *Numbers patterns.
+- composite: crypto/rsa.PrivateKey
+- composite: crypto/rsa.PublicKey

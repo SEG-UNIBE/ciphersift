@@ -1,0 +1,10 @@
+{"case": "python/import-fallback", "findings": [
+  {"file": "fallback.py", "line": 7, "rule": "python.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "secrets.randbits"},
+  {"file": "fallback.py", "line": 13, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"},
+  {"file": "fallback.py", "line": 19, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha512"},
+  {"file": "fallback.py", "line": 25, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5"},
+  {"file": "fallback.py", "line": 25, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha1"},
+  {"file": "fallback.py", "line": 31, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5"},
+  {"file": "fallback.py", "line": 39, "rule": "python.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "secrets.randbits"},
+  {"file": "fallback.py", "line": 46, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5"}
+]}

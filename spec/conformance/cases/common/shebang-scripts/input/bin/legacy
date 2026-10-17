@@ -1,0 +1,3 @@
+#!/usr/bin/python3.12 -u
+import hashlib
+hashlib.md5(b"x")  # want: python.hash.md5 hashlib.md5

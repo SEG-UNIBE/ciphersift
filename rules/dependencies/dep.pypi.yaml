@@ -121,3 +121,16 @@ packages:
   note: SHA-3 / Keccak for Python < 3.6
 - package: safe-pysha3
   note: SHA-3 / Keccak (pysha3 fork)
+# Added with DECISIONS F3, by the written list policy of SPEC 9.9.
+- package: google-cloud-kms
+  note: Google Cloud KMS client, (c)
+- package: azure-keyvault-keys
+  note: Azure Key Vault keys client, (c)
+- package: aws-encryption-sdk
+  note: AWS Encryption SDK, (b)
+- package: noiseprotocol
+  note: Noise protocol framework, (b)
+- package: pyhpke
+  note: HPKE (RFC 9180), (b)
+- package: sigstore
+  note: Sigstore signing, (d)

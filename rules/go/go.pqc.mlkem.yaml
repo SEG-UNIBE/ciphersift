@@ -41,3 +41,34 @@ match:
 - ref: crypto/tls.SecP384r1MLKEM1024
   param:
     value: ML-KEM-1024
+# HPKE identifiers (crypto/hpke, Go 1.26, and filippo.io/hpke, the same API), DECISIONS F5.
+- call: crypto/hpke.MLKEM768
+  param:
+    value: ML-KEM-768
+- call: crypto/hpke.MLKEM768X25519
+  param:
+    value: ML-KEM-768
+- call: crypto/hpke.MLKEM768P256
+  param:
+    value: ML-KEM-768
+- call: crypto/hpke.MLKEM1024
+  param:
+    value: ML-KEM-1024
+- call: crypto/hpke.MLKEM1024P384
+  param:
+    value: ML-KEM-1024
+- call: filippo.io/hpke.MLKEM768
+  param:
+    value: ML-KEM-768
+- call: filippo.io/hpke.MLKEM768X25519
+  param:
+    value: ML-KEM-768
+- call: filippo.io/hpke.MLKEM768P256
+  param:
+    value: ML-KEM-768
+- call: filippo.io/hpke.MLKEM1024
+  param:
+    value: ML-KEM-1024
+- call: filippo.io/hpke.MLKEM1024P384
+  param:
+    value: ML-KEM-1024

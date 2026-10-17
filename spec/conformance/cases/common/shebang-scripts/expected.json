@@ -1,0 +1,6 @@
+{"case": "common/shebang-scripts", "findings": [
+  {"file": "bin/legacy", "line": 3, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5"},
+  {"file": "bin/run_tool", "line": 3, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"},
+  {"file": "tests/check", "line": 3, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha512", "test": true},
+  {"file": "tools/crlf", "line": 3, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha1"}
+]}

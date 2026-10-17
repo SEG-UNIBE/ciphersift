@@ -107,6 +107,9 @@ public final class FileCollector {
                     continue;
                 }
                 FileClass fc = FileClass.of(rel);
+                if (fc == FileClass.IGNORED && FileClass.mayBeScript(rel) && pythonScript(p, rel)) {
+                    fc = FileClass.PYTHON; // extensionless script with a Python interpreter line (4.5)
+                }
                 if (fc == FileClass.IGNORED) {
                     continue;
                 }
@@ -123,6 +126,22 @@ public final class FileCollector {
             }
         }
         return out;
+    }
+
+    /** Reads the start of an extensionless file and checks for a Python interpreter line (SPEC 4.5). */
+    private static boolean pythonScript(Path p, String rel) {
+        byte[] head = new byte[FileClass.SHEBANG_BYTES];
+        int n = 0;
+        try (java.io.InputStream in = Files.newInputStream(p)) {
+            int r;
+            while (n < head.length && (r = in.read(head, n, head.length - n)) > 0) {
+                n += r;
+            }
+        } catch (IOException | SecurityException ex) {
+            Log.debug("cannot read " + rel + ": " + message(ex));
+            return false;
+        }
+        return FileClass.isPythonShebang(head, n);
     }
 
     private static String message(Exception ex) {

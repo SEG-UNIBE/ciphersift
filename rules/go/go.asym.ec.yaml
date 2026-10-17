@@ -11,7 +11,6 @@ description: >-
   ecdsa.GenerateKey also reports) and the deprecated crypto/elliptic point and key functions.
 asset:
   type: algorithm
-  primitive: key-agree
   family: EC
 match:
 - call: crypto/elliptic.P224
@@ -31,3 +30,5 @@ match:
 - call: crypto/elliptic.MarshalCompressed
 - call: crypto/elliptic.Unmarshal
 - call: crypto/elliptic.UnmarshalCompressed
+# DECISIONS F4 (benchmark-informed): key construction, as the Java *KeySpec and Python *Numbers patterns.
+- composite: crypto/elliptic.CurveParams

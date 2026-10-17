@@ -51,4 +51,34 @@ packages:
 - package: github.com/pion/dtls*
 - package: github.com/gtank/cryptopasta
 - package: github.com/keybase/go-crypto
-- package: github.com/sigstore/sigstore
+- package: github.com/sigstore/sigstore*
+  note: Sigstore signing libraries (also sigstore-go and the signature/kms/* submodules); DECISIONS F3 (d)/(c)
+# Added with DECISIONS F3 (benchmark-informed), by the written list policy of SPEC 9.9.
+- package: filippo.io/hpke
+  note: HPKE (RFC 9180), (b)
+- package: github.com/flynn/noise
+  note: Noise protocol framework, (b)
+- package: golang.zx2c4.com/wireguard
+  note: WireGuard, (b)
+- package: github.com/ProtonMail/gopenpgp*
+  note: OpenPGP, (b)
+- package: github.com/digitorus/pkcs7
+  note: CMS / PKCS #7, (b)
+- package: go.mozilla.org/pkcs7
+  note: CMS / PKCS #7, (b)
+- package: cloud.google.com/go/kms
+  note: Google Cloud KMS client, (c)
+- package: github.com/aws/aws-sdk-go-v2/service/kms
+  note: AWS KMS client, (c)
+- package: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys
+  note: Azure Key Vault keys client, (c)
+- package: github.com/go-piv/piv-go*
+  note: PIV smart cards (YubiKey), (c)
+- package: github.com/google/go-tpm*
+  note: TPM 2.0, (c)
+- package: github.com/sigstore/fulcio
+  note: Sigstore certificate authority, (d)
+- package: github.com/sigstore/timestamp-authority*
+  note: RFC 3161 time-stamping, (d)
+- package: github.com/digitorus/timestamp
+  note: RFC 3161 time-stamps, (d)

@@ -176,3 +176,55 @@ micro-python unchanged at 11/11. **No benchmark-informed change was made.** Foll
 seen in the evaluation (not applied, owner to decide): the module `filippo.io/hpke` (used by age)
 is not on `dep.golang`; the newer standard-library packages `crypto/hpke` and `crypto/mldsa` have
 no rules (their uses in the evaluated code were types only, which are not events by design).
+
+# Fix round (2026-10-17)
+
+Requested by the owner ("CipherSift is our own tool, so we can fix any bug we found there"): fix
+the open items of `ciphersift-eval/ISSUES.md`, the rule bug noted with C1 above, and the Go
+follow-up candidates of the Go evaluation. Same clean-room rules as before (`PROVENANCE.md`, "Fix
+round"). Decided by the implementer as below. **benchmark-informed** marks items found through the
+evaluations (the 10 Java/Python projects of `ciphersift-eval`, the 5 Go projects of `go-eval`,
+the BF-CBOM `mid-age` / `mid-smallstep-crypto` inputs): the fix generalises what those projects
+showed, so the projects are no longer an independent test of it.
+
+| item | decision | where in SPEC.md |
+|---|---|---|
+| F1 EC primitive (C1) | The EC key generation / construction / curve rules `python.asym.ec`, `python.asym.secp256k1` and `go.asym.ec` no longer declare a primitive (`key-agree`, `signature` before), like `java.asym.ec`: a key or a curve is used for ECDSA and ECDH alike, so EC key generation is no longer labelled key agreement (CycloneDX 1.7 `algorithmFamily` `ECDH` / `ECDSA`, `ciphersift:primitive`). ECDSA and ECDH stay with their operation rules. Findings, lines and names are unchanged; the components change their primitive (`unknown` in `algorithmProperties`). Not benchmark-informed (noted in the 1.7 mapping, C1). | 17.11 |
+| F2 import alternatives (E17) | A binding made by an import in an import-failure handler (`ImportError`, `ModuleNotFoundError`, `Exception`, `BaseException`, bare `except`) of a `try` whose body imports the same local name is dropped: the handler runs only if that import failed. Handlers of other exceptions, `else`/`finally`, other `try` statements and `if` alternatives keep all bindings (Appendix B). Replaces the E17 decision "documented, not changed". **benchmark-informed** (oauthlib `common.py:173`). | 8.2, Appendix B |
+| F3 library lists (Go follow-up) | A written list policy for all three ecosystems (9.9: primitives, protocols/formats, KMS/HSM key management, artefact signing/certificates/time-stamping; not SDK cores, secret stores, general platform clients, transparency logs, data models). Added by it — Go: `filippo.io/hpke`, `github.com/flynn/noise`, `golang.zx2c4.com/wireguard`, `github.com/ProtonMail/gopenpgp*`, `github.com/digitorus/pkcs7`, `go.mozilla.org/pkcs7`, `cloud.google.com/go/kms`, `github.com/aws/aws-sdk-go-v2/service/kms`, `github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys`, `github.com/go-piv/piv-go*`, `github.com/google/go-tpm*`, `github.com/sigstore/fulcio`, `github.com/sigstore/timestamp-authority*`, `github.com/digitorus/timestamp`, and `github.com/sigstore/sigstore` widened to `github.com/sigstore/sigstore*` (sigstore-go, the `signature/kms/*` modules); PyPI: `google-cloud-kms`, `azure-keyvault-keys`, `aws-encryption-sdk`, `noiseprotocol`, `pyhpke`, `sigstore`; Maven: `com.google.cloud:google-cloud-kms`, `software.amazon.awssdk:kms`, `com.amazonaws:aws-java-sdk-kms`, `com.azure:azure-security-keyvault-keys`, `dev.sigstore:sigstore-java`. Not listed by the policy: `github.com/hashicorp/vault/api` (general Vault client), `github.com/sigstore/rekor` (transparency log), `github.com/sigstore/protobuf-specs` (data model). **benchmark-informed** (sops, nebula, cosign go.mod sites; age). | 9.9 |
+| F4 Go key construction | Language parity with the Java `*KeySpec` and Python `*Numbers` patterns: composites `crypto/rsa.PrivateKey`/`PublicKey` (`go.asym.rsa`), `crypto/ecdsa.PrivateKey`/`PublicKey` and the Go 1.25 `ecdsa.ParseRawPrivateKey` / `ParseUncompressedPublicKey` with the curve as parameter (`go.asym.ecdsa`), `crypto/elliptic.CurveParams` (`go.asym.ec`), the conversions `ed25519.PublicKey(b)` / `PrivateKey(b)` of `crypto/ed25519` and `x/crypto/ed25519` (`go.asym.ed25519`); Go 1.26 `rsa.EncryptOAEPWithOptions` (`go.asym.rsa.oaep`). A curve inside such a composite is folded into it (7.7.2), losing its parameter (Appendix B). **benchmark-informed** (go-jose `jwk.go`, nebula `cert_v*.go`, go-crypto `brainpool.go`, `private_key.go`). | 17.11, Appendix B |
+| F5 HPKE | `crypto/hpke` (Go 1.26) and `filippo.io/hpke` (same API) through their identifier functions, in existing rules (no new family): `DHKEM` in `go.asym.ecdh` (`anySymbol` the NIST `ecdh` curves, curve as parameter) and `go.asym.x25519` (`anySymbol` `ecdh.X25519`); `MLKEM768`, `MLKEM768X25519`, `MLKEM768P256`, `MLKEM1024`, `MLKEM1024P384` in `go.pqc.mlkem` (parameter set; hybrids under ML-KEM only, as `tls.X25519MLKEM768`); `HKDFSHA256/384/512` in `go.kdf.hkdf` and `go.hash.sha2`; `SHAKE128/256` in `go.hash.sha3`; `AES128GCM`/`AES256GCM` in `go.sym.aes.gcm`; `ChaCha20Poly1305` in `go.sym.chacha20poly1305`. Not anchors: `Seal`, `Open`, `NewSender`, `NewRecipient`, key wrappers, `ExportOnly`, `NewKEM/NewKDF/NewAEAD(id)`. API from pkg.go.dev (`crypto/hpke`, `filippo.io/hpke` v0.4.0) and the Go 1.26 release notes. **benchmark-informed** (age / mid-age). | 17.11 |
+| F6 ML-DSA | New rule `go.pqc.mldsa` (family ML-DSA, primitive signature): `crypto/mldsa` (Go 1.27) `MLDSA44/65/87` (parameter sets `ML-DSA-44/65/87`), `GenerateKey`, `NewPrivateKey`, `NewPublicKey` (parameter set from argument 0), `Verify`; the `crypto/tls` signature schemes `MLDSA44/65/87` (Go 1.27 release notes). Not added: crypto/x509 ML-DSA constants (their exact names could not be confirmed from the documentation read), `crypto.MLDSAMu`. 67 Go rules. **benchmark-informed** (mid-smallstep-crypto `mldsa/`). | 17.11 |
+| F7 extensionless Python scripts (E18) | A file whose name has no `.` and whose first line (within 256 bytes) is a Python interpreter line (absolute path, `python[version]` directly or after `env [options]`) is Python source. Replaces the E18 decision "documented". **benchmark-informed** (electrum `run_electrum`). | 4.5, Appendix B |
+| F8 Go block cipher from another function | Not changed; recorded as a design limitation. A generic fix would have to follow return values, function parameters or struct fields across functions, which Java and Python deliberately do not do (D2, D5 of the evaluation; Appendix B); doing it for Go only would make the languages inconsistent. The mode keeps its cipher-agnostic fallback component. **benchmark-informed** (go-jose `cipher/cbc_hmac.go`, go-crypto `aead.go`). | Appendix B |
+
+**Not changed** (open items reviewed): E3 certificate fingerprints (attribute reads, by design);
+E7 weak suites given as OkHttp `CipherSuite` constants (a field anchor has only a trailing `*`;
+an explicit list of weak constants would be a maintenance list without a public source of truth
+in this round); E11/E17 hash detail of `PSSParameterSpec` / `OAEPParameterSpec` (a specific hash
+pattern on the constructor would suppress the RSA finding, 7.7.1; putting the hash into RSA's
+parameter would mix meanings); E15 deferred `final` locals (owner decision); E17 XChaCha20 (the
+nonce length is dynamic), `certifi` / `commons-codec` (documented as debatable); E18 binary literals
+with `__` (grammar pinned), `primitive: unknown` of prng-secure / x509 components (the same in all
+three languages; CycloneDX has no better value); E6 `new BouncyCastleProvider()` (a provider is not
+an asset). D1–D8 stay by design.
+
+**Changed conformance expectations** (rule asset fields, no deviation entry needed, since
+`expected.json` takes them from the rules): F1 sets `primitive` to `null` in 36 findings of eight
+cases (`python/references` 1, `python/misc-libs` 1, `python/fork-fixtures` 8, `python/oid-table`
+15, `python/arguments` 2, `python/secp256k1-pyaes` 5, `go/constants` 3, `go/api-battery` 1). No
+other expectation changed; F2 leaves `python/name-resolution` and `python/fork-fixtures` unchanged
+(their `try`/`except ImportError` alternatives resolve to the same rules and the `try` body's
+target is the first one already).
+
+**New conformance cases** (hand-written `want:` comments, written from this table and SPEC before
+the implementation was run, `expected.json` derived from them and the rules' asset blocks):
+`python/import-fallback` (F2, 8 findings, with `--weakness-indicators`), `go/hpke-mldsa-keys`
+(F4–F6, 32), `common/shebang-scripts` (F7, 4), `deps/crypto-services` (F3, 21, written directly);
+59 cases, 1243 findings.
+
+**Effect on the evaluation projects** (native scans, default options, before = 1cb3232): Java and
+Python CBOMs are byte-identical apart from the rule digest / serial number, the EC primitive (F1)
+and three new library entries (web3j `software.amazon.awssdk:kms`, electrum `noiseprotocol`,
+pyhanko `sigstore`). Go: 99 new and 11 vanished occurrences (the vanished ones are curve calls
+folded into a new enclosing key construction or `ParseRaw…` call, F4).

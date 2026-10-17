@@ -144,7 +144,7 @@ class CliIT {
         assertEquals(0, v.exit(), v.stderr());
         assertTrue(v.out().contains("source java: 103"), v.out());
         assertTrue(v.out().contains("source python: 87"), v.out());
-        assertTrue(v.out().contains("source go: 66"), v.out());
+        assertTrue(v.out().contains("source go: 67"), v.out());
         assertTrue(v.out().contains("dependency golang: 1"), v.out());
         Path exp = tmp.resolve("exported");
         JarRunner.Run e = JarRunner.run("rules", "export", exp.toString());

@@ -105,3 +105,19 @@ conformance cases (inputs and expectations), `lang/go/`, `deps/GoManifests.java`
 The BF-CBOM benchmark corpora (`corpus-native/`, including `micro-go` and its ground truth) were
 not read before the implementation and the rules were frozen; see `DECISIONS.md` for any change
 made after the evaluation (marked "benchmark-informed").
+
+## Fix round (2026-10-17)
+
+Same clean-room process. **No Crypsy / Crypistry material** and no other scanner's rules or
+sources were consulted. Inputs: this repository; the evaluation material (`ciphersift-eval/ISSUES.md`
+and its reproducers, `go-eval` reports, judgments and the scanned projects' own files, the BF-CBOM
+`corpus-native` Go inputs); public API documentation, used for API names only:
+
+| Input | Used for |
+|---|---|
+| pkg.go.dev `crypto/hpke` (go1.27.2 page; package added in Go 1.26), `filippo.io/hpke` v0.4.0, Go 1.26 release notes | F5 identifier functions |
+| pkg.go.dev `crypto/mldsa` (go1.27.2), Go 1.27 release notes (`crypto/mldsa`, `tls.MLDSA44/65/87`) | F6 |
+| pkg.go.dev `crypto/ecdsa` (`ParseRawPrivateKey`, `ParseUncompressedPublicKey`, Go 1.25), `crypto/rsa` (`EncryptOAEPWithOptions`, Go 1.26), Go 1.25 release notes | F4 |
+| The modules' / packages' own documentation (purpose statements) | F3 list entries |
+| Python language reference (`try` statement, exception hierarchy), tree-sitter-python 0.25.0 `node-types.json` (`try_statement`, `except_clause`) | F2 |
+| POSIX / Linux interpreter-line convention (`#!`), `env(1)` (`-S`) | F7 |

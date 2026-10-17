@@ -325,3 +325,44 @@ the CycloneDX mapping of every Go family (`CycloneDx17Test`), the licence (MIT t
 under `META-INF/ciphersift/licenses/tree-sitter-go/`, `NOTICE`), the checksum pin (fetching
 reproduces the committed Java/Python vendor trees byte for byte), header checks (Go conformance
 inputs are excluded like the others).
+
+## Fix round F1–F8 (2026-10-17, self-review of the diff)
+
+Scope: `PythonAnalyzer` (import alternatives), `FileClass` / `FileCollector` (interpreter
+lines), 16 rule files (+ `go.pqc.mldsa`), the three dependency lists, SPEC 4.5 / 8.2 / 9.9 /
+17.11 / Appendix B, four conformance cases, 36 changed expectations (primitive only), unit tests.
+`mvn verify` green (436 unit + 193 integration tests, 59 conformance cases × {1.7, 1.6, determinism}).
+
+Checked:
+
+* **F2 ordering.** Imports are now entered after the collection walk instead of during it. Nothing
+  reads the import table during the walk (`maybeReference` uses only the rule index), so the order
+  of targets per local name is the collection order as before; the conformance cases with
+  `try`/`except ImportError` (`python/name-resolution`, `python/fork-fixtures`) are unchanged.
+  The try context stops at function, lambda, class and module boundaries and at `else` /
+  `finally`; an `if` or `with` block inside a `try` body still belongs to the body. The word test
+  `\b(ImportError|…|Exception|BaseException)\b` does not match `MyException` (no word boundary)
+  but does match a qualified `builtins.Exception`; both are acceptable. Star imports unchanged
+  (documented).
+* **F7 cost and scope.** Only regular, non-excluded, unclassified files without `.` in their name
+  are opened, and only 256 bytes are read; read errors give a debug line, not a warning (the file
+  would have been ignored before). The file then goes through binary detection, the size limit and
+  the pre-filter like any `.py` file. `.py` name rules of 4.7 do not apply to scripts (directory
+  rule only), as specified. Hidden files (`.bashrc`) contain a `.` and are never opened.
+* **F1** changes only asset fields: no selection, nesting or naming logic reads the primitive
+  (only `CbomWriter` / `CryptoRegistry`). Diffed the evaluation CBOMs: Java/Python changes are the
+  EC primitive and three library entries.
+* **F4 composites.** A composite `rsa.PublicKey{…}` nested in `rsa.PrivateKey{…}` folds (same
+  family); a curve call inside `ecdsa.PublicKey{Curve: elliptic.P256()}` folds too and loses its
+  parameter — 11 such curve findings in go-jose/nebula tests and code moved to the enclosing
+  construction line (documented in Appendix B; not worth a special case). Type assertions and type
+  switches are not events (unit test). `ed25519.PublicKey(b)` conversions are call events by 17.5;
+  a conversion and a separate `.Public()` call on one line give two findings (different names).
+* **F5/F6** use only existing families; `CycloneDx17Test` (every family mapped / registry values)
+  passes. The hybrid HPKE KEMs follow the `tls.X25519MLKEM768` precedent (ML-KEM only).
+* **F3** globs: `github.com/sigstore/sigstore*` also covers `sigstore-go` and the `signature/kms/*`
+  modules (intended, policy (c)/(d)); `golang.zx2c4.com/wireguard` is exact (a first draft with `*`
+  also matched the `wireguard/windows` client module, removed).
+* Rule counts in `RuleLoaderTest`, `CliIT` and the conformance total in `ConformanceIT` updated.
+
+No findings left open.

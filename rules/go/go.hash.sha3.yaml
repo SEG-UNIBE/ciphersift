@@ -48,3 +48,8 @@ match:
 - ref: crypto.SHA3_256
 - ref: crypto.SHA3_384
 - ref: crypto.SHA3_512
+# HPKE identifiers (crypto/hpke, Go 1.26, and filippo.io/hpke, the same API), DECISIONS F5.
+- call: crypto/hpke.SHAKE128
+- call: crypto/hpke.SHAKE256
+- call: filippo.io/hpke.SHAKE128
+- call: filippo.io/hpke.SHAKE256

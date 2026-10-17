@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift from the public API documentation of the Go standard library (pkg.go.dev crypto/mldsa,
+# crypto/tls; Go 1.27 release notes); see spec/PROVENANCE.md, SPEC.md section 17.11 and DECISIONS F6.
+id: go.pqc.mldsa
+kind: source
+language: go
+name: ML-DSA usage in Go
+description: >-
+  Detects crypto/mldsa (Go 1.27) parameter sets, key generation, key construction and verification, and the
+  crypto/tls ML-DSA signature schemes (parameter set as parameter).
+asset:
+  type: algorithm
+  primitive: signature
+  family: ML-DSA
+match:
+- call: crypto/mldsa.MLDSA44
+  param:
+    value: ML-DSA-44
+- call: crypto/mldsa.MLDSA65
+  param:
+    value: ML-DSA-65
+- call: crypto/mldsa.MLDSA87
+  param:
+    value: ML-DSA-87
+- call: crypto/mldsa.GenerateKey
+  param:
+    index: 0
+- call: crypto/mldsa.NewPrivateKey
+  param:
+    index: 0
+- call: crypto/mldsa.NewPublicKey
+  param:
+    index: 0
+- call: crypto/mldsa.Verify
+- ref: crypto/tls.MLDSA44
+  param:
+    value: ML-DSA-44
+- ref: crypto/tls.MLDSA65
+  param:
+    value: ML-DSA-65
+- ref: crypto/tls.MLDSA87
+  param:
+    value: ML-DSA-87

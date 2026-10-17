@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+import hashlib
+print(hashlib.sha256(b"x").hexdigest())  # want: python.hash.sha2 hashlib.sha256

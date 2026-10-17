@@ -26,3 +26,13 @@ match:
 - ref: crypto/x509.ECDSAWithSHA256
 - ref: crypto/x509.ECDSAWithSHA384
 - ref: crypto/x509.ECDSAWithSHA512
+# DECISIONS F4 (benchmark-informed): key construction, as the Java *KeySpec and Python *Numbers patterns.
+- composite: crypto/ecdsa.PrivateKey
+- composite: crypto/ecdsa.PublicKey
+# Go 1.25 raw encodings (curve as parameter, like GenerateKey).
+- call: crypto/ecdsa.ParseRawPrivateKey
+  param:
+    index: 0
+- call: crypto/ecdsa.ParseUncompressedPublicKey
+  param:
+    index: 0

@@ -84,6 +84,17 @@ public final class PythonAnalyzer {
 
     private record Range(int start, int end) {}
 
+    /**
+     * An import binding in collection order, with its {@code try} context (SPEC 8.2, DECISIONS F2): the
+     * {@code try_statement} whose body ({@code fallback} false) or whose import-failure handler
+     * ({@code fallback} true) is the nearest such context of the import; {@code tryNode} null otherwise.
+     */
+    private record PendingImport(String local, String target, SyntaxNode tryNode, boolean fallback) {}
+
+    /** Exception names whose handler counts as an import-failure handler (SPEC 8.2, DECISIONS F2). */
+    private static final Pattern IMPORT_FAILURE = Pattern.compile(
+            "\\b(ImportError|ModuleNotFoundError|Exception|BaseException)\\b");
+
     /** State of one file analysis. */
     private final class FileRun {
         final SyntaxNode root;
@@ -91,6 +102,8 @@ public final class PythonAnalyzer {
         final boolean test;
         final Map<String, List<String>> imports = new HashMap<>();
         final List<String> starModules = new ArrayList<>();
+        /** Import bindings collected by the walk, added to {@link #imports} after it (DECISIONS F2). */
+        final List<PendingImport> pendingImports = new ArrayList<>();
         /** Calls and bare-reference candidates (SPEC 8.6.1), in pre-order. */
         final List<Located> calls = new ArrayList<>();
         final List<Located> attributeAssignments = new ArrayList<>();
@@ -186,6 +199,77 @@ public final class PythonAnalyzer {
                     }
                 }
             }
+            addPendingImports();
+        }
+
+        /**
+         * Adds the collected import bindings in order, except a binding made in an import-failure handler
+         * of a {@code try} whose body imports the same local name: the handler only runs when that import
+         * fails (SPEC 8.2, DECISIONS F2).
+         */
+        private void addPendingImports() {
+            Map<SyntaxNode, Set<String>> bodyLocals = new IdentityHashMap<>();
+            for (PendingImport p : pendingImports) {
+                if (p.tryNode() != null && !p.fallback()) {
+                    bodyLocals.computeIfAbsent(p.tryNode(), k -> new HashSet<>()).add(p.local());
+                }
+            }
+            for (PendingImport p : pendingImports) {
+                if (p.fallback() && bodyLocals.getOrDefault(p.tryNode(), Set.of()).contains(p.local())) {
+                    continue;
+                }
+                addImport(p.local(), p.target());
+            }
+        }
+
+        /** The nearest {@code try} context of an import statement (SPEC 8.2, DECISIONS F2), or null. */
+        private PendingImport tryContext(SyntaxNode n) {
+            for (SyntaxNode p = n.parent(); p != null; p = p.parent()) {
+                switch (p.type()) {
+                    case "function_definition", "lambda", "class_definition", "module" -> {
+                        return null;
+                    }
+                    case "block" -> {
+                        SyntaxNode q = p.parent();
+                        if (q == null) {
+                            return null;
+                        }
+                        if (q.is("try_statement") && "body".equals(p.field())) {
+                            return new PendingImport(null, null, q, false);
+                        }
+                        if (q.is("except_clause")) {
+                            SyntaxNode t = q.parent();
+                            return catchesImportFailure(q) && t != null && t.is("try_statement")
+                                    ? new PendingImport(null, null, t, true) : null;
+                        }
+                        if (q.is("else_clause") || q.is("finally_clause") || q.is("except_group_clause")) {
+                            return null;
+                        }
+                    }
+                    default -> {
+                        // keep walking
+                    }
+                }
+            }
+            return null;
+        }
+
+        private boolean catchesImportFailure(SyntaxNode except) {
+            List<SyntaxNode> values = except.fields("value");
+            if (values.isEmpty()) {
+                return true; // bare except
+            }
+            for (SyntaxNode v : values) {
+                if (IMPORT_FAILURE.matcher(v.text()).find()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void pendImport(PendingImport ctx, String local, String target) {
+            pendingImports.add(ctx == null ? new PendingImport(local, target, null, false)
+                    : new PendingImport(local, target, ctx.tryNode(), ctx.fallback()));
         }
 
         /** Cheap pre-check of a bare reference's position: its parent (SPEC 8.6.1). */
@@ -209,17 +293,18 @@ public final class PythonAnalyzer {
         }
 
         private void importStatement(SyntaxNode n) {
+            PendingImport ctx = tryContext(n);
             for (int i = 0; i < n.childCount(); i++) {
                 SyntaxNode c = n.child(i);
                 if (c.is("dotted_name")) {
                     String t = dotted(c);
                     String first = t.contains(".") ? t.substring(0, t.indexOf('.')) : t;
-                    addImport(first, first);
+                    pendImport(ctx, first, first);
                 } else if (c.is("aliased_import")) {
                     SyntaxNode name = c.field("name");
                     SyntaxNode alias = c.field("alias");
                     if (name != null && alias != null) {
-                        addImport(alias.text(), dotted(name));
+                        pendImport(ctx, alias.text(), dotted(name));
                     }
                 }
             }
@@ -228,6 +313,7 @@ public final class PythonAnalyzer {
         private void importFrom(SyntaxNode n) {
             SyntaxNode mod = n.field("module_name");
             String m = mod == null || mod.is("relative_import") ? "" : dotted(mod);
+            PendingImport ctx = tryContext(n);
             if (n.hasChildOfType("wildcard_import")) {
                 if (!m.isEmpty() && !starModules.contains(m)) {
                     starModules.add(m);
@@ -240,13 +326,13 @@ public final class PythonAnalyzer {
                 }
                 if (c.is("dotted_name")) {
                     String t = dotted(c);
-                    addImport(Texts.lastSegment(t), m.isEmpty() ? t : m + "." + t);
+                    pendImport(ctx, Texts.lastSegment(t), m.isEmpty() ? t : m + "." + t);
                 } else if (c.is("aliased_import")) {
                     SyntaxNode name = c.field("name");
                     SyntaxNode alias = c.field("alias");
                     if (name != null && alias != null) {
                         String t = dotted(name);
-                        addImport(alias.text(), m.isEmpty() ? t : m + "." + t);
+                        pendImport(ctx, alias.text(), m.isEmpty() ? t : m + "." + t);
                     }
                 }
             }

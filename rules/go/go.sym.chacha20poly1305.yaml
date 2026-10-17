@@ -16,3 +16,6 @@ asset:
 match:
 - call: golang.org/x/crypto/chacha20poly1305.New
 - call: golang.org/x/crypto/chacha20poly1305.NewX
+# HPKE identifiers (crypto/hpke, Go 1.26, and filippo.io/hpke, the same API), DECISIONS F5.
+- call: crypto/hpke.ChaCha20Poly1305
+- call: filippo.io/hpke.ChaCha20Poly1305

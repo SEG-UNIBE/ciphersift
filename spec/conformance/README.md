@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-55 cases, 1178 expected findings. A conforming implementation produces exactly the expected
+59 cases, 1243 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -73,6 +73,10 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/syntax-error` | 1 | 2 | findings before and after a Go syntax error |
 | `deps/golang` | 5 | 11 | `go.mod` (single and block `require`, quoted paths, `replace`/`exclude`/`retract` ignored, last declaration wins), `go.sum` (`/go.mod` lines skipped, last version wins), major-version module paths (SPEC 17.10) |
 | `deps/setup-files` | 5 | 16 | `setup.py` `install_requires` / `extras_require` (inline, through names, URL skipped), `setuptools.setup`, `setup.cfg`, `org.apache.shiro.crypto:*`, `electrum-ecc`, `pyaes`, `pysha3` (E10) |
+| `python/import-fallback` | 1 | 8 | import alternatives: a binding made in an import-failure handler (`ImportError`, `ModuleNotFoundError`, `Exception`, `BaseException`, bare `except`) of a `try` whose body imports the same local name is dropped; other handlers, other names and `finally` keep theirs (SPEC 8.2, DECISIONS F2) |
+| `go/hpke-mldsa-keys` | 3 | 32 | `crypto/hpke` / `filippo.io/hpke` KEM, KDF and AEAD identifiers (DHKEM with its curve, hybrid ML-KEM), `crypto/mldsa` and the TLS ML-DSA schemes, key structs, `elliptic.CurveParams`, Ed25519 key conversions, `ecdsa.ParseRawPrivateKey` / `ParseUncompressedPublicKey`, `rsa.EncryptOAEPWithOptions` (DECISIONS F4–F6) |
+| `common/shebang-scripts` | 8 | 4 | extensionless files with a Python interpreter line are Python source (`env`, `env -S`, versioned interpreter, CRLF, test directory); shell, other interpreters, no interpreter line and files with an extension are not (SPEC 4.5, DECISIONS F7) |
+| `deps/crypto-services` | 3 | 21 | the list policy of SPEC 9.9 in all three ecosystems: cloud KMS key clients, HPKE, Noise, WireGuard, PIV, Sigstore signing and time-stamping are listed; storage, secret stores, general SDKs, the Vault API client, transparency logs and data-model modules are not (DECISIONS F3) |
 
 ## Format of expected.json
 
@@ -171,6 +175,14 @@ that has findings ends with a `// want: <rule> <name or -> [<param>]` comment (s
 (the test flag from SPEC 4.7 / 17.1); `deps/golang/expected.json` was written directly. The
 comments were written from SPEC section 17 and the rules before the implementation was run on the
 cases.
+
+The four cases added with the fix round of 2026-10-17 (`../DECISIONS.md`, "Fix round", F2–F7) are
+hand-written like the Go cases: every line with findings carries a trailing `want:` comment (`#` or
+`//`), written from SPEC.md and the rules before the implementation was run, and `expected.json`
+was derived from those comments and the rules' asset blocks (`deps/crypto-services` written
+directly). The EC primitive fix (F1) changed the `primitive` of 36 expected findings of eight
+cases (`python.asym.ec`, `python.asym.secp256k1`, `go.asym.ec`); the asset fields come from the
+rules, so no deviation entry is needed.
 
 Every finding was then checked by hand against the comment at the end of its source line
 (inputs written for this suite carry the expected line number and result as a trailing

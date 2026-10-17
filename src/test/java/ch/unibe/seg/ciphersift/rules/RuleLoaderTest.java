@@ -35,10 +35,14 @@ class RuleLoaderTest {
         RuleSet r = RuleLoader.loadBundled();
         assertEquals(103, r.javaRules().size());
         assertEquals(87, r.pythonRules().size());
-        assertEquals(66, r.goRules().size());
+        assertEquals(67, r.goRules().size());
         assertNotNull(r.dependencyRule("golang"));
         assertTrue(r.dependencyRule("golang").matches("github.com/golang-jwt/jwt/v5"));
         assertFalse(r.dependencyRule("golang").matches("golang.org/x/crypto/ssh"), "a pattern covers the whole key");
+        // DECISIONS F3: crypto services are listed, general platform clients and data-model modules are not
+        assertTrue(r.dependencyRule("golang").matches("github.com/aws/aws-sdk-go-v2/service/kms"));
+        assertFalse(r.dependencyRule("golang").matches("github.com/hashicorp/vault/api"));
+        assertFalse(r.dependencyRule("golang").matches("github.com/sigstore/protobuf-specs"));
         for (int i = 1; i < r.goRules().size(); i++) {
             assertTrue(r.goRules().get(i - 1).id().compareTo(r.goRules().get(i).id()) < 0, "id order");
         }
@@ -63,7 +67,7 @@ class RuleLoaderTest {
         for (RuleLoader.RuleFile f : RuleLoader.bundledFiles()) {
             tests.add(DynamicTest.dynamicTest(f.path(), () -> RuleLoader.load(List.of(f))));
         }
-        assertEquals(260, tests.size());
+        assertEquals(261, tests.size());
         return tests.stream();
     }
 

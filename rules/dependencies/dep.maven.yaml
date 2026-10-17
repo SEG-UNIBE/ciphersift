@@ -64,3 +64,9 @@ packages:
   - {package: "name.neuhalfen.projects.crypto.bouncycastle.openpgp:*", note: "BC OpenPGP wrapper"}
   - {package: "org.xipki.iaik:*", note: "PKCS#11 wrapper"}
   - {package: "com.github.marschall:*pkcs11*", note: "PKCS#11"}
+  # Added with DECISIONS F3, by the written list policy of SPEC 9.9.
+  - {package: "com.google.cloud:google-cloud-kms", note: "Google Cloud KMS client, (c)"}
+  - {package: "software.amazon.awssdk:kms", note: "AWS KMS client (SDK v2), (c)"}
+  - {package: "com.amazonaws:aws-java-sdk-kms", note: "AWS KMS client (SDK v1), (c)"}
+  - {package: "com.azure:azure-security-keyvault-keys", note: "Azure Key Vault keys client, (c)"}
+  - {package: "dev.sigstore:sigstore-java", note: "Sigstore signing, (d)"}

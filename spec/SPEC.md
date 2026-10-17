@@ -264,7 +264,19 @@ wins. Comparisons of extensions and names are case-insensitive.
 | setup.cfg | name `setup.cfg` *(DECISIONS E10)* |
 | Go module file | name `go.mod` (17.10) |
 | Go checksum file | name `go.sum` (17.10) |
+| Python source | a name without `.` whose first line is a Python interpreter line (below) *(DECISIONS F7)* |
 | ignored | everything else |
+
+**Python interpreter line** *(DECISIONS F7)*. For a regular file whose name contains no `.` and
+that no row above classifies, the first 256 bytes are read; the file is Python source if they
+contain a line end (LF) or the file is shorter, and the first line (without a trailing CR, decoded
+as ISO-8859-1) matches, as a whole,
+`#![ \t]*/\S*/(python[0-9.]*|env([ \t]+-\S*)*[ \t]+(\S*/)?python[0-9.]*)([ \t].*)?`
+(case-sensitive): an absolute interpreter path whose base name is `python` with an optional
+version, or `env` (options skipped) followed by such a name. `#!/usr/bin/env python3`,
+`#!/usr/bin/python3.12 -u` and `#!/usr/bin/env -S python3 -I` qualify; `#!/bin/sh` and a name
+with an extension (`run.sh`) do not. Such files are analysed, marked (4.7: only the directory rule
+applies, the `.py` name rules do not) and counted like `.py` files.
 
 ### 4.6 Binary detection
 
@@ -326,7 +338,7 @@ under `/rules/`. It contains:
 |---|---|
 | `rules/java/` | 103 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
 | `rules/python/` | 87 source rules (`python.*`) |
-| `rules/go/` | 66 source rules (`go.*`, section 17) |
+| `rules/go/` | 67 source rules (`go.*`, section 17) |
 | `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml`, `dep.golang.yaml` |
 
 Three bundled rules are weakness indicators (`indicator: weakness`, 5.3): `java.rand.prng.insecure`,
@@ -1152,6 +1164,19 @@ and `if`).
 
 Relative imports therefore stay unqualified (`from .local import md5` maps `md5` to `md5`).
 
+**Import alternatives** *(DECISIONS F2)*. The *try context* of an import statement is found by
+walking up from it, stopping (no context) at a `function_definition`, `lambda`,
+`class_definition` or `module`: the first `block` that is the `body` of a `try_statement` *T*
+gives the context "body of *T*"; the first `block` of an `except_clause` *E* (parent *T*) gives
+"handler of *T*" if *E* has no `value` (a bare `except:`) or the text of one of its `value`s
+contains one of the words `ImportError`, `ModuleNotFoundError`, `Exception`, `BaseException`,
+and no context otherwise; the first `block` of an `else_clause` or `finally_clause` gives no
+context. After the whole file has been collected, a (local name, target) pair of an import in
+the context "handler of *T*" is **not** entered into the table if an import in the context
+"body of *T*" has the same local name: the handler runs only when that import failed, so its
+binding is the alternative, not an additional one. All other pairs are entered in collection
+order. Star modules are not affected.
+
 ### 8.3 Scopes and bindings
 
 The module has a scope. Every `function_definition` and every `lambda` opens a new scope
@@ -1591,9 +1616,29 @@ Nothing is evaluated; only literal requirement strings are read.
 
 Entries are de-duplicated per file as in the introduction of section 9.
 
----
+### 9.9 Contents of the bundled library lists *(DECISIONS F3)*
 
-## 10. Normalisation: findings to components
+A package (Maven artifact, PyPI distribution, Go module) is on the bundled list of its ecosystem
+if its own documentation states as its purpose one of:
+
+* (a) implementing or binding cryptographic primitives (ciphers, hashes, MACs, signatures, KEMs,
+  key agreement, KDFs, password hashing, CSPRNGs);
+* (b) implementing a cryptographic protocol or message format (TLS/DTLS, SSH, Noise, WireGuard,
+  HPKE, OpenPGP, JOSE/JWT, CMS/PKCS #7, PKCS #8/#12, XML signature/encryption, age);
+* (c) cryptographic key management or cryptographic operations in a key-management service or a
+  hardware module: the key clients of cloud KMSs (AWS KMS, Google Cloud KMS, Azure Key Vault
+  keys), PKCS #11, PIV smart cards, TPMs;
+* (d) creating or verifying digital signatures, certificates or time-stamps for artefacts:
+  signing libraries (Sigstore), certificate authorities, RFC 3161 time-stamping.
+
+Not listed: SDK cores, transport and HTTP libraries that only use TLS; secret stores that hold
+opaque values (Azure Key Vault secrets, cloud secret managers); general clients of platforms that
+offer cryptographic services among others (the HashiCorp Vault API client, a cloud SDK as a
+whole); data-model, schema and protobuf packages; transparency logs and supply-chain frameworks
+that use signatures as one part of a broader model (Rekor, TUF, in-toto). The entries
+`commons-codec` and `certifi`, kept from earlier versions, are documented as debatable (README).
+A `*` glob is used where a project publishes several modules or major versions under one prefix.
+: findings to components
 
 ### 10.1 Component identity
 
@@ -2583,17 +2628,41 @@ Go cryptographic modules (`golang.org/x/crypto`, `filippo.io/age`, `github.com/c
 
 ### 17.11 Go coverage of the bundled rules *(DECISIONS G14, G15)*
 
-`rules/go/` (66 source rules) covers the Go standard library `crypto/...` packages
+`rules/go/` (67 source rules) covers the Go standard library `crypto/...` packages
 (`aes`, `cipher` modes, `des`, `rc4`, `rsa`, `dsa`, `ecdsa`, `ecdh`, `elliptic`, `ed25519`,
 `hmac`, `md5`, `sha1`, `sha256`, `sha512`, `sha3`, `hkdf`, `pbkdf2`, `mlkem`, `rand`, `tls`,
-`x509`, the `crypto.Hash` constants) and `golang.org/x/crypto` (`chacha20`, `chacha20poly1305`,
+`x509`, the `crypto.Hash` constants; Go 1.25 `ecdsa.ParseRawPrivateKey` /
+`ParseUncompressedPublicKey`, Go 1.26 `rsa.EncryptOAEPWithOptions` and `hpke`, Go 1.27 `mldsa`
+and the `tls.MLDSA*` signature schemes *(DECISIONS F4–F6)*) and `golang.org/x/crypto` (`chacha20`, `chacha20poly1305`,
 `poly1305`, `salsa20`, `nacl/box`, `nacl/secretbox`, `nacl/sign`, `nacl/auth`, `curve25519`,
 `ed25519`, `scrypt`, `argon2`, `bcrypt`, `hkdf`, `pbkdf2`, `sha3`, `blake2b`, `blake2s`, `md4`,
 `ripemd160`, `blowfish`, `cast5`, `twofish`, `xts`, `pkcs12`, `ssh`), and `math/rand` /
 `math/rand/v2` as a weakness indicator. Not covered: `golang.org/x/crypto/openpgp` (deprecated;
 no fitting CycloneDX asset), third-party APIs (JWT, JOSE, age, circl — their modules are reported
-through `go.mod`), method calls on values whose type is not known (`key.Sign(…)`, `aead.Seal(…)`;
+through `go.mod`; the exception is `filippo.io/hpke`, whose API is that of `crypto/hpke`), method calls on values whose type is not known (`key.Sign(…)`, `aead.Seal(…)`;
 receiver types are not inferred), and algorithm names in strings (`ssh.Config{Ciphers: […]}`).
+
+**Key construction** *(DECISIONS F4)*: as the Java `*KeySpec` constructors and the Python
+`*Numbers` classes are reported, the Go key types are reported where a key is built from its
+parts: the composites `rsa.PrivateKey`, `rsa.PublicKey`, `ecdsa.PrivateKey`, `ecdsa.PublicKey`
+(also `new(…)`) in the RSA and ECDSA rules, `elliptic.CurveParams` (a curve defined by its
+parameters) in `go.asym.ec`, and the conversions `ed25519.PublicKey(b)` / `ed25519.PrivateKey(b)`
+(call events, 17.5) in `go.asym.ed25519`. Types in declarations, type assertions and type
+switches are not events.
+
+**HPKE** *(DECISIONS F5)*: `crypto/hpke` and `filippo.io/hpke` are reported through their KEM,
+KDF and AEAD identifiers, which name the algorithms: `DHKEM(curve)` as ECDH (with the curve as
+parameter) or X25519 (`anySymbol` of the curve), `MLKEM768…`/`MLKEM1024…` as ML-KEM with the
+parameter set (the hybrid KEMs under ML-KEM only, like the TLS hybrid groups), `HKDFSHA*` as HKDF
+and SHA-2, `SHAKE128`/`SHAKE256` as SHA-3, `AES128GCM`/`AES256GCM` as AES-GCM, `ChaCha20Poly1305`
+as ChaCha20-Poly1305. `Seal`, `Open`, `NewSender`, `NewRecipient` and the key wrappers take these
+identifiers or keys as arguments and are not anchors; `ExportOnly` and the `New*(id)` lookups name
+no algorithm.
+
+**Primitive of EC keys** *(DECISIONS F1)*: the rules for EC key generation, construction and
+curves (`java.asym.ec`, `python.asym.ec`, `python.asym.secp256k1`, `go.asym.ec`) declare no
+primitive: a key or curve is used for signatures and key agreement alike. ECDSA and ECDH are
+reported by the rules for those operations.
 
 ---
 
@@ -2652,9 +2721,10 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
 * Python parameter default values are not value positions (8.6.1): `def h(v,
   f=hashlib.sha256)` reports nothing, at the definition or at the call `f(v)` (D6 of the
   evaluation, by design).
-* Python import alternatives are all bindings: `try: from secrets import randbits` / `except
-  ImportError: from random import getrandbits as randbits` reports both PRNGs
-  *(DECISIONS E17)*.
+* Python import alternatives: only the import-failure handler of the same `try` is recognised
+  (8.2, *DECISIONS F2*); alternatives chosen by `if` (version checks, `sys.platform`), by
+  handlers of other exceptions or in another `try` statement are all bindings, so
+  `if PY2: from md5 import md5 else: from hashlib import md5` binds both.
 * Java simple names that are neither imported nor declared are assumed to be the API class
   (7.3.2 step 6); a same-named class from the same package or a wildcard import is
   mis-attributed. Reassignment is tracked by simple name across the whole file.
@@ -2675,8 +2745,10 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
 * Kotlin, Groovy and Scala sources are not analysed.
 * Test detection is path-based: library code that lives in directories named like tests
   (e.g. `django/test/`, `numpy/testing/`) is marked as test code.
-* Only files with the extensions `.java`, `.py` and `.go` are source: extensionless scripts
-  (`#!/usr/bin/env python3`) are not scanned *(DECISIONS E18)*.
+* Source files are recognised by extension, and extensionless Python scripts by their
+  interpreter line (4.5, *DECISIONS F7*); a script with an extension other than `.py`
+  (`tool.sh` holding Python), a relative interpreter (`#!python`) or an interpreter line beyond
+  the first 256 bytes is not scanned *(DECISIONS E18)*.
 * Go (section 17, *DECISIONS G1–G16*): receiver types are not inferred, so method calls on values
   (`key.Sign(…)`, `aead.Seal(…)`, `curve.GenerateKey(…)`) are not anchors; constants are resolved
   within the file only (not from other files of the package or from other packages); resolution
@@ -2686,6 +2758,15 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
   fires on a field of that name in any struct literal or selector (the type of the struct is
   not checked); cgo, `//go:build` constraints and generated code are not treated specially;
   `replace` directives of `go.mod` are not applied.
+* Go: a block cipher created in another function (a constructor that stores it in a struct
+  field, a helper that returns it, a function parameter such as go-jose's
+  `newBlockCipher func([]byte) (cipher.Block, error)`) does not reach the mode call: symbol sets
+  follow bindings within one function only (17.6/17.7), as Python and Java do not follow return
+  values, parameters or fields (D2, D5 of the evaluation). The mode is then reported by its
+  cipher-agnostic fallback (`go.sym.mode.*`, no family) *(DECISIONS F8)*.
+* Go: a nested-duplicate fold (17.8) of a curve function into an enclosing key construction
+  (`ecdsa.PublicKey{Curve: elliptic.P256(), …}`) drops the curve's finding and its parameter;
+  the construction (a composite) has no parameter *(DECISIONS F4)*.
 * tree-sitter-java 0.23.5 rejects some valid literals (a binary literal with a double
   underscore, `0b1000__0000`); the rest of the file is analysed (6.2) *(DECISIONS E18)*.
 
