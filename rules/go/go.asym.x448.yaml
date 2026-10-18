@@ -16,3 +16,7 @@ asset:
 match:
 - call: github.com/cloudflare/circl/dh/x448.KeyGen
 - call: github.com/cloudflare/circl/dh/x448.Shared
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['X448', 'curve448-sha512', 'x448']
+  feature: go-literal-names

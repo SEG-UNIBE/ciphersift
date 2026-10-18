@@ -2717,7 +2717,6 @@ One pre-order walk enumerates the events of the file (import declarations are no
 | assign | a `keyed_element` whose `key` is a `literal_element` holding a single `identifier` (the field name); an `assignment_statement` with operator `=` for each position *i* whose left element is a `selector_expression` (field name = its `field`), when left and right have the same number of elements (value = right element *i*) | – | start row + 1 | the node text |
 | literal | an `interpreted_string_literal` or `raw_string_literal` (value 17.6) in reference position (not a map key or struct key, not in a test position) whose value a `literal` pattern lists | the string | start row + 1 | the string |
 
-
 A literal finding is dropped when an expression ancestor (the 17.8 ancestors and `type_conversion_expression`) has a
 selection — the literal is that call's or literal's data (`sha256.Sum256([]byte("RS512"))`) — or is a call that
 formats a message (functions of `fmt`, `log`, `log/slog`, `errors`; methods named `Print…`, `Log…`, `Debug…`,

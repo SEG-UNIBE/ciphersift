@@ -14,3 +14,7 @@ asset:
   family: RC4
 match:
 - call: crypto/rc4.NewCipher
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['arcfour', 'arcfour128', 'arcfour256']
+  feature: go-literal-names

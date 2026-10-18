@@ -78,3 +78,7 @@ match:
 - call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalRsaPrivateKey
 - call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalRsaPublicKey
 - ref: github.com/libp2p/go-libp2p/core/crypto.RSA
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['PS256', 'PS384', 'PS512', 'RS1', 'RS256', 'RS384', 'RS512', 'RSA-OAEP', 'RSA-OAEP-256', 'RSA-OAEP-384', 'RSA-OAEP-512', 'RSA1_5', 'pgp-sign-rsa', 'rsa-sha2-256', 'rsa-sha2-512', 'rsa1024-sha1', 'rsa2048-sha256', 'spki-sign-rsa', 'ssh-rsa', 'x509v3-rsa2048-sha256', 'x509v3-ssh-rsa']
+  feature: go-literal-names

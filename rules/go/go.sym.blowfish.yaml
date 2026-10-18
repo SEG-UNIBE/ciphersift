@@ -15,3 +15,7 @@ asset:
 match:
 - call: golang.org/x/crypto/blowfish.NewCipher
 - call: golang.org/x/crypto/blowfish.NewSaltedCipher
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['blowfish-cbc', 'blowfish-ctr']
+  feature: go-literal-names

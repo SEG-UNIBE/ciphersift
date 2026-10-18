@@ -17,3 +17,7 @@ match:
 - call: crypto/md5.New
 - call: crypto/md5.Sum
 - ref: crypto.MD5
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['hmac-md5', 'hmac-md5-96']
+  feature: go-literal-names

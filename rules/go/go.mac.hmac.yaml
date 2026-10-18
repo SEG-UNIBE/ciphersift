@@ -42,3 +42,7 @@ match:
 - ref: github.com/golang-jwt/jwt/v5.SigningMethodHS256
 - ref: github.com/golang-jwt/jwt/v5.SigningMethodHS384
 - ref: github.com/golang-jwt/jwt/v5.SigningMethodHS512
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['A128CBC-HS256', 'A192CBC-HS384', 'A256CBC-HS512', 'HS1', 'HS256', 'HS384', 'HS512', 'PBES2-HS256+A128KW', 'PBES2-HS384+A192KW', 'PBES2-HS512+A256KW', 'hmac-md5', 'hmac-md5-96', 'hmac-sha1', 'hmac-sha1-96', 'hmac-sha2-256', 'hmac-sha2-512']
+  feature: go-literal-names

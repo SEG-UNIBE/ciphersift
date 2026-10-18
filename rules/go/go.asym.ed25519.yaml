@@ -93,3 +93,7 @@ match:
 - call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalEd25519PrivateKey
 - call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalEd25519PublicKey
 - ref: github.com/libp2p/go-libp2p/core/crypto.Ed25519
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['Ed25519', 'EdDSA', 'ssh-ed25519', 'ssh-mldsa44-ed25519']
+  feature: go-literal-names

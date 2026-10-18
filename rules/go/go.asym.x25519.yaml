@@ -37,3 +37,7 @@ match:
 # member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
 - ref: github.com/go-piv/piv-go/v2/piv.AlgorithmX25519
 # (the v1 module github.com/go-piv/piv-go/piv, v1.11.0, has no AlgorithmX25519 / AlgorithmRSA3072 / AlgorithmRSA4096)
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['MLKEM512X25519', 'X25519', 'X25519Kyber768Draft00', 'X25519MLKEM768', 'curve25519-sha256', 'mlkem768x25519-sha256', 'sntrup761x25519-sha512', 'x25519']
+  feature: go-literal-names
