@@ -412,3 +412,18 @@ Known limits found and left: the trust-all rules (`*.cert.validation.disabled`) 
 evaluation's reader never matches them to trust-all GT sites (a scoring-key question across all three languages);
 enum name-holder entries (shiro `PaddingScheme`) are GT gray zone and were not tuned for; variables with a declared
 project type as wrapper receivers (`signatureCreator.digestParamsToString(…)`) are not resolved (xchange only).
+
+**Review round t3, Java (2026-10-18, branch `review3-java` on `tune-java`; scratch `work/ciphersift-t3/review-java/`).**
+Clean-room review of the T3-J changes. Fresh precision sample: 111 added findings re-judged from the sources (Sonnet,
+mostly projects other than xchange), 17 borderline ones re-judged strictly by Fable (7 TP → debatable, all
+metadata/config labels). Owner rule applied: a CSPRNG call is TP whatever the bytes are used for.
+
+| item | decision |
+|---|---|
+| R3-J-INH1 inherited non-final fields | **Fixed.** An inherited field that is not `final` resolved to the supertype's initialiser even when the subclass assigns it (`this.algorithm = a;` in a constructor): the subclass's `reassigned` set was not consulted. Now such a field gives no result if the requesting file or the subclass on the way reassigns the name (SPEC 7.4.3 step 4). Conformance `java/constant-closure`: `FixedHash` (SHA-256) and `ConfiguredHash` (unresolved). |
+| R3-J-TS1 test configurations | **Fixed.** "contains `test`" also matched `attestationImplementation`, `latest…`, `contest…`; now the identifier must start with `test` or contain `Test`. Conformance `deps/gradle-catalog-accessors`: `attestationImplementation` is a plain finding. |
+| R3-J-DOC conformance README | **Fixed.** The tuning commit dropped the README sections "Format of expected.json", "How to compare", "Provenance of the expectations" and "Intentional deviations" (164 lines); restored from `bdcd011`. |
+| T3-J-INH, T3-J-XMOD, T3-J-SUPER | **Kept on.** Their gain comes from xchange (leave-out ~0), but they are general by construction: Java member inheritance, the Maven/Gradle convention that a source file's path ends with its package path, and explicit constructor invocations. They contain no project names, paths or tokens. XMOD's suffix lookup takes the longest package-path suffix and gives no result when it is ambiguous (a class present in two modules, multi-release or shaded copies). It does not check the found file's `package` declaration, which is accepted. Precision concern: XMOD's 116 non-test additions in keycloak are ~61–80% strict TP. The losses are the generic `anyCall` name match on keycloak label setters (`keyWrapper.setType(KeyType.EC)`, `setAlgorithm(Algorithm.RS256)`, `config.putSingle("algorithm", …)`), log arguments (`logger.tracev(…, DEFAULT_ALGORITHM_VALUE)`) and `getJavaAlgorithmForHash(RS512)` (a SHA-512 digest reported as RSA). This is a property of `anyCall`, not of the closure, and is left as an open item. |
+| T3-J-CTOR | **Kept on.** 19/21 TP in the fresh sample, mostly outside xchange. The debatable ones are shiro `Sha*Hash.fromHexString` (no hashing) and constructors that only register a type id. |
+| T3-J-CF, XSIG, I2P, CONST | **Kept.** Provenance re-checked against the sources jars (jose4j 0.9.6, opensaml-xmlsec-api/-impl and opensaml-security-impl 4.3.0, eddsa 0.3.0): every class and method exists, and all 93 constant values match. 18/20 TP. FP: api-gateway `resolveByKeyIdentifier`, which reaches `generateCertificate` on one branch only. |
+| T3-J-CAT, T3-J-TSCOPE, T3-J-GB | **Kept** (10/12 TP; the debatable ones are a test-only nimbus entry and bcutil-fips). |

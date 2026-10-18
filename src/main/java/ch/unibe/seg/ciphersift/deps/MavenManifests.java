@@ -323,7 +323,7 @@ final class MavenManifests {
     /**
      * Whether the dependency notation starting at {@code start} (a string literal, map notation or catalog accessor;
      * {@code start} may point at its opening quote) is the argument of a test configuration (t3 J-TSCOPE): the
-     * identifier before it, skipping whitespace and one {@code (}, contains {@code test} or {@code Test}
+     * identifier before it, skipping whitespace and one {@code (}, starts with {@code test} or contains {@code Test}
      * ({@code testImplementation}, {@code androidTestImplementation}, {@code testFixturesApi}, …).
      */
     static boolean testConfiguration(String clean, int start) {
@@ -342,7 +342,8 @@ final class MavenManifests {
             i--;
         }
         String id = clean.substring(i + 1, end);
-        return id.contains("test") || id.contains("Test");
+        // a camel-case word "test": not attestation…, latest…, contest… (review3 R3-J-TS1)
+        return id.startsWith("test") || id.contains("Test");
     }
 
     /** A {@code g:a[:v]} coordinate string (SPEC 9.6 step 3), or null. */

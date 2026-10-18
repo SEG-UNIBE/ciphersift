@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-97 cases, 1680 expected findings. A conforming implementation produces exactly the expected
+97 cases, 1683 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -111,7 +111,163 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/typed-methods` | 1 | 26 | method anchors on typed receivers: parameters, results by position, type assertions, a single-type type-switch case (not two types), struct fields, one level of embedding (not when the file declares the method), `ecdh` / `mlkem` / `x509` / `ssh` result chains, composite and `new`, a reassigned variable, accessors (DECISIONS B-G-B1a) |
 | `go/api-b2` | 1 | 19 | Sigstore protobuf-specs key and hash values (an aliased `common/v1` import), sigstore `WithED25519ph` and `AlgorithmDetails` methods, go-piv algorithms and `Verify`, CIRCL SLH-DSA parameter sets; LMS and other members give nothing (DECISIONS B-G-B2) |
 | `go/package-names` | 6 | 5 | Go package-name consistency: `aes.NewCipher()` and a method on a variable declared `*aes.Cipher` carry the AES finding of the project package `aes` (via `aes: package aes`); a variable typed only by a call, an excluded member (`EncodedLength`), a package named `ecdsa` without EC findings and a package whose only finding is in a test file give nothing (DECISIONS B-G-B3L) |
-| `java/constant-closure` | 6 | 12 | constants inherited from a superclass of another module and from its interface, `C.F` declared in a supertype of `C`, an imported class of another source root, a class path present twice (unresolved), a parameter shadowing an inherited constant; `super(…)` / `this(…)` with an algorithm name (not with a parameter or a non-name); `s.getBytes("UTF-8")` is no constant key, `"…".getBytes("UTF-8")` is (DECISIONS T3-J-INH, T3-J-XMOD, T3-J-SUPER, T3-J-GB) |
+| `java/constant-closure` | 9 | 14 | constants inherited from a superclass of another module and from its interface, a non-final inherited field (not when the subclass assigns it, review3 R3-J-INH1), `C.F` declared in a supertype of `C`, an imported class of another source root, a class path present twice (unresolved), a parameter shadowing an inherited constant; `super(…)` / `this(…)` with an algorithm name (not with a parameter or a non-name); `s.getBytes("UTF-8")` is no constant key, `"…".getBytes("UTF-8")` is (DECISIONS T3-J-INH, T3-J-XMOD, T3-J-SUPER, T3-J-GB) |
 | `java/constructor-wrappers` | 1 | 2 | a constructor with a body finding as wrapper definition, `new C()` as its call site; an overload of another arity without crypto, a class without crypto and an anonymous subclass give nothing (DECISIONS T3-J-CTOR) |
-| `deps/gradle-catalog-accessors` | 3 | 8 | `libs.a.b` and camel-case accessors, a bundle, a non-crypto library and a version accessor through `gradle/libs.versions.toml`; `testImplementation` and `<scope>test</scope>` as test occurrences, a key declared with and without test scope (DECISIONS T3-J-CAT, T3-J-TSCOPE) |
+| `deps/gradle-catalog-accessors` | 3 | 9 | `libs.a.b` and camel-case accessors, a bundle, a non-crypto library and a version accessor through `gradle/libs.versions.toml`; `testImplementation` and `<scope>test</scope>` as test occurrences, a key declared with and without test scope, `attestationImplementation` is no test configuration (DECISIONS T3-J-CAT, T3-J-TSCOPE, review3 R3-J-TS1) |
 | `java/api-t3` | 1 | 9 | `CertificateFactory.generateCertificate` / `generateCRL` on a variable, JSR 105 `XMLSignatureFactory.getInstance`, OpenSAML `Signer.signObject` and `KeyStoreCredentialResolver`, OpenSAML and jose4j constants (not jose4j `NONE`), ed25519-java `EdDSAEngine` and `EdDSANamedCurveTable.getByName` (DECISIONS T3-J-CF, T3-J-XSIG, T3-J-CONST, T3-J-I2P) |
+
+## Format of expected.json
+
+```json
+{"case": "java/selection", "findings": [
+  {"file": "src/s/Selection.java", "line": 23, "rule": "java.jca.cipher.unresolved", "type": "algorithm",
+   "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": null,
+   "version": null, "param": null, "name": "Cipher.getInstance"},
+  ...
+]}
+```
+
+One object per finding, one finding per line of the file, sorted by (file, line, rule, name,
+param, package, version).
+
+Source findings:
+
+| Field | Meaning |
+|---|---|
+| `file` | relative path inside `input/`, `/`-separated |
+| `line` | 1-based line (SPEC 7.2, 8.6) |
+| `rule` | CipherSift rule id |
+| `type` | the **rule's** asset type (`key-material` is kept, not mapped to `related-crypto-material`) |
+| `subtype`, `primitive`, `family`, `variant`, `protocol`, `version` | from the rule's `asset` block (`null` if absent); `primitive` uses the CycloneDX spelling |
+| `param` | parameter-set identifier (SPEC 8.8) or `null` |
+| `oid` | the algorithm OID (`cryptoProperties.oid`, SPEC 5.11) or `null`; written only where it is non-null |
+| `name` | component name (SPEC 10.2) for `algorithm` findings, `null` for other types |
+| `via`, `origin` | for findings of wrapper propagation (SPEC 18.7): the `via` array and the `origin` string of the occurrence's `additionalContext`; absent (`null`) otherwise |
+| `test` | present and `true` only for findings in test files (SPEC 4.7) |
+
+Dependency findings: `file`, `line` (always `null`), `rule` (`dep.maven` / `dep.pypi` /
+`dep.golang`), `type` (`library`), `ecosystem`, `package` (Maven `groupId:artifactId`, PyPI
+normalised name, Go module path), `version` (or `null`), and `test` as above.
+
+Snippets, symbols, bom-refs and the CBOM layout are not part of the comparison; they are
+covered by SPEC.md section 11 and by unit tests.
+
+## How to compare
+
+1. Run `ciphersift scan cases/<case>/input -o out.json <options.json args>` for each case.
+2. Normalise the CBOM into findings: for every component and every occurrence of it, emit one
+   finding with
+   * `file` = occurrence `location`, `line` = occurrence `line` (or `null`),
+   * `rule` = `ruleId` from the JSON in the occurrence's `additionalContext`,
+   * `test` = `true` if that JSON has `"test": true`; `via` and `origin` = the JSON's values if present,
+   * for libraries: `type` = `library`, `ecosystem` = property `ciphersift:ecosystem`,
+     `package` = `group:name` (Maven) or `name` (PyPI, Go), `version` = component `version`;
+   * for cryptographic assets: `type` = property `ciphersift:assetType` if present, else
+     `cryptoProperties.assetType`; `subtype`, `primitive`, `family`, `variant` = the
+     properties `ciphersift:<field>`; `protocol`, `version` = `protocolProperties.type` /
+     `.version`; `param` = `algorithmProperties.parameterSetIdentifier`; `oid` = `cryptoProperties.oid`; `name` = component
+     `name` if `type` is `algorithm`.
+3. Compare the *set* of normalised findings with the set in `expected.json` (all fields
+   listed above take part; missing optional fields count as `null`). A case passes iff the
+   sets are equal and the CBOM contains no duplicate occurrence.
+
+`spec/tools/conformance.py` implements exactly this (Python 3 standard library only):
+
+```sh
+python3 spec/tools/conformance.py --cmd "java --enable-native-access=ALL-UNNAMED -jar target/ciphersift-1.0.0-SNAPSHOT-all.jar"
+python3 spec/tools/conformance.py --show out.json      # print a CBOM's normalised findings
+```
+
+## Provenance of the expectations
+
+`expected.json` files are generated by `spec/tools/make_expected.py`, which runs the
+reference tool (the BF-CBOM Python fork of Crypsy, see `../PROVENANCE.md`) on each `input/`,
+records its raw findings (before its own component merging, which can hide occurrences),
+maps rule ids (`src.java.X` → `java.X`, `src.python.X` → `python.X`, `dep.python.*` →
+`dep.pypi`), takes the asset properties from the converted rules, adds the test-file flag
+(SPEC 4.7), and finally applies `deviations.yaml`. The implementer does not need the
+reference tool; the generated files are the contract.
+
+The expectations of `deps/maven-managed-version` and `python/deep-call-args` (added with the
+implementation, as requested in `../DECISIONS.md`) are hand-written from SPEC.md; the reference
+tool behaves differently there by design. The same holds for `java/array-comments`,
+`python/alias-chain-limit` and `deps/pyproject-direct-reference`, added with the follow-up
+decisions O3, O4 and O5 (`../DECISIONS.md`); CipherSift before those decisions fails each of them
+(3 missing hard-coded keys, 1 extra MD5, 4 extra libraries). No existing expectation changed.
+
+The fifteen cases added with the evaluation fixes (E1–E14, `../DECISIONS.md`) are hand-written
+as well; each is built from the reproducer of its issue, and every expected finding was derived
+from SPEC.md and the rules before the implementation was run on it. Seven findings of six
+generated cases changed with those fixes; they are deviations D10–D14 below and are listed with
+their justification in `../DECISIONS.md`.
+
+With the owner decisions of 2026-10-17 (`../DECISIONS.md`, "Owner decisions"), weakness
+indicators are off by default: `common/weakness-indicators` now expects the default scan (3 of
+its 8 findings), `common/weakness-indicators-enabled` (formerly `-excluded`) passes
+`--weakness-indicators`, both `fork-fixtures` cases pass it too, and `common/test-files` loses one
+finding (D15). The new cases `java/oid-table`, `python/oid-table` (E15) and `java/shiro` (E16)
+are hand-written; their per-OID lines are derived from the table of SPEC 5.11.
+
+The nine Go cases (Go support, `../DECISIONS.md` G1–G16) are hand-written: every line of a Go input
+that has findings ends with a `// want: <rule> <name or -> [<param>]` comment (several separated by
+`|`), and `expected.json` was derived mechanically from those comments and the rules' asset blocks
+(the test flag from SPEC 4.7 / 17.1); `deps/golang/expected.json` was written directly. The
+comments were written from SPEC section 17 and the rules before the implementation was run on the
+cases.
+
+The four cases added with the fix round of 2026-10-17 (`../DECISIONS.md`, "Fix round", F2–F7) are
+hand-written like the Go cases: every line with findings carries a trailing `want:` comment (`#` or
+`//`), written from SPEC.md and the rules before the implementation was run, and `expected.json`
+was derived from those comments and the rules' asset blocks (`deps/crypto-services` written
+directly). The EC primitive fix (F1) changed the `primitive` of 36 expected findings of eight
+cases (`python.asym.ec`, `python.asym.secp256k1`, `go.asym.ec`); the asset fields come from the
+rules, so no deviation entry is needed.
+
+Every finding was then checked by hand against the comment at the end of its source line
+(inputs written for this suite carry the expected line number and result as a trailing
+comment such as `// 21: AES-CBC` or `# 12: ...`; the two `fork-fixtures` cases equal, line
+for line, the hand-written expectations of the forks' own unit tests). Where the comment
+and the reference tool disagreed, either the comment was wrong (fixed) or the reference
+tool's behaviour is a bug; the latter are the deviations below.
+
+## Intentional deviations from the reference tool
+
+Listed in `deviations.yaml` with reasons; summarised in SPEC.md Appendix A.
+
+| Id | Case | Change |
+|---|---|---|
+| D1 | `python/setup-py` | + SHA-1 at `setup.py:7` (reference tool never analysed `setup.py`) |
+| D2 | `python/constants` | − MD5 at `consts.py:23` (a parameter shadowed by a module constant) |
+| D3 | `java/string-resolution` | + TLS 1.0 and TLS 1.3 at line 37 (array constant) |
+| D4 | `java/string-resolution` | line 41: 3DES-ECB (`DESede` text block) instead of the unresolved fallback |
+| D5 | `common/binary` | − `blob.py` (binary) |
+| D6 | `common/test-files-excluded` | − the four test files |
+| D7 | `deps/pypi` | + `requirements-dev.txt`, `requirements/base.txt`, `poetry.lock`, PEP 735 group |
+| D8 | `deps/maven` | all 17 findings (hand-written; 16 since DECISIONS B-J4 removed commons-codec) |
+| D9 | `java/constant-args` | + DES at `Keys.java:14` (byte-array numbers are not strings) |
+| D10 | `python/fork-fixtures`, `python/name-resolution` | + SHA2 at `pycryptodome/legacy.py:23`, + SHA1 at `pkg/imports.py:14` (bare references) |
+| D11 | `python/arguments` | − validation disabled at `args.py:15` (`verify=False` on a non-HTTP function) |
+| D12 | `python/attribution`, `python/fork-fixtures` | + OAEP at `ops.py:17`; four method-only findings named after the matching symbol |
+| D13 | `python/setup-py` | + `cryptography`, `pyjwt 2.8.0` from `install_requires` |
+| D14 | `java/regex-battery` | `SecureRandom.getInstance` lines 137–139 report the algorithm as parameter |
+| D15 | `common/test-files` | − `random.random()` in `conftest.py` (weakness indicators are off by default; the fork-fixture cases pass `--weakness-indicators`) |
+
+Regenerating (needs the reference tool, maintainers only):
+
+```sh
+B=<reference tool bundle>
+$B/venv/bin/python -I spec/tools/make_expected.py --registry $B/crypistry --rules rules \
+    --cases spec/conformance/cases --deviations spec/conformance/deviations.yaml
+```
+
+The five cases of the recall extension (`../DECISIONS.md` T1–T14) are hand-written like the Go
+cases, with an extended comment syntax for propagated findings:
+`want: <rule> <name> [<param>] via=<label>,… origin=<label>`, where `@<label>=<Display>` marks a
+definition's name line and `@<label>` an evidence line. The comments were written from SPEC section
+18 and 17.11 before the implementation was run; `expected.json` was derived from them and the
+rules' asset blocks. The direct findings of these inputs were checked against CipherSift 097290e
+(phase 3 is unchanged); two comments were corrected that way (`hmac.new` also reports SHA-2; the
+curve parameter is `SECP256K1`). Two later behaviour decisions changed expectations of these new
+cases only: transitive thin wrappers (T3, + one `twice(x)` finding) and thin wrappers off for Go
+(T14, − the `newBlock` call). No existing expectation changed.
+

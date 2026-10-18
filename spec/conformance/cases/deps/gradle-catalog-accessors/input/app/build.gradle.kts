@@ -4,5 +4,6 @@ dependencies {
     testImplementation(libs.nimbusJwt)            // want: dep.maven com.nimbusds:nimbus-jose-jwt 10.10 test
     implementation(libs.guava)                    // not crypto: nothing
     implementation(libs.bundles.crypto)           // want: dep.maven com.google.crypto.tink:tink 1.13.0
+    attestationImplementation("org.bouncycastle:bcutil-jdk18on:1.78") // "attestation" is no test configuration: want: dep.maven org.bouncycastle:bcutil-jdk18on 1.78
     println(libs.versions.nimbus.get())           // a version accessor: nothing
 }

@@ -2,6 +2,7 @@
   {"file": "app/build.gradle.kts", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.google.crypto.tink:tink", "version": "1.13.0"},
   {"file": "app/build.gradle.kts", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.nimbusds:nimbus-jose-jwt", "version": "10.10", "test": true},
   {"file": "app/build.gradle.kts", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": "1.78"},
+  {"file": "app/build.gradle.kts", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcutil-jdk18on", "version": "1.78"},
   {"file": "gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.google.crypto.tink:tink", "version": "1.13.0"},
   {"file": "gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.nimbusds:nimbus-jose-jwt", "version": "10.10"},
   {"file": "gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": "1.78"},

@@ -1078,7 +1078,9 @@ If the walk reaches the root without stopping:
    *T* is dotted): the class candidates of *T* as in 7.4.4 step 3 (the single-type import of its first segment; else
    `package.T`, then `w.T` for each wildcard import; a dotted *T* with a lower-case first segment as written); the
    first candidate whose declaring file (7.4.5 step 2) exists decides: if it is not `ctx`'s file and not visited yet,
-   field lookup of `N` there, else recursively that file's inherited field `N`; at most 4 levels.
+   field lookup of `N` there, else recursively that file's inherited field `N`; at most 4 levels. A field found there
+   that is not `final` gives no result if `N` is a reassigned name (7.3.1) of the requesting file or of the subclass
+   file it was reached from *(review3 R3-J-INH1: `this.algorithm = a` in a subclass constructor)*.
 
 Otherwise unresolved. (Reassignment is file-global and by simple name: a variable that is
 assigned anywhere in the file is not resolved unless it is declared `final`.)
@@ -1797,8 +1799,8 @@ Gradle scripts are not evaluated; they are scanned textually:
    longest prefix of the matched segments; `libs.bundles.n…` gives the libraries of bundle `n`.
 
 **Test configurations** *(T3-J-TSCOPE)*: an entry (string literal, map notation or accessor) is a test occurrence if the
-identifier before it (skipping whitespace and one `(`) contains `test` or `Test` (`testImplementation`,
-`androidTestImplementation`, `testFixturesApi`, …), unless the same key is also declared outside a test configuration.
+identifier before it (skipping whitespace and one `(`) starts with `test` or contains `Test` (`testImplementation`,
+`androidTestImplementation`, `testFixturesApi`, …; not `attestationImplementation`) *(review3 R3-J-TS1)*, unless the same key is also declared outside a test configuration.
 
 Entries are ordered by their start offset in the comment-free text. Without `gradle-catalog-accessors`, catalog
 accessors are not resolved in the script; the catalog itself is always scanned (9.7).

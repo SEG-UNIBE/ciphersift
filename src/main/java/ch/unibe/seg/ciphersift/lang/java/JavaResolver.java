@@ -208,7 +208,7 @@ final class JavaResolver {
                 return r;
             }
         }
-        return inherited ? inheritedField(name, ctx, 1, new java.util.HashSet<>()) : null;
+        return inherited ? inheritedField(name, ctx, ctx, 1, new java.util.HashSet<>()) : null;
     }
 
     /**
@@ -216,7 +216,8 @@ final class JavaResolver {
      * supertype in order that is not a class of the file, its declaring file (7.4.5) and its field {@code name}, else,
      * recursively, that file's supertypes (at most {@link #MAX_SUPER} levels; each file once).
      */
-    private Resolution inheritedField(String name, JavaContext ctx, int depth, java.util.Set<Path> seen) {
+    private Resolution inheritedField(String name, JavaContext origin, JavaContext ctx, int depth,
+            java.util.Set<Path> seen) {
         if (depth > MAX_SUPER || contexts == null) {
             return null;
         }
@@ -233,8 +234,12 @@ final class JavaResolver {
                 }
                 if (decl != ctx && seen.add(decl.file)) {
                     Resolution r = fieldLookup(name, decl);
+                    if (r != null && reassignedBelow(name, decl, origin, ctx)) {
+                        // a non-final inherited field assigned in a subclass on the way (review3 R3-J-INH1)
+                        return null;
+                    }
                     if (r == null) {
-                        r = inheritedField(name, decl, depth + 1, seen);
+                        r = inheritedField(name, origin, decl, depth + 1, seen);
                     }
                     if (r != null) {
                         return r;
@@ -244,6 +249,19 @@ final class JavaResolver {
             }
         }
         return null;
+    }
+
+    /**
+     * Whether the inherited field {@code name} of {@code decl} is not final and the requesting file or the subclass file
+     * {@code sub} assigns that name (review3 R3-J-INH1): a subclass that assigns an inherited field (in a constructor,
+     * from a parameter) makes the supertype's initialiser no constant of its own code.
+     */
+    private static boolean reassignedBelow(String name, JavaContext decl, JavaContext origin, JavaContext sub) {
+        List<JavaContext.FieldEntry> es = decl.fields.get(name);
+        if (es == null || es.isEmpty() || es.get(0).isFinal) {
+            return false;
+        }
+        return origin.reassigned.contains(name) || sub.reassigned.contains(name);
     }
 
     /** Fully qualified candidates for a type name as written in {@code ctx} (as for 7.4.4 step 3). */
@@ -423,7 +441,7 @@ final class JavaResolver {
         if (f.thisObject() || ctx.localClasses.contains(s)) {
             Resolution r = fieldLookup(field, ctx);
             // this.F / C.F of a class of the file, F declared in a supertype (t3 J-INH)
-            return r == null && inherited ? inheritedField(field, ctx, 1, new java.util.HashSet<>()) : r;
+            return r == null && inherited ? inheritedField(field, ctx, ctx, 1, new java.util.HashSet<>()) : r;
         }
         if (!s.isEmpty() && Character.isUpperCase(s.charAt(0))) {
             int dot = q.indexOf('.');
@@ -487,7 +505,7 @@ final class JavaResolver {
             if (decl.file != null) {
                 seen.add(decl.file);
             }
-            r = inheritedField(field, decl, 1, seen);
+            r = inheritedField(field, ctx, decl, 1, seen);
         }
         return r;
     }
