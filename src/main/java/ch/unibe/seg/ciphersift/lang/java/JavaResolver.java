@@ -23,23 +23,36 @@ final class JavaResolver {
             "decodeBase64", "parseHexBinary", "parseBase64Binary", "fromHexString", "hexStringToByteArray",
             "hexToBytes", "fromHex");
 
-    /** A lookup result: an initialiser in its context, or a constants-table string. */
-    record Resolution(JExpr expr, JavaContext ctx, String constant) {
+    /**
+     * A lookup result: an initialiser in its context, or a constants-table string; or, for a local assigned
+     * different values after its declaration (DECISIONS B-J-JP3), those values as {@code alternatives} (then
+     * the value is unresolved).
+     */
+    record Resolution(JExpr expr, JavaContext ctx, String constant, List<JExpr> alternatives) {
         static Resolution of(JExpr e, JavaContext c) {
-            return new Resolution(e, c, null);
+            return new Resolution(e, c, null, null);
         }
 
         static Resolution constant(String s) {
-            return new Resolution(null, null, s);
+            return new Resolution(null, null, s, null);
         }
     }
 
     private final RuleSet rules;
     private final JavaContexts contexts;
+    /** DECISIONS B-J-JP1 / B-J-JP5 and B-J-JP3. */
+    private final boolean getters;
+    private final boolean deferred;
 
     JavaResolver(RuleSet rules, JavaContexts contexts) {
+        this(rules, contexts, true, true);
+    }
+
+    JavaResolver(RuleSet rules, JavaContexts contexts, boolean getters, boolean deferred) {
         this.rules = rules;
         this.contexts = contexts;
+        this.getters = getters;
+        this.deferred = deferred;
     }
 
     // ------------------------------------------------------------------ value (7.4.1)
@@ -73,6 +86,27 @@ final class JavaResolver {
                 if (c.object() != null && VALUE_METHODS.contains(c.name())) {
                     return value(c.object(), ctx, d + 1);
                 }
+                if (!getters) {
+                    return null;
+                }
+                if (c.object() == null && c.firstArgument() == null) {
+                    // the file's only declaration of the name returns a constant expression (DECISIONS B-J-JP1)
+                    JavaContext.FieldEntry g = ctx.getters.get(c.name());
+                    return g == null ? null : value(g.expr(), ctx, d + 1);
+                }
+                if (c.object() != null && c.firstArgument() == null && c.name().equals("getAlgorithm")) {
+                    // key.getAlgorithm() of a key built as new SecretKeySpec(…, alg) (DECISIONS B-J-JP5)
+                    JExpr o = c.object();
+                    JavaContext oc = ctx;
+                    if (o instanceof JExpr.Ident id) {
+                        Resolution r = lookupIdentifier(id, ctx);
+                        o = r == null ? null : r.expr();
+                        oc = r == null ? null : r.ctx();
+                    }
+                    if (o instanceof JExpr.New n && Texts.lastSegment(n.type()).equals("SecretKeySpec")) {
+                        return value(n.lastArgument(), oc, d + 1);
+                    }
+                }
                 return null;
             }
             case JExpr.Ident id -> {
@@ -88,7 +122,7 @@ final class JavaResolver {
     }
 
     private String valueOf(Resolution r, int d) {
-        if (r == null) {
+        if (r == null || r.alternatives() != null) {
             return null;
         }
         if (r.constant() != null) {
@@ -114,7 +148,7 @@ final class JavaResolver {
                         if (found != null) {
                             SyntaxNode init = found.field("value");
                             if (init == null) {
-                                return null;
+                                return deferred ? deferredLocal(p, foundDecl, name, ctx) : null;
                             }
                             SyntaxNode mods = foundDecl.childOfType("modifiers");
                             boolean fin = mods != null && Texts.containsWord(mods.text(), "final");
@@ -159,6 +193,79 @@ final class JavaResolver {
             }
         }
         return null;
+    }
+
+    /**
+     * A local declared without initialiser (SPEC 7.4.3, DECISIONS B-J-JP3): the right-hand sides of the plain
+     * assignments {@code name = v} to it in its block after the declaration; null if there is none, if the name is
+     * also the target of a compound assignment, increment or decrement there, or if a value is unresolved. All
+     * values equal: that value; else the alternatives.
+     */
+    private Resolution deferredLocal(SyntaxNode block, SyntaxNode decl, String name, JavaContext ctx) {
+        List<JExpr> values = new ArrayList<>();
+        java.util.ArrayDeque<SyntaxNode> stack = new java.util.ArrayDeque<>();
+        stack.push(block);
+        while (!stack.isEmpty()) {
+            SyntaxNode n = stack.pop();
+            if (n.is("assignment_expression") && n.start() >= decl.end()) {
+                SyntaxNode left = n.field("left");
+                SyntaxNode op = n.field("operator");
+                if (left != null && left.is("identifier") && left.text().equals(name)) {
+                    if (op == null || !op.text().equals("=")) {
+                        return null;
+                    }
+                    values.add(JExpr.of(n.field("right"), true));
+                }
+            } else if (n.is("update_expression")) {
+                for (SyntaxNode c : n.namedChildren()) {
+                    if (c.is("identifier") && c.text().equals(name)) {
+                        return null;
+                    }
+                }
+            }
+            for (int i = n.childCount() - 1; i >= 0; i--) {
+                SyntaxNode c = n.child(i);
+                if (c.isNamed()) {
+                    stack.push(c);
+                }
+            }
+        }
+        if (values.isEmpty()) {
+            return null;
+        }
+        String first = null;
+        boolean same = true;
+        for (JExpr v : values) {
+            String s = value(v, ctx, 1);
+            if (s == null) {
+                return null;
+            }
+            if (first == null) {
+                first = s;
+            } else if (!first.equals(s)) {
+                same = false;
+            }
+        }
+        return same ? Resolution.of(values.get(0), ctx) : new Resolution(null, ctx, null, List.copyOf(values));
+    }
+
+    /** The values of a deferred local with different assignments (DECISIONS B-J-JP3), or null. */
+    List<String> alternatives(JExpr.Ident id, JavaContext ctx) {
+        Resolution r = lookupIdentifier(id, ctx);
+        if (r == null || r.alternatives() == null) {
+            return null;
+        }
+        List<String> out = new ArrayList<>();
+        for (JExpr e : r.alternatives()) {
+            String s = value(e, r.ctx(), 1);
+            if (s == null) {
+                return null;
+            }
+            if (!out.contains(s)) {
+                out.add(s);
+            }
+        }
+        return out;
     }
 
     /** A {@code variable_declarator} of a {@code local_variable_declaration} that is a child of a block. */
@@ -335,8 +442,17 @@ final class JavaResolver {
     // ------------------------------------------------------------------ string list (7.4.6)
 
     List<String> stringList(List<SyntaxNode> args, JavaContext ctx) {
+        return stringList(args, ctx, null, null);
+    }
+
+    /** The string list with one identifier argument given a fixed value (DECISIONS B-J-JP3). */
+    List<String> stringList(List<SyntaxNode> args, JavaContext ctx, SyntaxNode fixed, String fixedValue) {
         List<String> out = new ArrayList<>();
         for (SyntaxNode a : args) {
+            if (a == fixed) {
+                out.add(fixedValue);
+                continue;
+            }
             switch (a.type()) {
                 case "array_creation_expression" -> {
                     SyntaxNode init = a.childOfType("array_initializer");
@@ -357,7 +473,7 @@ final class JavaResolver {
                             arr = an.initializer();
                         }
                     }
-                    if (arr != null) {
+                    if (arr != null && r.alternatives() == null) {
                         addElements(arr, r.ctx(), out);
                     } else {
                         String v = r == null ? null : valueOf(r, 0);

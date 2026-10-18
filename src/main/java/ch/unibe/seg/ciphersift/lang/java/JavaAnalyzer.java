@@ -36,6 +36,8 @@ public final class JavaAnalyzer {
     private final RuleSet rules;
     private final JavaRuleIndex index;
     private final JavaContexts contexts;
+    private final boolean getters;
+    private final boolean deferred;
 
     public JavaAnalyzer(RuleSet rules, JavaContexts contexts) {
         this(rules, contexts, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
@@ -45,6 +47,8 @@ public final class JavaAnalyzer {
         this.rules = rules;
         this.index = new JavaRuleIndex(rules.javaRules(), features);
         this.contexts = contexts;
+        this.getters = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CONSTANT_GETTERS);
+        this.deferred = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_DEFERRED_LOCALS);
     }
 
     /** An event (SPEC 7.2). */
@@ -101,7 +105,7 @@ public final class JavaAnalyzer {
      */
     public List<SourceFinding> analyze(SyntaxNode root, Path file, String relativePath, boolean test) {
         JavaContext ctx = JavaContext.build(file, root);
-        JavaResolver resolver = new JavaResolver(rules, contexts);
+        JavaResolver resolver = new JavaResolver(rules, contexts, getters, deferred);
         List<Selected> selected = new ArrayList<>();
         IdentityHashMap<SyntaxNode, List<Selected>> byNode = new IdentityHashMap<>();
 
@@ -264,6 +268,61 @@ public final class JavaAnalyzer {
     // ------------------------------------------------------------------ evaluation and selection (7.6, 7.7.1)
 
     private List<Selected> select(Event ev, JavaContext ctx, JavaResolver resolver) {
+        List<Selected> normal = select0(ev, ctx, resolver);
+        if (!deferred || (ev.kind != EventKind.CALL && ev.kind != EventKind.NEW)) {
+            return normal;
+        }
+        // a local assigned different values (DECISIONS B-J-JP3): if every value selects the same rules, those
+        // rules; the matched string (and oid) only if it is the same for every value
+        SyntaxNode var = null;
+        List<String> alts = null;
+        for (SyntaxNode a : ev.args()) {
+            if (a.is("identifier")) {
+                alts = resolver.alternatives((JExpr.Ident) JExpr.of(a, true), ctx);
+                if (alts != null) {
+                    var = a;
+                    break;
+                }
+            }
+        }
+        if (alts == null) {
+            return normal;
+        }
+        List<List<Selected>> per = new ArrayList<>();
+        for (String v : alts) {
+            Event e2 = new Event(ev.kind, ev.node, ev.name, ev.receiver, ev.staticCandidates, ev.arguments, ev.line);
+            List<String> raw = resolver.stringList(ev.args(), ctx, var, v);
+            mapOids(e2, raw);
+            per.add(select0(e2, ctx, resolver));
+        }
+        List<Selected> first = per.get(0);
+        if (first.isEmpty()) {
+            return normal;
+        }
+        for (List<Selected> l : per) {
+            if (l.size() != first.size()) {
+                return normal;
+            }
+            for (int i = 0; i < l.size(); i++) {
+                if (l.get(i).rule() != first.get(i).rule()) {
+                    return normal;
+                }
+            }
+        }
+        List<Selected> out = new ArrayList<>();
+        for (int i = 0; i < first.size(); i++) {
+            Selected f = first.get(i);
+            boolean same = true;
+            for (List<Selected> l : per) {
+                same &= java.util.Objects.equals(l.get(i).matched(), f.matched())
+                        && java.util.Objects.equals(l.get(i).oid(), f.oid());
+            }
+            out.add(new Selected(ev, f.rule(), f.chosen(), same ? f.matched() : null, same ? f.oid() : null));
+        }
+        return out;
+    }
+
+    private List<Selected> select0(Event ev, JavaContext ctx, JavaResolver resolver) {
         List<JavaPattern> cands = index.candidates(ev.kind, ev.name);
         if (cands.isEmpty()) {
             return List.of();
@@ -425,8 +484,15 @@ public final class JavaAnalyzer {
 
     private List<String> strings(Event ev, JavaContext ctx, JavaResolver resolver) {
         if (ev.strings == null) {
-            List<String> raw = ev.kind == EventKind.CALL || ev.kind == EventKind.NEW
-                    ? resolver.stringList(ev.args(), ctx) : List.of();
+            mapOids(ev, ev.kind == EventKind.CALL || ev.kind == EventKind.NEW
+                    ? resolver.stringList(ev.args(), ctx) : List.of());
+        }
+        return ev.strings;
+    }
+
+    /** Sets the event's string list from the raw strings: table OIDs replaced by their names (SPEC 5.11). */
+    private static void mapOids(Event ev, List<String> raw) {
+        {
             // a dotted OID of the built-in table is treated like the algorithm name it maps to (SPEC 5.11)
             List<String> mapped = raw;
             List<String> oids = null;
@@ -444,7 +510,6 @@ public final class JavaAnalyzer {
             ev.strings = mapped;
             ev.stringOids = oids == null ? java.util.Collections.nCopies(raw.size(), (String) null) : oids;
         }
-        return ev.strings;
     }
 
     private static String firstMatching(Pattern p, List<String> strings) {

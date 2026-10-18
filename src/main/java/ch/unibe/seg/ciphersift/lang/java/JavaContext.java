@@ -55,6 +55,11 @@ final class JavaContext {
     final Set<String> localClasses = new HashSet<>();
     final Map<String, List<FieldEntry>> fields = new HashMap<>();
     final Set<String> reassigned = new HashSet<>();
+    /**
+     * Constant getters (SPEC 7.4.1, DECISIONS B-J-JP1): method name → the returned expression, for a name
+     * declared by exactly one method of the file, which has no parameters and whose body is {@code return e;}.
+     */
+    final Map<String, FieldEntry> getters = new HashMap<>();
 
     private JavaContext(Path file, String packageName) {
         this.file = file;
@@ -67,6 +72,9 @@ final class JavaContext {
             for (FieldEntry e : l) {
                 e.freeze();
             }
+        }
+        for (FieldEntry e : getters.values()) {
+            e.freeze();
         }
         return this;
     }
@@ -82,6 +90,7 @@ final class JavaContext {
         List<SyntaxNode> fieldDecls = new ArrayList<>();
         Set<String> classes = new HashSet<>();
         Set<String> reassigned = new HashSet<>();
+        Map<String, List<SyntaxNode>> methods = new HashMap<>();
         ArrayDeque<SyntaxNode> stack = new ArrayDeque<>();
         stack.push(root);
         while (!stack.isEmpty()) {
@@ -99,6 +108,12 @@ final class JavaContext {
                     }
                 }
                 case "import_declaration" -> importNodes.add(n);
+                case "method_declaration" -> {
+                    SyntaxNode name = n.field("name");
+                    if (name != null) {
+                        methods.computeIfAbsent(name.text(), k -> new ArrayList<>(1)).add(n);
+                    }
+                }
                 case "field_declaration", "constant_declaration" -> fieldDecls.add(n);
                 case "assignment_expression" -> {
                     SyntaxNode left = n.field("left");
@@ -176,8 +191,45 @@ final class JavaContext {
                 ctx.fields.computeIfAbsent(name.text(), k -> new ArrayList<>(1)).add(new FieldEntry(value, fin));
             }
         }
+        for (Map.Entry<String, List<SyntaxNode>> e : methods.entrySet()) {
+            if (e.getValue().size() == 1) {
+                SyntaxNode ret = constantReturn(e.getValue().get(0));
+                if (ret != null) {
+                    ctx.getters.put(e.getKey(), new FieldEntry(ret, true));
+                }
+            }
+        }
         ctx.localClasses.addAll(classes);
         ctx.reassigned.addAll(reassigned);
         return ctx;
+    }
+
+    /** The {@code e} of a method {@code m() { return e; }} without parameters, else null (DECISIONS B-J-JP1). */
+    private static SyntaxNode constantReturn(SyntaxNode m) {
+        SyntaxNode params = m.field("parameters");
+        SyntaxNode body = m.field("body");
+        if (params == null || body == null || !params.namedChildren().stream().allMatch(JExpr::isComment)) {
+            return null;
+        }
+        SyntaxNode stmt = null;
+        for (SyntaxNode c : body.namedChildren()) {
+            if (JExpr.isComment(c)) {
+                continue;
+            }
+            if (stmt != null) {
+                return null;
+            }
+            stmt = c;
+        }
+        if (stmt == null || !stmt.is("return_statement")) {
+            return null;
+        }
+        SyntaxNode e = null;
+        for (SyntaxNode c : stmt.namedChildren()) {
+            if (!JExpr.isComment(c)) {
+                e = c;
+            }
+        }
+        return e;
     }
 }

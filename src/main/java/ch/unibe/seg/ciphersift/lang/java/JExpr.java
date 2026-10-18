@@ -51,6 +51,12 @@ sealed interface JExpr {
     /** {@code method_invocation}: object (or null), name, first argument (or null). */
     record Call(JExpr object, String name, JExpr firstArgument) implements JExpr {}
 
+    /**
+     * {@code object_creation_expression} (DECISIONS B-J-JP5): the type text (whitespace and generic arguments
+     * removed) and the last argument.
+     */
+    record New(String type, JExpr lastArgument) implements JExpr {}
+
     /** {@code array_initializer}: elements, and whether every named non-comment child is literal-like (7.4.7). */
     record ArrayInit(List<JExpr> elements, boolean literalElements) implements JExpr {}
 
@@ -151,6 +157,24 @@ sealed interface JExpr {
             }
             case "array_initializer":
                 return arrayInit(n, live, depth);
+            case "object_creation_expression": {
+                SyntaxNode type = n.field("type");
+                SyntaxNode args = n.field("arguments");
+                if (type == null) {
+                    return OTHER;
+                }
+                SyntaxNode last = null;
+                if (args != null) {
+                    for (int i = 0; i < args.childCount(); i++) {
+                        SyntaxNode c = args.child(i);
+                        if (c.isNamed() && !isComment(c)) {
+                            last = c;
+                        }
+                    }
+                }
+                return new New(JavaAnalyzer.removeGenerics(Texts.removeWhitespace(type.text())),
+                        last == null ? null : convert(last, live, depth + 1));
+            }
             case "array_creation_expression": {
                 SyntaxNode init = n.childOfType("array_initializer");
                 return new ArrayNew(init == null ? null : arrayInit(init, live, depth + 1),

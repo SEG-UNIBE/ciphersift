@@ -56,8 +56,15 @@ public final class Features {
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
     public static final String JAVA_ANY_CALL_SHORT = "java-any-call-short";
 
+    /** Java: a no-argument call of the file's only constant getter, and {@code key.getAlgorithm()} (JP1, JP5). */
+    public static final String JAVA_CONSTANT_GETTERS = "java-constant-getters";
+    /** Java: locals declared without initialiser and assigned later (JP3, SPEC 7.4.3). */
+    public static final String JAVA_DEFERRED_LOCALS = "java-deferred-locals";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(JAVA_CONSTANT_GETTERS, true);
+        known(JAVA_DEFERRED_LOCALS, true);
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
         known(GO_PACKAGE_NAMES, true);

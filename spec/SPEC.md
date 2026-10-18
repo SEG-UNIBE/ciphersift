@@ -187,6 +187,8 @@ individually; the table lists every id and its default.
 | `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
 | `java-any-call` | on | Java `anyCall` patterns with `feature: java-any-call` (registry names as arguments of any call) | 5.5 |
 | `java-any-call-short` | on | Java `anyCall` patterns with `feature: java-any-call-short` (short JCA names, JOSE names) | 5.5 |
+| `java-constant-getters` | on | constant getters and `SecretKeySpec.getAlgorithm()` in Java string resolution (7.4.1) | 7.4.1 |
+| `java-deferred-locals` | on | Java locals assigned after their declaration (7.4.3, 7.7.1) | 7.4.3 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
@@ -637,7 +639,8 @@ case), with no surrounding white space, whose dotted form is listed in the table
 * **Not covered:** OIDs computed at run time or held in library constants other than the Bouncy Castle
   constants of the constants document (5.10, *DECISIONS B-J-JP2*: `NISTObjectIdentifiers.id_sha256.getId()`
   is covered; Bouncy Castle OID constants used as values are anchors of their rules, *B-J-BCOID*), and
-  Java `final` locals assigned after their declaration (7.4.3, Appendix B). OIDs whose family
+  Java locals assigned different values after their declaration unless the values agree (7.4.3, 7.7.1,
+  Appendix B). OIDs whose family
   has no rule in a language (PBES2 and the PQC OIDs in Python) give no Python finding.
 
 | OID | ASN.1 name | treated as | defined in | reported by (Java) | reported by (Python) |
@@ -946,6 +949,8 @@ unresolved. Each rule below that evaluates a sub-expression does so at depth `d 
 | `parenthesized_expression` | value of its first named child |
 | `binary_expression` with operator `+` | value(left) concatenated with value(right); unresolved if either is unresolved. Other operators: unresolved |
 | `method_invocation` with an `object` and a name in {`getName`, `toString`, `name`, `trim`, `intern`, `getId`} | value of the object (unchanged; `trim` does not trim; `getId` of an `ASN1ObjectIdentifier` constant is its OID, *DECISIONS B-J-JP2*) |
+| `method_invocation` without `object` and without arguments *(DECISIONS B-J-JP1)* | if the file declares exactly one method of that name, it has no formal parameters and its body is the single statement `return e;`: `value(e)` in the file's context (as a field initialiser: identifiers use the fallback of 7.4.3); else unresolved |
+| `method_invocation` `x.getAlgorithm()` without arguments *(DECISIONS B-J-JP5)* | if `x` is (or looks up, 7.4.3, to) an `object_creation_expression` of a type whose last segment is `SecretKeySpec`: the value of its last argument (the algorithm in every `SecretKeySpec` constructor); else unresolved |
 | `identifier` | look the name up (7.4.3); if it yields *(initialiser, ctx′)* → `value(initialiser, ctx′)`; a constants-table hit yields its string |
 | `field_access` | look the access up (7.4.4), then as for `identifier` |
 | anything else | unresolved (ternaries, other calls, `String.format`, array access, …) |
@@ -980,7 +985,10 @@ keeping the child `c` through which the walk arrived at the current node `p`:
 * If `p` is a `block`, `switch_block_statement_group` or `constructor_body`: among the named
   children of `p` that start before `c` starts, consider every `local_variable_declaration`
   and its `variable_declarator`s named `N`; if there is any, use the **last** one:
-  * no initialiser → unresolved;
+  * no initialiser → *(DECISIONS B-J-JP3)* the plain assignments `N = v` (operator `=`) inside `p` that
+    start after the declaration: none, a compound assignment or an increment / decrement of `N` there, or
+    an unresolved `v` → unresolved; all values equal → *(that `v`, ctx)*; different values → unresolved,
+    with the values as **alternatives** (7.7.1);
   * the declaration is not `final` (its `modifiers` do not contain the word `final`) and `N`
     is a reassigned name of `ctx` → unresolved;
   * otherwise the result is *(its initialiser, ctx)*. Stop.
@@ -1156,7 +1164,14 @@ else if it has `stringContains`, the first string of the list that contains a ne
 it has `anyString`, the first string of the list that matches; else none.
 
 Then group the matching rules by asset `type`; in each group, keep only the rules whose
-specificity equals the group's maximum. All kept rules are reported. Consequences:
+specificity equals the group's maximum.
+
+**Alternatives** *(DECISIONS B-J-JP3)*: if an argument of a `call` or `new` event is an identifier with
+alternatives (7.4.3), the selection is made once per alternative value (that argument contributing the
+value to the string list); if every alternative selects the same rules (in the same order), those rules are
+reported, each with its matched string and oid only if they are the same for every alternative (else none:
+the display name); otherwise the selection without the argument stands. `if (a) alg = "SHA256withRSA";
+else alg = "SHA1withRSA"; Signature.getInstance(alg)` is RSA. All kept rules are reported. Consequences:
 
 * the `java.jca.*.unresolved` fallbacks (bare `call` patterns) are reported only when no
   specific algorithm rule of the same asset type matches the call;
@@ -3202,12 +3217,12 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
   `String.format`, `StringBuilder` or ternaries give a `java.jca.*.unresolved` component;
   Python attributes (`self.mode`), return values and cross-module constants are not
   resolved, so `hashlib.new(name)` with unknown `name` gives nothing.
-* Java: a `final` local declared without initialiser and assigned later
-  (`final String alg; if (c) alg = "A"; else alg = "B";`) is unresolved (7.4.3) and gives the
-  `*.unresolved` fallback, also when every assignment is an OID *(DECISIONS E15)*. OID strings
-  are mapped through the table of 5.11 only when they are literal or resolved constants; OIDs
-  held in library constants (`PKCSObjectIdentifiers.RC2_CBC.getId()`) and OIDs missing from the
-  table are not mapped.
+* Java: a local declared without initialiser and assigned later (`final String alg; if (c) alg = "A";
+  else alg = "B";`) resolves only if its values agree (7.4.3, 7.7.1, *DECISIONS B-J-JP3*, which replaces
+  the E15 limitation; with `--feature java-deferred-locals=off` it is unresolved as before). OID strings
+  are mapped through the table of 5.11 only when they are literal or resolved constants; OIDs held in
+  library constants other than the Bouncy Castle constants of the constants document (5.10) and OIDs
+  missing from the table are not mapped.
 * Receiver types are not inferred: `method` patterns are heuristics
   (`setEnabledProtocols`, `cipherSuites`, Python `sign`/`encrypt` with `padding.*`,
   `ecdsa_sign`, `verify=False` on HTTP-client method names such as `get` or `send`).
