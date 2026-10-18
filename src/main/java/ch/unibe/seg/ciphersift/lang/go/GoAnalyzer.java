@@ -53,6 +53,8 @@ public final class GoAnalyzer {
     private final boolean randomIndex;
     /** Argument-less identifier calls in comparisons are test positions (DECISIONS T3-G8, feature {@code go-compared-calls}). */
     private final boolean comparedCalls;
+    /** Key generation on a receiver call that names the algorithm folds into it (T3-G9, {@code go-fold-receiver-keys}). */
+    private final boolean foldReceiverKeys;
 
     public GoAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -64,6 +66,7 @@ public final class GoAnalyzer {
         this.nestedSameRule = features.on(Features.GO_NESTED_SAME_RULE);
         this.randomIndex = features.on(Features.GO_RANDOM_INDEX);
         this.comparedCalls = features.on(Features.GO_COMPARED_CALLS);
+        this.foldReceiverKeys = features.on(Features.GO_FOLD_RECEIVER_KEYS);
     }
 
     /** Analyses one parsed Go file. */
@@ -248,7 +251,8 @@ public final class GoAnalyzer {
             }
             List<SourceFinding> out = new ArrayList<>();
             for (Selected s : selected) {
-                if (nestedDuplicate(s, byNode) || randomIndex && randomIndexDraw(s)) {
+                if (nestedDuplicate(s, byNode) || randomIndex && randomIndexDraw(s)
+                        || foldReceiverKeys && keyOfAlgorithmReceiver(s, byNode)) {
                     continue;
                 }
                 Event e = s.event();
@@ -1148,6 +1152,36 @@ public final class GoAnalyzer {
                     }
                 }
                 return false;
+            }
+            return false;
+        }
+
+        /**
+         * DECISIONS T3-G9: a {@code GenerateKey} method event of a rule without family (key generation on a curve) whose
+         * receiver is a call with a selection that has a family on the same line ({@code ecdh.X25519().GenerateKey(r)})
+         * is reported by that selection alone: the receiver names the algorithm of the key.
+         */
+        private boolean keyOfAlgorithmReceiver(Selected s, Map<SyntaxNode, List<Selected>> byNode) {
+            Event e = s.event();
+            if (e.kind() != Kind.METHOD || s.rule().asset().family() != null) {
+                return false;
+            }
+            SyntaxNode fn = e.node().field("function");
+            SyntaxNode m = fn == null ? null : fn.field("field");
+            if (m == null || !m.text().equals("GenerateKey")) {
+                return false; // NewPrivateKey(b) / NewPublicKey(b) load key material: they stay
+            }
+            SyntaxNode r = fn == null ? null : fn.field("operand");
+            while (r != null && r.is("parenthesized_expression") && !r.namedChildren().isEmpty()) {
+                r = r.namedChildren().get(0);
+            }
+            List<Selected> l = r == null ? null : byNode.get(r);
+            if (l != null) {
+                for (Selected o : l) {
+                    if (o.rule().asset().family() != null && o.event().line() == e.line()) {
+                        return true;
+                    }
+                }
             }
             return false;
         }

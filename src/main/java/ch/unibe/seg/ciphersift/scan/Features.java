@@ -72,6 +72,9 @@ public final class Features {
     /** Go: argument-less identifier calls (elliptic.P256()) compared or in a case value are test positions (T3-G8). */
     public static final String GO_COMPARED_CALLS = "go-compared-calls";
 
+    /** Go: a family-less key method on a receiver call with a family on the same line folds into it (T3-G9). */
+    public static final String GO_FOLD_RECEIVER_KEYS = "go-fold-receiver-keys";
+
     /** Java {@code anyCall} patterns: registry algorithm names as arguments of any call (SNx, SPEC 5.5). */
     public static final String JAVA_ANY_CALL = "java-any-call";
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
@@ -120,6 +123,7 @@ public final class Features {
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
         known(GO_NESTED_SAME_RULE, true);
+        known(GO_FOLD_RECEIVER_KEYS, true);
         known(GO_COMPARED_CALLS, true);
         known(GO_GENERIC_VARIANTS, true);
         known(GO_RANDOM_INDEX, false);

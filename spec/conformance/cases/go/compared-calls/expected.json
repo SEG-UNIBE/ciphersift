@@ -1,6 +1,5 @@
 {"case": "go/compared-calls", "findings": [
   {"file": "c.go", "line": 19, "rule": "go.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": "P-256", "name": "crypto/elliptic.P256"},
   {"file": "c.go", "line": 26, "rule": "go.asym.x25519", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "Curve25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/ecdh.X25519"},
-  {"file": "c.go", "line": 26, "rule": "go.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
   {"file": "c.go", "line": 27, "rule": "go.pqc.mlkem", "type": "algorithm", "subtype": null, "primitive": "kem", "family": "ML-KEM", "variant": null, "protocol": null, "version": null, "param": "ML-KEM-768", "name": "filippo.io/hpke.MLKEM768P256"}
 ]}

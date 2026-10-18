@@ -1,0 +1,11 @@
+{"case": "go/fold-receiver-keys", "findings": [
+  {"file": "f.go", "line": 9, "rule": "go.asym.x25519", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "Curve25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/ecdh.X25519"},
+  {"file": "f.go", "line": 9, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"},
+  {"file": "f.go", "line": 10, "rule": "go.asym.x25519", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "Curve25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/ecdh.X25519"},
+  {"file": "f.go", "line": 10, "rule": "go.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "f.go", "line": 11, "rule": "go.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "f.go", "line": 11, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"},
+  {"file": "f.go", "line": 12, "rule": "go.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": "P-256", "name": "crypto/ecdh.P256"},
+  {"file": "f.go", "line": 13, "rule": "go.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "f.go", "line": 13, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"}
+]}

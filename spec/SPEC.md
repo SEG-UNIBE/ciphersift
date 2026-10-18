@@ -204,6 +204,7 @@ individually; the table lists every id and its default.
 | `go-random-index` | off | a Go `rand.Int(r, big.NewInt(len(x)))` (also `int64(len(x))`) draws an index into a collection and is not reported (17.8) | 17.8 |
 | `go-generic-variants` | on | a Go propagated finding whose evidence definition (or package, 18.8) has findings of one rule with different params is reported under the rule's name without param (18.7) | 18.7, 18.8 |
 | `go-compared-calls` | on | a Go argument-less identifier call whose property (`.ID()`, `.Params().Name`) is compared or a `case` value is a test position (17.5) | 17.5 |
+| `go-fold-receiver-keys` | on | a Go `GenerateKey` method finding without family whose receiver call has a finding with a family on the same line is dropped (17.8) | 17.8 |
 | `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
@@ -2817,6 +2818,11 @@ event on another line (a field of a multi-line literal) keeps its finding.
 With the feature `go-random-index` (off by default, *DECISIONS T3-G6*), a `crypto/rand.Int` call whose bound is
 `big.NewInt(len(x))` or `big.NewInt(int64(len(x)))` is not reported (nor, as its nested duplicate, its
 `rand.Reader`): it picks an element of a collection (a server, a port), not secret material.
+A `GenerateKey` method event of a rule without family (`crypto/ecdh.Curve.GenerateKey`, key generation filed as
+key material) whose receiver is a call with a selection that has a family on the same line
+(`ecdh.X25519().GenerateKey(r)`) is dropped: the receiver's finding names the algorithm of the generated key
+*(DECISIONS T3-G9, feature `go-fold-receiver-keys`)*. `NewPrivateKey(b)` / `NewPublicKey(b)` (key loading) and
+receivers held in variables keep their findings.
 
 Each kept (event, rule) pair yields one finding:
 
