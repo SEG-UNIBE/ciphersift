@@ -45,8 +45,12 @@ public final class Features {
     /** Go thin wrappers of up to 12 lines with the fallback-getter guard (E, SPEC 18.5). */
     public static final String GO_THIN_WRAPPERS = "go-thin-wrappers";
 
+    /** Go method calls on receivers of a known type match {@code method} patterns (B1a, SPEC 17.12). */
+    public static final String GO_TYPED_METHODS = "go-typed-methods";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(GO_TYPED_METHODS, true);
         known(GO_THIN_WRAPPERS, true);
         known(JAVA_PROPAGATE_RANDOM, true);
         known(JAVA_THIN_12, true);

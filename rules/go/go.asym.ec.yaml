@@ -32,3 +32,11 @@ match:
 - call: crypto/elliptic.UnmarshalCompressed
 # DECISIONS F4 (benchmark-informed): key construction, as the Java *KeySpec and Python *Numbers patterns.
 - composite: crypto/elliptic.CurveParams
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: crypto/elliptic.Curve.ScalarMult
+- method: crypto/elliptic.Curve.ScalarBaseMult
+- method: crypto/elliptic.Curve.Add
+- method: crypto/elliptic.Curve.Double
+- method: crypto/elliptic.Curve.IsOnCurve

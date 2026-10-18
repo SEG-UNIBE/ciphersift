@@ -49,3 +49,12 @@ match:
 - call: github.com/cloudflare/circl/sign/ed25519.VerifyAny
 - call: github.com/cloudflare/circl/sign/ed25519.VerifyPh
 - call: github.com/cloudflare/circl/sign/ed25519.VerifyWithCtx
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: crypto/ed25519.PrivateKey.Sign
+- method: crypto/ed25519.PrivateKey.Public
+- method: crypto/ed25519.PrivateKey.Seed
+- method: golang.org/x/crypto/ed25519.PrivateKey.Sign
+- method: golang.org/x/crypto/ed25519.PrivateKey.Public
+- method: golang.org/x/crypto/ed25519.PrivateKey.Seed

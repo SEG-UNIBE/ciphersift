@@ -712,6 +712,9 @@ public final class RuleLoader {
             } else if (p.has("composite")) {
                 anchor = GoPattern.Anchor.COMPOSITE;
                 key = "composite";
+            } else if (p.has("method")) {
+                anchor = GoPattern.Anchor.METHOD;
+                key = "method";
             } else {
                 anchor = GoPattern.Anchor.ASSIGN;
                 key = "assign";
@@ -722,6 +725,9 @@ public final class RuleLoader {
             String path = null;
             if (anchor != GoPattern.Anchor.ASSIGN) {
                 int dot = name.lastIndexOf('.');
+                if (anchor == GoPattern.Anchor.METHOD && dot > 0) {
+                    dot = name.lastIndexOf('.', dot - 1); // path.Type.Method: the path ends before the type
+                }
                 path = dot <= 0 ? "" : name.substring(0, dot);
                 if (path.isEmpty()) {
                     problems.add(file + ": " + ptr + "/" + key + ": the import path before the last \".\" is empty");

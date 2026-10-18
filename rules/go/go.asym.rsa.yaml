@@ -33,3 +33,11 @@ match:
     index: 0
 - ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.KeyTypeRSA
 - ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.KeyTypeRSAHSM
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: crypto/rsa.PrivateKey.Sign
+- method: crypto/rsa.PrivateKey.Decrypt
+- method: crypto/rsa.PrivateKey.Precompute
+- method: crypto/rsa.PrivateKey.Validate
+- method: crypto/rsa.PrivateKey.Public

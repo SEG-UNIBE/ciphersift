@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 /** One Go pattern (SPEC 17.3), compiled. */
 public final class GoPattern {
     /** Pattern anchors. */
-    public enum Anchor { CALL, REF, COMPOSITE, ASSIGN }
+    public enum Anchor { CALL, REF, COMPOSITE, ASSIGN, METHOD }
 
     public final SourceRule rule;
     public final int position;
@@ -22,7 +22,7 @@ public final class GoPattern {
     public final String name;
     /** True if the anchor ends with {@code *} (prefix match on the member). */
     public final boolean prefix;
-    /** The import path of a call / ref / composite anchor; {@code null} for assign. */
+    /** The import path of a call / ref / composite / method anchor; {@code null} for assign. */
     public final String path;
     public final List<String> anySymbol;
     public final Pattern value;
@@ -61,9 +61,23 @@ public final class GoPattern {
         return anchor == Anchor.REF || (anchor == Anchor.CALL && anySymbol == null);
     }
 
-    /** The member of a call / ref / composite anchor (without {@code *}); the field name for assign. */
+    /**
+     * The member of a call / ref / composite anchor (without {@code *}); the field name for assign; for a method
+     * anchor {@code path.Type.Method} the method name.
+     */
     public String member() {
+        if (anchor == Anchor.METHOD) {
+            return name.substring(name.lastIndexOf('.') + 1);
+        }
         return path == null ? name : name.substring(path.length() + 1);
+    }
+
+    /** The type name of a method anchor {@code path.Type.Method}; null otherwise. */
+    public String typeName() {
+        if (anchor != Anchor.METHOD) {
+            return null;
+        }
+        return name.substring(path.length() + 1, name.lastIndexOf('.'));
     }
 
     @Override

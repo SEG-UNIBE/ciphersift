@@ -42,3 +42,10 @@ match:
   param:
     index: 0
 - ref: github.com/miekg/pkcs11.CKM_ECDSA*
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: crypto/ecdsa.PrivateKey.Sign
+- method: crypto/ecdsa.PrivateKey.Public
+- method: crypto/ecdsa.PrivateKey.ECDH
+- method: crypto/ecdsa.PublicKey.ECDH

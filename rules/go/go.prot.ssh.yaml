@@ -23,3 +23,15 @@ match:
 - composite: golang.org/x/crypto/ssh.ClientConfig
 - composite: golang.org/x/crypto/ssh.ServerConfig
 - call: golang.org/x/crypto/ssh/knownhosts.New
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: golang.org/x/crypto/ssh.Signer.Sign
+- method: golang.org/x/crypto/ssh.PublicKey.Verify
+- method: golang.org/x/crypto/ssh.AlgorithmSigner.SignWithAlgorithm
+- method: golang.org/x/crypto/ssh.MultiAlgorithmSigner.SignWithAlgorithm
+- method: golang.org/x/crypto/ssh.CertChecker.Authenticate
+- method: golang.org/x/crypto/ssh.CertChecker.CheckHostKey
+- method: golang.org/x/crypto/ssh.CertChecker.CheckCert
+- method: golang.org/x/crypto/ssh.Certificate.SignCert
+- method: golang.org/x/crypto/ssh.ServerConfig.AddHostKey

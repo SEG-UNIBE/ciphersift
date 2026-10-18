@@ -23,6 +23,8 @@ final class GoRuleIndex {
     final List<GoPattern> refPrefix = new ArrayList<>();
     final Map<String, List<GoPattern>> composite = new HashMap<>();
     final Map<String, List<GoPattern>> assign = new HashMap<>();
+    /** {@code method} patterns by {@code path.Type.Method} (SPEC 17.3, DECISIONS B-G-B1a). */
+    final Map<String, List<GoPattern>> method = new HashMap<>();
     /** Fixed {@code param: {value}} of exact call / ref anchors, first in rule and file order (SPEC 17.9). */
     final Map<String, String> paramValues = new HashMap<>();
 
@@ -33,6 +35,7 @@ final class GoRuleIndex {
                     case CALL -> add(callExact, callPrefix, p);
                     case COMPOSITE -> composite.computeIfAbsent(p.name, k -> new ArrayList<>()).add(p);
                     case ASSIGN -> assign.computeIfAbsent(p.name, k -> new ArrayList<>()).add(p);
+                    case METHOD -> method.computeIfAbsent(p.name, k -> new ArrayList<>()).add(p);
                     default -> {
                         // REF: indexed below
                     }
@@ -58,6 +61,6 @@ final class GoRuleIndex {
 
     boolean isEmpty() {
         return callExact.isEmpty() && callPrefix.isEmpty() && refExact.isEmpty() && refPrefix.isEmpty()
-                && composite.isEmpty() && assign.isEmpty();
+                && composite.isEmpty() && assign.isEmpty() && method.isEmpty();
     }
 }

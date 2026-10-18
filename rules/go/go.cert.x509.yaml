@@ -38,3 +38,15 @@ match:
 - call: github.com/sigstore/sigstore/pkg/cryptoutils.MarshalCertificateToPEM
 - call: github.com/sigstore/sigstore/pkg/cryptoutils.MarshalCertificatesToPEM
 - call: github.com/sigstore/sigstore/pkg/cryptoutils.ParseCSR
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: crypto/x509.Certificate.Verify
+- method: crypto/x509.Certificate.CheckSignature
+- method: crypto/x509.Certificate.CheckSignatureFrom
+- method: crypto/x509.Certificate.CheckCRLSignature
+- method: crypto/x509.Certificate.VerifyHostname
+- method: crypto/x509.CertificateRequest.CheckSignature
+- method: crypto/x509.CertPool.AddCert
+- method: crypto/x509.CertPool.AppendCertsFromPEM
+- method: crypto/x509.RevocationList.CheckSignatureFrom

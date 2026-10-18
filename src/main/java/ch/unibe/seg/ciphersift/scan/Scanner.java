@@ -133,7 +133,7 @@ public final class Scanner {
         JavaContexts contexts = new JavaContexts(options.root(), javaLanguage, javaParser::get);
         this.javaAnalyzer = new JavaAnalyzer(options.rules(), contexts);
         this.pythonAnalyzer = new PythonAnalyzer(options.rules());
-        this.goAnalyzer = new GoAnalyzer(options.rules());
+        this.goAnalyzer = new GoAnalyzer(options.rules(), options.features());
         this.dependencyScanner = new DependencyScanner(options.rules(), options.features());
         boolean filter = !Boolean.getBoolean(NO_PREFILTER);
         this.javaFilter = filter ? AnchorPrefilter.java(options.rules().javaRules()) : AnchorPrefilter.ALL;

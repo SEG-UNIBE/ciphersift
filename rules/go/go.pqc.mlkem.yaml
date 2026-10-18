@@ -110,3 +110,24 @@ match:
 - call: github.com/cloudflare/circl/kem/mlkem/mlkem1024.Scheme
   param:
     value: ML-KEM-1024
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: crypto/mlkem.DecapsulationKey768.Decapsulate
+  param:
+    value: ML-KEM-768
+- method: crypto/mlkem.DecapsulationKey768.EncapsulationKey
+  param:
+    value: ML-KEM-768
+- method: crypto/mlkem.EncapsulationKey768.Encapsulate
+  param:
+    value: ML-KEM-768
+- method: crypto/mlkem.DecapsulationKey1024.Decapsulate
+  param:
+    value: ML-KEM-1024
+- method: crypto/mlkem.DecapsulationKey1024.EncapsulationKey
+  param:
+    value: ML-KEM-1024
+- method: crypto/mlkem.EncapsulationKey1024.Encapsulate
+  param:
+    value: ML-KEM-1024

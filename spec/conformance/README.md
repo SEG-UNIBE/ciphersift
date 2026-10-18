@@ -91,6 +91,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/thin-12` | 1 | 3 | Java thin wrappers of 12 lines carry their family, 13 lines do not (DECISIONS B-J-G) |
 | `java/propagate-random` | 1 | 4 | a Java helper returning a `SecureRandom` is a thin wrapper; one with a CSPRNG and AES is not (DECISIONS B-J-D) |
 | `go/thin-wrappers` | 1 | 6 | Go thin wrappers: 3 and 12 lines (an early error return) carry, 14 lines do not; a fallback getter (`if … { return crypto.SHA256 }; return c.DefaultHash`) does not (DECISIONS B-G-E) |
+| `go/typed-methods` | 1 | 26 | method anchors on typed receivers: parameters, results by position, type assertions, a single-type type-switch case (not two types), struct fields, one level of embedding (not when the file declares the method), `ecdh` / `mlkem` / `x509` / `ssh` result chains, composite and `new`, a reassigned variable, accessors (DECISIONS B-G-B1a) |
 
 ## Format of expected.json
 

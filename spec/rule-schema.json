@@ -44,6 +44,11 @@
       "type": "string",
       "pattern": "^[A-Za-z0-9_.~/+-]*[A-Za-z0-9_~+-]\\.[A-Za-z_][A-Za-z0-9_]*$"
     },
+    "goMethodName": {
+      "type": "string",
+      "description": "<import path>.<Type>.<Method>, split at the last two dots (SPEC 17.3, DECISIONS B-G-B1a).",
+      "pattern": "^[A-Za-z0-9_.~/+-]*[A-Za-z0-9_~+-]\\.[A-Za-z_][A-Za-z0-9_]*\\.[A-Za-z_][A-Za-z0-9_]*$"
+    },
     "identifierOrPrefix": {
       "type": "string",
       "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*\\*?$"
@@ -182,6 +187,7 @@
         "call": {"$ref": "#/$defs/goQualifiedName"},
         "ref": {"$ref": "#/$defs/goQualifiedName"},
         "composite": {"$ref": "#/$defs/goExactName"},
+        "method": {"$ref": "#/$defs/goMethodName"},
         "assign": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
         "anySymbol": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/goExactName"}},
         "value": {"$ref": "#/$defs/regex"},
@@ -189,7 +195,8 @@
         "param": {"$ref": "#/$defs/param"}
       },
       "oneOf": [
-        {"required": ["call"]}, {"required": ["ref"]}, {"required": ["composite"]}, {"required": ["assign"]}
+        {"required": ["call"]}, {"required": ["ref"]}, {"required": ["composite"]}, {"required": ["assign"]},
+        {"required": ["method"]}
       ],
       "allOf": [
         {"description": "anySymbol only on call and composite patterns (SPEC 17.3)",
@@ -202,7 +209,10 @@
          "if": {"required": ["param"]},
          "then": {"properties": {"param": {"not": {"required": ["keyword"]}}}}},
         {"if": {"anyOf": [{"required": ["ref"]}, {"required": ["composite"]}]},
-         "then": {"properties": {"param": {"not": {"required": ["index"]}}}}}
+         "then": {"properties": {"param": {"not": {"required": ["index"]}}}}},
+        {"description": "a method pattern takes no anySymbol and no param: {self} (DECISIONS B-G-B1a)",
+         "if": {"required": ["method"]},
+         "then": {"not": {"required": ["anySymbol"]}, "properties": {"param": {"not": {"required": ["self"]}}}}}
       ]
     },
 

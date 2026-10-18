@@ -185,6 +185,7 @@ individually; the table lists every id and its default.
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
 | `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
+| `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
 | `wrapper-depth-4` | on | wrapper chains of up to 4 definitions (else 3) | 18.5 |
@@ -2493,6 +2494,7 @@ one anchor:
 | `ref` | as `call` | A reference event (17.5) only: a constant, variable or function used as a value (`tls.VersionTLS12`, `crypto.SHA256`, `rand.Reader`). |
 | `composite` | `path.Type` (no `*`) | A composite-literal event (17.5): `tls.Config{…}`, `&rsa.PSSOptions{…}`, `new(tls.Config)`. |
 | `assign` | a field name | A field-assignment event (17.5): the keyed element `InsecureSkipVerify: true` of any composite literal, or the assignment `cfg.InsecureSkipVerify = true`. |
+| `method` | `path.Type.Method` (split at the last two `.`; no `*`) | A method event (17.12): a call `r.Method(…)` whose receiver `r` has the known type `path.Type` *(DECISIONS B-G-B1a)*. Takes no `anySymbol` and no `param: {self}`; `param: {index}` and `{value}` work as for `call`. |
 
 Conditions:
 
@@ -2501,7 +2503,7 @@ Conditions:
 | `anySymbol` | list of `path.Member` names (no `*`) | call, composite | Some listed name equals a name of the event's symbol set (17.7). |
 | `value` | regex | assign | The regex is found (`find`, case-insensitive) in one of the value texts (17.7) of the assigned expression. |
 | `valueContains` | list | assign | Some value text contains some listed string (case-insensitive). |
-| `param` | `{index: i}` (call only), `{self: true}` or `{value: s}` | call, ref, composite | *Not a filter.* The finding's param (17.8). |
+| `param` | `{index: i}` (call, method), `{self: true}` (not method) or `{value: s}` | call, ref, composite, method | *Not a filter.* The finding's param (17.8). |
 
 A pattern with `anySymbol`, `value` or `valueContains` is **specific** (specificity 2); every
 other pattern is **bare** (1). `*` prefixes are allowed only in `call` and `ref` anchors.
@@ -2705,6 +2707,67 @@ Within one file the last entry of a path determines the version (section 9). Sni
 `ciphersift:ecosystem` (`golang`). The bundled rule `rules/dependencies/dep.golang.yaml` lists
 Go cryptographic modules (`golang.org/x/crypto`, `filippo.io/age`, `github.com/cloudflare/circl`,
 …).
+
+### 17.12 Methods on receivers of a known type *(DECISIONS B-G-B1a, benchmark-informed)*
+
+Go code calls most cryptographic operations as methods of key, curve, certificate and signer values
+(`priv.Sign(…)`, `pool.AddCert(c)`, `curve.ScalarMult(…)`). Where the receiver's type can be read from
+the file, such a call is a **method event**; `method` patterns (17.3) match it. Feature
+`go-typed-methods` (3.1, default on).
+
+* **Method event.** A `call_expression` whose `function` is a `selector_expression` that is not a
+  qualified selector (17.4); its names are `T.M` for the receiver type `T` (below) and the `field` `M`.
+  If the type is a struct type declared in the file (`#S` below) that has no method `M` declared in the
+  file, the names are `E.M` for each embedded field of `S` whose type is a qualified type `E` (one level
+  of promotion). Line: the row of the `field` + 1; snippet: the call text. Selection, nesting (17.8),
+  findings and params are those of call events; the name used is `path.Type.Method`.
+* **Type names**: a `qualified_type` `p.T` (pointer, parentheses and type arguments removed) whose package
+  `p` is a local import name of path *P* has the name *P*`.T`; a `type_identifier` that names a struct
+  type declared in the file has the name `#T`; other types have none.
+* **Receiver type** of an expression (depth limit 12, cycle guard as in 17.6):
+  * parentheses, `&x` and `*x`: the type of `x`;
+  * a `type_assertion_expression` `x.(T)`, a composite literal `T{…}`: `T`;
+  * a call: `new(T)` → `T`; a qualified function or a method event listed in the **result-type table**
+    (below) → its result type at the position asked for (0 unless several names take the results of one
+    call, `pub, priv, err := ed25519.GenerateKey(nil)`);
+  * a selector `x.f` that is not qualified: if `x` has a struct type `#S` of the file with a field `f`,
+    the type of that field;
+  * an identifier `x`: if it is the alias of a `type_switch_statement` and lies inside a `type_case` that
+    lists exactly one type, that type; otherwise its bindings (17.6) — the declared type of a parameter,
+    receiver or `var`, else the receiver type of the bound value at its result position — which must all
+    give the same type; a binding without either (a range variable, `x = nil`, a call not in the table)
+    gives none.
+* **Result-type table** (from the pkg.go.dev documentation; `lang/go/GoResultTypes.java`): `crypto/rsa`
+  `GenerateKey`, `GenerateMultiPrimeKey` → `PrivateKey`; `crypto/ecdsa` `GenerateKey`,
+  `ParseRawPrivateKey` → `PrivateKey`, `ParseUncompressedPublicKey` → `PublicKey`, `PrivateKey.ECDH` /
+  `PublicKey.ECDH` → `crypto/ecdh` keys; `crypto/ed25519` (and `golang.org/x/crypto/ed25519`)
+  `GenerateKey` → (`PublicKey`, `PrivateKey`), `NewKeyFromSeed` → `PrivateKey`; `crypto/elliptic`
+  `P224`…`P521` → `Curve`; `crypto/ecdh` `P256`, `P384`, `P521`, `X25519` → `Curve`, `Curve.GenerateKey`,
+  `Curve.NewPrivateKey` → `PrivateKey`, `Curve.NewPublicKey`, `PrivateKey.PublicKey` → `PublicKey`;
+  `crypto/mlkem` `GenerateKey768/1024`, `NewDecapsulationKey768/1024` → `DecapsulationKey768/1024`,
+  `NewEncapsulationKey768/1024`, `DecapsulationKey…EncapsulationKey` → `EncapsulationKey768/1024`;
+  `crypto/x509` `ParseCertificate` → `Certificate`, `ParseCertificateRequest`, `ParseRevocationList`,
+  `NewCertPool`, `SystemCertPool` → `CertPool`, `ParsePKCS1PrivateKey` / `ParsePKCS1PublicKey` → `crypto/rsa`
+  keys, `ParseECPrivateKey` → `crypto/ecdsa.PrivateKey`; `golang.org/x/crypto/ssh` `NewSignerFromKey`,
+  `NewSignerFromSigner`, `ParsePrivateKey[WithPassphrase]` → `Signer`, `ParsePublicKey`, `NewPublicKey`,
+  `ParseAuthorizedKey`, `Signer.PublicKey` → `PublicKey`; sigstore `signature.GetAlgorithmDetails` →
+  `AlgorithmDetails`.
+* **Bundled method anchors**: `crypto/rsa.PrivateKey` `Sign`, `Decrypt`, `Precompute`, `Validate`, `Public`
+  (RSA); `crypto/ecdsa.PrivateKey` `Sign`, `Public`, `ECDH` and `PublicKey.ECDH` (ECDSA); `crypto/ed25519`
+  (also x/crypto) `PrivateKey` `Sign`, `Public`, `Seed` (Ed25519); `crypto/elliptic.Curve` `ScalarMult`,
+  `ScalarBaseMult`, `Add`, `Double`, `IsOnCurve` (EC); `crypto/ecdh.PrivateKey.ECDH` (ECDH),
+  `Curve.NewPublicKey`, `PrivateKey.PublicKey` (public key), `Curve.NewPrivateKey`, `Curve.GenerateKey`
+  (private key); `crypto/mlkem` `DecapsulationKey768/1024` `Decapsulate`, `EncapsulationKey` and
+  `EncapsulationKey768/1024.Encapsulate` (ML-KEM, parameter set); `crypto/x509` `Certificate` `Verify`,
+  `CheckSignature`, `CheckSignatureFrom`, `CheckCRLSignature`, `VerifyHostname`,
+  `CertificateRequest.CheckSignature`, `CertPool` `AddCert`, `AppendCertsFromPEM`,
+  `RevocationList.CheckSignatureFrom` (X.509); `golang.org/x/crypto/ssh` `Signer.Sign`, `PublicKey.Verify`,
+  `AlgorithmSigner` / `MultiAlgorithmSigner` `SignWithAlgorithm`, `CertChecker` `Authenticate`,
+  `CheckHostKey`, `CheckCert`, `Certificate.SignCert`, `ServerConfig.AddHostKey` (SSH). Accessors
+  (`Params`, `Equal`, `Size`, `BlockSize`, `Overhead`, `NonceSize`, `HashFunc`, `String`, …) are not anchors.
+* Not covered: types of other files (a struct declared elsewhere in the package), interfaces satisfied
+  implicitly, generic instantiation, chained promotion over more than one level, method values
+  (`f := k.Sign`).
 
 ### 17.11 Go coverage of the bundled rules *(DECISIONS G14, G15)*
 

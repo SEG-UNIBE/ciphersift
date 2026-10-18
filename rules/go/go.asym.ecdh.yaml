@@ -40,3 +40,7 @@ match:
   anySymbol: [crypto/ecdh.P256, crypto/ecdh.P384, crypto/ecdh.P521]
   param:
     index: 0
+# DECISIONS B-G-B1a (benchmark-informed in the choice of types): methods of standard-library types on receivers
+# whose type is known (SPEC 17.12), written from the pkg.go.dev documentation of the package; accessors
+# (Params, Equal, Size, ...) are not anchors.
+- method: crypto/ecdh.PrivateKey.ECDH

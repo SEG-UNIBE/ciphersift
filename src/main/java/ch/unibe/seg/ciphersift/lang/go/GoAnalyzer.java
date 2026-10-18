@@ -9,6 +9,7 @@ import ch.unibe.seg.ciphersift.model.SourceFinding;
 import ch.unibe.seg.ciphersift.rules.GoPattern;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
+import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayDeque;
@@ -44,9 +45,16 @@ public final class GoAnalyzer {
     private static final Pattern DECIMAL = Pattern.compile("0|[1-9][0-9_]*");
 
     private final GoRuleIndex index;
+    /** Method events on typed receivers (SPEC 17.12, DECISIONS B-G-B1a, feature {@code go-typed-methods}). */
+    private final boolean methods;
 
     public GoAnalyzer(RuleSet rules) {
+        this(rules, Features.DEFAULTS);
+    }
+
+    public GoAnalyzer(RuleSet rules, Features features) {
         this.index = new GoRuleIndex(rules.goRules());
+        this.methods = !index.method.isEmpty() && features.on(Features.GO_TYPED_METHODS);
     }
 
     /** Analyses one parsed Go file. */
@@ -151,7 +159,7 @@ public final class GoAnalyzer {
 
     // ====================================================================== per file
 
-    private enum Kind { CALL, REF, COMPOSITE, ASSIGN }
+    private enum Kind { CALL, REF, COMPOSITE, ASSIGN, METHOD }
 
     /**
      * An event (SPEC 17.5). {@code names}: the qualified names (call, ref, composite); {@code field} and
@@ -163,8 +171,16 @@ public final class GoAnalyzer {
 
     private record Selected(Event event, SourceRule rule, GoPattern pattern, String nameUsed) {}
 
-    /** A binding of a name in a scope (SPEC 17.6); {@code value} is null for a binding without value. */
-    private record Binding(SyntaxNode value) {}
+    /**
+     * A binding of a name in a scope (SPEC 17.6); {@code value} is null for a binding without value; {@code type}
+     * is the declared type of a parameter or {@code var} (or null); {@code index} is the name's position when
+     * several names take the results of one call (SPEC 17.12).
+     */
+    private record Binding(SyntaxNode value, SyntaxNode type, int index) {
+        Binding(SyntaxNode value) {
+            this(value, null, 0);
+        }
+    }
 
     /** A plain assignment {@code name = value} (value null: compound assignment, ++, --, range). */
     private record Assignment(SyntaxNode scope, String name, SyntaxNode value) {}
@@ -231,14 +247,18 @@ public final class GoAnalyzer {
                         if (n.is("function_declaration")) {
                             declare(n.field("name"));
                         }
+                        if (n.is("method_declaration")) {
+                            localMethod(n);
+                        }
                         for (String f : List.of("receiver", "parameters", "result")) {
                             SyntaxNode pl = n.field(f);
                             if (pl != null && pl.is("parameter_list")) {
                                 for (SyntaxNode pd : pl.namedChildren()) {
                                     if (pd.is("parameter_declaration") || pd.is("variadic_parameter_declaration")) {
+                                        SyntaxNode t = pd.is("parameter_declaration") ? pd.field("type") : null;
                                         for (SyntaxNode id : pd.fields("name")) {
                                             declare(id);
-                                            bind(n, id.text(), null);
+                                            bindTyped(n, id.text(), null, t, 0);
                                         }
                                     }
                                 }
@@ -253,7 +273,8 @@ public final class GoAnalyzer {
                             }
                         }
                         SyntaxNode values = n.field("value");
-                        pair(scopeOf(n), names, values == null ? List.of() : expressions(values));
+                        pairTyped(scopeOf(n), names, values == null ? List.of() : expressions(values),
+                                n.is("var_spec") ? n.field("type") : null);
                         names.forEach(this::declare);
                     }
                     case "short_var_declaration" -> {
@@ -295,7 +316,10 @@ public final class GoAnalyzer {
                             }
                         }
                     }
-                    case "type_spec", "type_alias" -> declare(n.field("name"));
+                    case "type_spec", "type_alias" -> {
+                        declare(n.field("name"));
+                        structType(n);
+                    }
                     default -> {
                         // nothing
                     }
@@ -315,6 +339,26 @@ public final class GoAnalyzer {
                     s = scopeOf(s);
                 }
                 bind(s, a.name(), a.value());
+            }
+        }
+
+        /** Records {@code func (r *T) M(…)} as a method M of the local type T. */
+        private void localMethod(SyntaxNode n) {
+            SyntaxNode r = n.field("receiver");
+            SyntaxNode name = n.field("name");
+            if (r == null || name == null) {
+                return;
+            }
+            for (SyntaxNode pd : r.namedChildren()) {
+                if (pd.is("parameter_declaration")) {
+                    SyntaxNode t = pd.field("type");
+                    while (t != null && (t.is("pointer_type") || t.is("parenthesized_type") || t.is("generic_type"))) {
+                        t = t.is("generic_type") ? t.field("type") : t.firstNamedChild();
+                    }
+                    if (t != null && t.is("type_identifier")) {
+                        localMethods.computeIfAbsent(t.text(), k -> new HashSet<>()).add(name.text());
+                    }
+                }
             }
         }
 
@@ -357,10 +401,16 @@ public final class GoAnalyzer {
 
         /** Pairs left names with right values (SPEC 17.6): same count → by index; one value → all; else none. */
         private void pair(SyntaxNode scope, List<SyntaxNode> left, List<SyntaxNode> right) {
+            pairTyped(scope, left, right, null);
+        }
+
+        /** {@link #pair} with a declared type for every name (a {@code var} spec) and the result positions. */
+        private void pairTyped(SyntaxNode scope, List<SyntaxNode> left, List<SyntaxNode> right, SyntaxNode type) {
             for (int i = 0; i < left.size(); i++) {
                 SyntaxNode id = left.get(i);
                 if (id.is("identifier")) {
-                    bind(scope, id.text(), paired(left, right, i));
+                    int index = left.size() != right.size() && right.size() == 1 ? i : 0;
+                    bindTyped(scope, id.text(), paired(left, right, i), type, index);
                 }
             }
         }
@@ -370,11 +420,241 @@ public final class GoAnalyzer {
         }
 
         private void bind(SyntaxNode scope, String name, SyntaxNode value) {
+            bindTyped(scope, name, value, null, 0);
+        }
+
+        private void bindTyped(SyntaxNode scope, String name, SyntaxNode value, SyntaxNode type, int index) {
             if (name.equals("_")) {
                 return;
             }
             scopes.computeIfAbsent(scope, k -> new HashMap<>()).computeIfAbsent(name, k -> new ArrayList<>(1))
-                    .add(new Binding(value));
+                    .add(new Binding(value, type, index));
+        }
+
+        // ------------------------------------------------------------------ 17.12 receiver types
+
+        /** Struct types of the file: name → (field → type node; embedded fields under "" in order). */
+        final Map<String, Map<String, SyntaxNode>> structs = new HashMap<>();
+        final Map<String, List<SyntaxNode>> embedded = new HashMap<>();
+        /** Local type name → method names declared on it in this file. */
+        final Map<String, Set<String>> localMethods = new HashMap<>();
+
+        private void structType(SyntaxNode n) {
+            SyntaxNode name = n.field("name");
+            SyntaxNode t = n.field("type");
+            if (name == null || t == null || !t.is("struct_type")) {
+                return;
+            }
+            Map<String, SyntaxNode> fields = new HashMap<>();
+            List<SyntaxNode> emb = new ArrayList<>();
+            SyntaxNode list = t.childOfType("field_declaration_list");
+            if (list != null) {
+                for (SyntaxNode fd : list.namedChildren()) {
+                    if (!fd.is("field_declaration")) {
+                        continue;
+                    }
+                    SyntaxNode ft = fd.field("type");
+                    List<SyntaxNode> ids = fd.fields("name");
+                    if (ids.isEmpty()) {
+                        if (ft != null) {
+                            emb.add(ft);
+                        }
+                    }
+                    for (SyntaxNode id : ids) {
+                        // a field declared twice (in different struct types of the same name) is not typed
+                        fields.merge(id.text(), ft == null ? id : ft, (a, b) -> a.text().equals(b.text()) ? a : id);
+                    }
+                }
+            }
+            if (structs.putIfAbsent(name.text(), fields) != null) {
+                structs.put(name.text(), Map.of()); // two declarations of the name: not used
+                embedded.put(name.text(), List.of());
+                return;
+            }
+            embedded.put(name.text(), emb);
+        }
+
+        /**
+         * The type name of a type node (SPEC 17.12): {@code path.T} for a qualified type (pointer and type
+         * arguments removed), {@code #T} for a struct type declared in this file; else null.
+         */
+        private String typeName(SyntaxNode t) {
+            while (t != null && (t.is("pointer_type") || t.is("parenthesized_type") || t.is("generic_type"))) {
+                t = t.is("generic_type") ? t.field("type") : t.firstNamedChild();
+            }
+            if (t == null) {
+                return null;
+            }
+            if (t.is("qualified_type")) {
+                SyntaxNode pkg = t.field("package");
+                SyntaxNode name = t.field("name");
+                String path = pkg == null ? null : imports.get(pkg.text());
+                return path == null || name == null ? null : path + "." + name.text();
+            }
+            if (t.is("type_identifier") && structs.containsKey(t.text())) {
+                return "#" + t.text();
+            }
+            return null;
+        }
+
+        /**
+         * The type of an expression used as a method receiver (SPEC 17.12): one named type, or null if none or
+         * more than one is found.
+         */
+        private String receiverType(SyntaxNode r, int d) {
+            if (r == null || d > MAX_DEPTH) {
+                return null;
+            }
+            switch (r.type()) {
+                case "parenthesized_expression" -> {
+                    return receiverType(firstExpression(r), d + 1);
+                }
+                case "identifier" -> {
+                    return identifierType(r, d);
+                }
+                case "type_assertion_expression" -> {
+                    return typeName(r.field("type"));
+                }
+                case "composite_literal" -> {
+                    return typeName(r.field("type"));
+                }
+                case "unary_expression" -> {
+                    SyntaxNode op = r.field("operator");
+                    SyntaxNode x = r.field("operand");
+                    if (op != null && x != null && (op.text().equals("&") || op.text().equals("*"))) {
+                        return receiverType(x, d + 1);
+                    }
+                    return null;
+                }
+                case "call_expression" -> {
+                    return resultType(r, 0, d);
+                }
+                case "selector_expression" -> {
+                    if (qualified(r) != null) {
+                        return null; // a package-level variable or function of another package
+                    }
+                    String owner = receiverType(r.field("operand"), d + 1);
+                    SyntaxNode f = r.field("field");
+                    if (owner == null || f == null || !owner.startsWith("#")) {
+                        return null;
+                    }
+                    SyntaxNode ft = structs.getOrDefault(owner.substring(1), Map.of()).get(f.text());
+                    return ft == null ? null : typeName(ft);
+                }
+                default -> {
+                    return null;
+                }
+            }
+        }
+
+        /** The result type at {@code index} of a call (SPEC 17.12): {@code new(T)}, a listed function or method. */
+        private String resultType(SyntaxNode call, int index, int d) {
+            SyntaxNode fn = call.field("function");
+            if (fn == null) {
+                return null;
+            }
+            if (fn.is("identifier") && fn.text().equals("new") && !declared.contains("new")) {
+                SyntaxNode args = call.field("arguments");
+                List<SyntaxNode> a = args == null ? List.of() : expressions(args);
+                return a.size() == 1 && index == 0 ? typeName(a.get(0)) : null;
+            }
+            String q = qualified(fn);
+            if (q != null) {
+                return GoResultTypes.result(q, index);
+            }
+            if (fn.is("selector_expression")) {
+                for (String m : methodNames(fn, d + 1)) {
+                    String t = GoResultTypes.result(m, index);
+                    if (t != null) {
+                        return t;
+                    }
+                }
+            }
+            return null;
+        }
+
+        /**
+         * The type of an identifier (SPEC 17.12): the single type of a type-switch case it is the alias of;
+         * else the types of all its bindings, which must agree (a declared type, or the type of the value).
+         */
+        private String identifierType(SyntaxNode x, int d) {
+            String name = x.text();
+            for (SyntaxNode c = x.parent(); c != null; c = c.parent()) {
+                if (FUNCTIONS.contains(c.type())) {
+                    break;
+                }
+                if (c.is("type_case") && c.parent() != null && c.parent().is("type_switch_statement")) {
+                    SyntaxNode alias = c.parent().field("alias");
+                    List<SyntaxNode> al = alias == null ? List.of() : expressions(alias);
+                    if (al.size() == 1 && al.get(0).text().equals(name)) {
+                        List<SyntaxNode> ts = new ArrayList<>();
+                        for (SyntaxNode t : c.fields("type")) {
+                            if (t.isNamed()) {
+                                ts.add(t);
+                            }
+                        }
+                        return ts.size() == 1 ? typeName(ts.get(0)) : null;
+                    }
+                }
+            }
+            Map.Entry<SyntaxNode, List<Binding>> b = bindings(name, x);
+            if (b == null || b.getValue().isEmpty()) {
+                return null;
+            }
+            Object key = List.of("type", b.getKey(), name);
+            if (!resolving.add(key)) {
+                return null;
+            }
+            try {
+                String first = null;
+                for (Binding bd : b.getValue()) {
+                    String t = bd.type() != null ? typeName(bd.type()) : null;
+                    if (t == null && bd.value() != null) {
+                        SyntaxNode v = bd.value();
+                        t = v.is("call_expression") ? resultType(v, bd.index(), d + 1)
+                                : bd.index() == 0 ? receiverType(v, d + 1) : null;
+                    }
+                    if (t == null || (first != null && !first.equals(t))) {
+                        return null;
+                    }
+                    first = t;
+                }
+                return first;
+            } finally {
+                resolving.remove(key);
+            }
+        }
+
+        /**
+         * The names of a method call {@code R.M(…)} whose receiver is not an import (SPEC 17.12): {@code path.T.M}
+         * for the receiver's type {@code path.T}; for a struct type of the file that has no method {@code M} in
+         * this file, {@code path.E.M} for each embedded qualified type {@code E} (one level).
+         */
+        private List<String> methodNames(SyntaxNode sel, int d) {
+            SyntaxNode op = sel.field("operand");
+            SyntaxNode f = sel.field("field");
+            if (op == null || f == null || qualified(sel) != null) {
+                return List.of();
+            }
+            String t = receiverType(op, d);
+            if (t == null) {
+                return List.of();
+            }
+            if (!t.startsWith("#")) {
+                return List.of(t + "." + f.text());
+            }
+            String local = t.substring(1);
+            if (localMethods.getOrDefault(local, Set.of()).contains(f.text())) {
+                return List.of();
+            }
+            List<String> out = new ArrayList<>();
+            for (SyntaxNode e : embedded.getOrDefault(local, List.of())) {
+                String et = typeName(e);
+                if (et != null && !et.startsWith("#")) {
+                    out.add(et + "." + f.text());
+                }
+            }
+            return out;
         }
 
         /** The named, non-comment children of an expression list (or of an argument list). */
@@ -573,6 +853,12 @@ public final class GoAnalyzer {
             }
             List<String> names = names(fn);
             if (names.isEmpty()) {
+                if (methods && fn.is("selector_expression") && fn.field("field") != null) {
+                    List<String> mn = methodNames(fn, 0);
+                    if (!mn.isEmpty()) {
+                        out.add(new Event(Kind.METHOD, n, mn, null, null, args, null, fn.field("field").line()));
+                    }
+                }
                 return;
             }
             int line = fn.is("selector_expression") ? fn.field("field").line() : n.line();
@@ -646,6 +932,11 @@ public final class GoAnalyzer {
                     }
                 }
                 case ASSIGN -> addAll(found, index.assign.get(e.field()), e.field());
+                case METHOD -> {
+                    for (String n : e.names()) {
+                        addAll(found, index.method.get(n), n);
+                    }
+                }
                 default -> throw new IllegalStateException();
             }
             List<Candidate> l = new ArrayList<>(found.size());
@@ -984,7 +1275,8 @@ public final class GoAnalyzer {
                 v = p.paramValue;
             } else if (p.paramSelf) {
                 v = mapMember(s.nameUsed());
-            } else if (p.paramIndex != null && s.event().kind() == Kind.CALL && s.event().args() != null) {
+            } else if (p.paramIndex != null && (s.event().kind() == Kind.CALL || s.event().kind() == Kind.METHOD)
+                    && s.event().args() != null) {
                 List<SyntaxNode> args = expressions(s.event().args());
                 if (p.paramIndex < args.size()) {
                     SyntaxNode a = args.get(p.paramIndex);
