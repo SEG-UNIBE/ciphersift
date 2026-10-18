@@ -210,6 +210,11 @@ final class AnchorPrefilter {
 
     /** The filter for the Go rules (SPEC 17). */
     static AnchorPrefilter go(List<SourceRule> rules) {
+        return go(rules, Features.DEFAULTS);
+    }
+
+    /** The filter for the Go rules under the given features (a switched-off {@code literal} pattern never fires). */
+    static AnchorPrefilter go(List<SourceRule> rules, Features features) {
         List<List<List<String>>> pats = new ArrayList<>();
         for (SourceRule r : rules) {
             for (GoPattern p : r.goPatterns()) {
@@ -217,8 +222,18 @@ final class AnchorPrefilter {
                 if (p.anchor == GoPattern.Anchor.ASSIGN) {
                     clauses.add(List.of(p.name));
                 } else if (p.anchor == GoPattern.Anchor.LITERAL) {
-                    // DECISIONS T3-G10: the file contains one of the names (they hold no escapes)
-                    clauses.add(List.copyOf(p.literal));
+                    if (p.feature != null && !features.on(p.feature)) {
+                        continue;
+                    }
+                    // DECISIONS T3-G10: the literal's text between its quotes is a listed name (undecoded, 17.5), so
+                    // the file contains the quoted name ("RS256" or `RS256`); a bare name is part of identifiers
+                    // such as x509.PureEd25519 or SigningMethodRS256 in too many files
+                    List<String> q = new ArrayList<>(2 * p.literal.size());
+                    for (String v : p.literal) {
+                        q.add('"' + v + '"');
+                        q.add('`' + v + '`');
+                    }
+                    clauses.add(q);
                 } else {
                     clauses.add(List.of(p.path));
                     if (!p.member().isEmpty()) {

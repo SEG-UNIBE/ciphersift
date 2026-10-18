@@ -94,22 +94,31 @@ public final class GoAnalyzer {
             last = seg[seg.length - 2];
         }
         String n = DOT_MAJOR_VERSION.matcher(last).replaceFirst("");
-        // DECISIONS T3-G4: a segment that is no Go identifier (go-jose, jwt-go) is not the package name; the
-        // convention for such repositories drops a "go-" prefix or "-go" suffix (package jose, package jwt)
-        if (n.indexOf('-') >= 0 || n.indexOf('.') >= 0) {
-            String c = n;
-            if (c.startsWith("go-")) {
-                c = c.substring(3);
+        // DECISIONS T3-G4 (review): a segment that is no Go identifier (go-jose, jwt-go, nats.go) is not the package
+        // name; as goimports assumes (golang.org/x/tools internal/imports ImportPathToAssumedName), a leading "go-" is
+        // removed and the identifier prefix taken (jose, jwt, nats). goimports adds an explicit name whenever the
+        // package clause differs, so formatted code either matches this or names the import.
+        if (!n.isEmpty() && !isIdentifier(n)) {
+            String c = n.startsWith("go-") ? n.substring(3) : n;
+            int i = 0;
+            while (i < c.length() && (Character.isLetterOrDigit(c.charAt(i)) || c.charAt(i) == '_')) {
+                i++;
             }
-            if (c.endsWith("-go")) {
-                c = c.substring(0, c.length() - 3);
-            }
-            c = c.replace("-", "").replace(".", "");
-            if (!c.isEmpty()) {
-                return c;
+            if (i > 0) {
+                return c.substring(0, i);
             }
         }
         return n;
+    }
+
+    private static boolean isIdentifier(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (!(Character.isLetterOrDigit(ch) || ch == '_')) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Decodes the content of an interpreted string literal (SPEC 17.6). */
@@ -835,10 +844,13 @@ public final class GoAnalyzer {
                     }
                     case "interpreted_string_literal", "raw_string_literal" -> {
                         // DECISIONS T3-G10: algorithm names as string literals in value positions
-                        if (!index.literals.isEmpty() && isReferencePosition(n)) {
-                            Val v = value(n, 0);
-                            if (v != null && v.string() && index.literals.containsKey(v.text())) {
-                                out.add(new Event(Kind.LITERAL, n, List.of(v.text()), null, null, null, null, n.line()));
+                        if (!index.literals.isEmpty() && isReferencePosition(n) && !nameTableEntry(n)) {
+                            // the text between the quotes, undecoded: a name written with escapes is not one (as
+                            // for import paths, 17.4), which keeps the textual prefilter exact
+                            String t = n.text();
+                            String v = t.length() < 2 ? "" : t.substring(1, t.length() - 1);
+                            if (index.literals.containsKey(v)) {
+                                out.add(new Event(Kind.LITERAL, n, List.of(v), null, null, null, null, n.line()));
                             }
                         }
                     }
@@ -913,6 +925,37 @@ public final class GoAnalyzer {
             }
             int line = fn.is("selector_expression") ? fn.field("field").line() : n.line();
             out.add(new Event(Kind.CALL, n, names, null, null, args, null, line));
+        }
+
+        /**
+         * DECISIONS T3-G10 (review): a name table entry, not a choice of algorithm: the value of a keyed element whose
+         * key is a qualified constant or a number ({@code x509.PureEd25519: "Ed25519"}, {@code 0x1301:
+         * "TLS_AES_128_GCM_SHA256"}), or a result of a {@code String()} method (the {@code fmt.Stringer} display name).
+         */
+        private boolean nameTableEntry(SyntaxNode n) {
+            SyntaxNode p = n.parent();
+            if (p != null && p.is("literal_element") && "value".equals(p.field()) && p.parent() != null
+                    && p.parent().is("keyed_element")) {
+                SyntaxNode k = p.parent().field("key");
+                SyntaxNode ke = k == null || k.namedChildren().isEmpty() ? null : k.namedChildren().get(0);
+                if (ke != null && (ke.is("selector_expression") || ke.is("int_literal"))) {
+                    return true;
+                }
+            }
+            boolean returned = false;
+            for (SyntaxNode a = n.parent(); a != null; a = a.parent()) {
+                if (a.is("return_statement")) {
+                    returned = true;
+                } else if (a.is("func_literal") || a.is("function_declaration")) {
+                    return false;
+                } else if (a.is("method_declaration")) {
+                    SyntaxNode name = a.field("name");
+                    SyntaxNode params = a.field("parameters");
+                    return returned && name != null && "String".equals(name.text())
+                            && (params == null || params.namedChildren().isEmpty());
+                }
+            }
+            return false;
         }
 
         /**

@@ -17,6 +17,8 @@ Development steps of the unreleased 1.0.0, newest first.
   rule) are propagated under the rule's name.
 * Precision: compared property reads of identifier calls (`X().ID() == …`) and `GenerateKey` on a named curve
   receiver give no extra finding; CSPRNG index draws optionally dropped (`go-random-index`, off).
+* Review: import names of non-identifier segments as `goimports` assumes them; literal names in name tables
+  (keyed by a constant or number, `String()` results) dropped; Go prefilter on quoted names.
 
 ### Boosters, round t2 (DECISIONS B0–B-P-B5; benchmark-informed)
 

@@ -58,6 +58,12 @@ class GoAnalysisTest {
         assertEquals("yaml", GoAnalyzer.defaultLocalName("gopkg.in/yaml.v3"));
         assertEquals("v2", GoAnalyzer.defaultLocalName("v2"));
         assertEquals("crypto", GoAnalyzer.defaultLocalName("crypto"));
+        // DECISIONS T3-G4: goimports' assumed name for a segment that is no identifier
+        assertEquals("jose", GoAnalyzer.defaultLocalName("github.com/go-jose/go-jose/v4"));
+        assertEquals("jose", GoAnalyzer.defaultLocalName("gopkg.in/square/go-jose.v2"));
+        assertEquals("jwt", GoAnalyzer.defaultLocalName("github.com/dgrijalva/jwt-go"));
+        assertEquals("nats", GoAnalyzer.defaultLocalName("github.com/nats-io/nats.go"));
+        assertEquals("golang", GoAnalyzer.defaultLocalName("github.com/hashicorp/golang-lru"));
     }
 
     @Test

@@ -2679,9 +2679,10 @@ practice; a path written with escapes is not recognised). The spec's **local nam
   `v2`, `v3`, … (`^v[0-9]+$`) and there is a segment before it, that previous segment
   (`math/rand/v2` → `rand`, `github.com/golang-jwt/jwt/v5` → `jwt`); a trailing `.vN` of the
   segment is removed (`gopkg.in/yaml.v3` → `yaml`). If the result is not a Go identifier (it contains `-` or `.`), a leading
-  `go-` and a trailing `-go` are removed and the remaining `-` and `.` dropped, the naming convention of such
-  repositories (`github.com/go-jose/go-jose/v4` → `jose`, `gopkg.in/square/go-jose.v2` → `jose`,
-  `github.com/dgrijalva/jwt-go` → `jwt`) *(DECISIONS T3-G4)*. (Go takes the name from the package clause
+  `go-` is removed and the longest identifier prefix taken, the name `goimports` assumes for such a path
+  (`golang.org/x/tools/internal/imports.ImportPathToAssumedName`; `goimports` writes an explicit name whenever
+  the package clause differs): `github.com/go-jose/go-jose/v4` → `jose`, `gopkg.in/square/go-jose.v2` → `jose`,
+  `github.com/dgrijalva/jwt-go` → `jwt`, `github.com/nats-io/nats.go` → `nats` *(DECISIONS T3-G4)*. (Go takes the name from the package clause
   of the imported package, which a scanner cannot see; these are the naming conventions of
   every package the bundled rules name.)
 
@@ -2715,7 +2716,7 @@ One pre-order walk enumerates the events of the file (import declarations are no
 | composite | `composite_literal` whose `type` is a `qualified_type` or `type_identifier` with names; and a call of the identifier `new` (not a declared name) whose single argument is a `qualified_type`, or a qualified selector, with names | the type's names | start row + 1 | the node text |
 | reference | a qualified selector, or an unqualified identifier with names, that is not the `function` of a `call_expression`, not the type argument of a `new` composite event, not the expression of the `key` of a `keyed_element` (a struct field name or a map key), and not in a *test position* | its names | row of the `field` + 1 for a selector, else start row + 1 | the node text |
 | assign | a `keyed_element` whose `key` is a `literal_element` holding a single `identifier` (the field name); an `assignment_statement` with operator `=` for each position *i* whose left element is a `selector_expression` (field name = its `field`), when left and right have the same number of elements (value = right element *i*) | – | start row + 1 | the node text |
-| literal | an `interpreted_string_literal` or `raw_string_literal` (value 17.6) in reference position (not a map key or struct key, not in a test position) whose value a `literal` pattern lists | the string | start row + 1 | the string |
+| literal | an `interpreted_string_literal` or `raw_string_literal` in reference position (not a map key or struct key, not in a test position) whose text between the quotes (not decoded: a name written with escapes is not recognised, as for import paths) a `literal` pattern lists, and that is no name-table entry: not the value of a keyed element whose key is a qualified selector or an `int_literal` (`x509.PureEd25519: "Ed25519"`, `0x1301: "TLS_AES_128_GCM_SHA256"`), not returned by a method `String()` without parameters (the `fmt.Stringer` display name) | the string | start row + 1 | the string |
 
 A literal finding is dropped when an expression ancestor (the 17.8 ancestors and `type_conversion_expression`) has a
 selection — the literal is that call's or literal's data (`sha256.Sum256([]byte("RS512"))`) — or is a call that

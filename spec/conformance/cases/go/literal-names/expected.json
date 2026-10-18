@@ -1,9 +1,11 @@
 {"case": "go/literal-names", "findings": [
-  {"file": "l.go", "line": 15, "rule": "go.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES-256-GCM"},
-  {"file": "l.go", "line": 16, "rule": "go.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
-  {"file": "l.go", "line": 17, "rule": "go.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES256"},
-  {"file": "l.go", "line": 17, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES256"},
-  {"file": "l.go", "line": 18, "rule": "go.asym.ed25519", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "Ed25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "ssh-ed25519"},
-  {"file": "l.go", "line": 18, "rule": "go.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
-  {"file": "l.go", "line": 25, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.Sum256"}
+  {"file": "l.go", "line": 23, "rule": "go.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES-256-GCM"},
+  {"file": "l.go", "line": 24, "rule": "go.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "l.go", "line": 25, "rule": "go.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES256"},
+  {"file": "l.go", "line": 25, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES256"},
+  {"file": "l.go", "line": 26, "rule": "go.asym.ed25519", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "Ed25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "ssh-ed25519"},
+  {"file": "l.go", "line": 26, "rule": "go.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "l.go", "line": 33, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.Sum256"},
+  {"file": "l.go", "line": 40, "rule": "go.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES512"},
+  {"file": "l.go", "line": 40, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES512"}
 ]}
