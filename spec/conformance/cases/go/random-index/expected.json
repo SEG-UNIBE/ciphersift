@@ -1,0 +1,5 @@
+{"case": "go/random-index", "findings": [
+  {"file": "r.go", "line": 11, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Int"},
+  {"file": "r.go", "line": 12, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Int"},
+  {"file": "r.go", "line": 13, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Int"}
+]}

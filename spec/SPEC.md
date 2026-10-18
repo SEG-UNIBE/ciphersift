@@ -201,6 +201,7 @@ individually; the table lists every id and its default.
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `go-thin-key-material` | on | Go thin wrappers: key loading (`private-key`, `public-key`) next to another key does not count (18.5) | 18.5 |
+| `go-random-index` | off | a Go `rand.Int(r, big.NewInt(len(x)))` (also `int64(len(x))`) draws an index into a collection and is not reported (17.8) | 17.8 |
 | `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
@@ -2806,6 +2807,9 @@ selection is dropped if an expression ancestor **on the same line** has a select
 *(DECISIONS T3-G1, feature `go-nested-same-rule`)*: `rand.Int(rand.Reader, n)` is one CSPRNG finding
 (`crypto/rand.Int`), `c.Verify(x509.VerifyOptions{Roots: x509.NewCertPool()})` one X.509 finding; an inner
 event on another line (a field of a multi-line literal) keeps its finding.
+With the feature `go-random-index` (off by default, *DECISIONS T3-G6*), a `crypto/rand.Int` call whose bound is
+`big.NewInt(len(x))` or `big.NewInt(int64(len(x)))` is not reported (nor, as its nested duplicate, its
+`rand.Reader`): it picks an element of a collection (a server, a port), not secret material.
 
 Each kept (event, rule) pair yields one finding:
 

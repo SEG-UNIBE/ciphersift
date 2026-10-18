@@ -49,6 +49,8 @@ public final class GoAnalyzer {
     private final boolean methods;
     /** Nested duplicates of a rule without family (SPEC 17.8, DECISIONS T3-G1, feature {@code go-nested-same-rule}). */
     private final boolean nestedSameRule;
+    /** CSPRNG draws of a random index into a collection are not reported (DECISIONS T3-G6, feature {@code go-random-index}). */
+    private final boolean randomIndex;
 
     public GoAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -58,6 +60,7 @@ public final class GoAnalyzer {
         this.index = new GoRuleIndex(rules.goRules());
         this.methods = !index.method.isEmpty() && features.on(Features.GO_TYPED_METHODS);
         this.nestedSameRule = features.on(Features.GO_NESTED_SAME_RULE);
+        this.randomIndex = features.on(Features.GO_RANDOM_INDEX);
     }
 
     /** Analyses one parsed Go file. */
@@ -242,7 +245,7 @@ public final class GoAnalyzer {
             }
             List<SourceFinding> out = new ArrayList<>();
             for (Selected s : selected) {
-                if (nestedDuplicate(s, byNode)) {
+                if (nestedDuplicate(s, byNode) || randomIndex && randomIndexDraw(s)) {
                     continue;
                 }
                 Event e = s.event();
@@ -1053,6 +1056,49 @@ public final class GoAnalyzer {
                 }
             }
             return true;
+        }
+
+        /**
+         * DECISIONS T3-G6: {@code rand.Int(r, big.NewInt(len(x)))} (also with an {@code int64(…)} conversion) draws an
+         * index into a collection (a server, a port), not secret material.
+         */
+        private boolean randomIndexDraw(Selected s) {
+            Event e = s.event();
+            if (e.kind() != Kind.CALL || !"crypto/rand.Int".equals(s.nameUsed())) {
+                return false;
+            }
+            SyntaxNode args = e.node().field("arguments");
+            List<SyntaxNode> a = args == null ? List.of() : args.namedChildren();
+            if (a.size() != 2 || !a.get(1).is("call_expression")) {
+                return false;
+            }
+            SyntaxNode bound = a.get(1);
+            List<String> fn = names(bound.field("function"));
+            if (!fn.contains("math/big.NewInt")) {
+                return false;
+            }
+            SyntaxNode ba = bound.field("arguments");
+            List<SyntaxNode> b = ba == null ? List.of() : ba.namedChildren();
+            if (b.size() != 1) {
+                return false;
+            }
+            SyntaxNode x = b.get(0);
+            for (int i = 0; i < 2 && x != null; i++) {
+                if (x.is("call_expression") && x.field("function") != null && x.field("function").is("identifier")) {
+                    String f = x.field("function").text();
+                    SyntaxNode xa = x.field("arguments");
+                    List<SyntaxNode> c = xa == null ? List.of() : xa.namedChildren();
+                    if ("len".equals(f) && c.size() == 1) {
+                        return true;
+                    }
+                    if (("int64".equals(f) || "int".equals(f)) && c.size() == 1) {
+                        x = c.get(0);
+                        continue;
+                    }
+                }
+                return false;
+            }
+            return false;
         }
 
         /** SPEC 7.7.2 with the Go expression ancestors (17.8). */
