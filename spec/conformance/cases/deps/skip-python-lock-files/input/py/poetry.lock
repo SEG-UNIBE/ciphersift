@@ -1,0 +1,7 @@
+[[package]]
+name = "cryptography"
+version = "43.0.1"
+
+[[package]]
+name = "pynacl"
+version = "1.5.0"

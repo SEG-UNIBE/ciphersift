@@ -4,5 +4,9 @@
   {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "bcrypt", "version": null},
   {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pycryptodome", "version": "3.20.0"},
   {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyopenssl", "version": null},
+  {"file": "pipenv/Pipfile.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pycryptodome", "version": "3.20.0"},
+  {"file": "pipenv/Pipfile.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": "1.5.0"},
+  {"file": "py/poetry.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "43.0.1"},
+  {"file": "py/poetry.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": "1.5.0"},
   {"file": "py/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "43.0.1"}
 ]}

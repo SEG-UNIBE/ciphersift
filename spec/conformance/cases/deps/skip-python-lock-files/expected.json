@@ -1,0 +1,8 @@
+{"case": "deps/skip-python-lock-files", "findings": [
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/go-jose/go-jose/v4", "version": "v4.0.4"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "golang.org/x/crypto", "version": "v0.31.0"},
+  {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "bcrypt", "version": null},
+  {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pycryptodome", "version": "3.20.0"},
+  {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyopenssl", "version": null},
+  {"file": "py/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "43.0.1"}
+]}

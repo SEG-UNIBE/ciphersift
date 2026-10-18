@@ -1,0 +1,1 @@
+{"_meta": {}, "default": {"pycryptodome": {"version": "==3.20.0"}, "cffi": {"version": "==1.17.0"}, "pynacl": {"version": "==1.5.0"}}, "develop": {}}

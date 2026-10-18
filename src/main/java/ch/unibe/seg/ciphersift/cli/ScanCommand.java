@@ -78,7 +78,7 @@ public final class ScanCommand implements Callable<Integer> {
     boolean pythonThinWrappers;
 
     @Option(names = "--transitive-deps",
-            description = "Also report transitive dependencies: go.mod requirements marked // indirect and the entries of lock files (go.sum, poetry.lock, Pipfile.lock); off by default.")
+            description = "Also report transitive dependencies: go.mod requirements marked // indirect and go.sum entries (and poetry.lock / Pipfile.lock under --feature skip-python-lock-files=on); off by default.")
     boolean transitiveDeps;
 
     @Option(names = "--feature", paramLabel = "ID=on|off",

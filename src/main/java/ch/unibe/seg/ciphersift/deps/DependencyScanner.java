@@ -28,12 +28,15 @@ public final class DependencyScanner {
     }
 
     private final RuleSet rules;
-    /** Report transitive requirements too: go.mod {@code // indirect} entries and lock files (DECISIONS B-G1, B-G2). */
+    /** Report transitive requirements too: go.mod {@code // indirect} entries and all lock files (DECISIONS B-G1, B-G2). */
     private final boolean transitive;
+    /** Skip poetry.lock and Pipfile.lock too (feature skip-python-lock-files; DECISIONS B-G2). */
+    private final boolean skipPythonLocks;
 
     public DependencyScanner(RuleSet rules, Features features) {
         this.rules = rules;
         this.transitive = features.on(Features.TRANSITIVE_DEPS);
+        this.skipPythonLocks = features.on(Features.SKIP_PYTHON_LOCK_FILES);
     }
 
     /** A scanner with the default features. */
@@ -42,11 +45,15 @@ public final class DependencyScanner {
     }
 
     /**
-     * Lock files list every resolved package, transitive ones included; by default they are not reported
-     * (SPEC 9.4, 17.10; DECISIONS B-G2).
+     * Lock files list every resolved package, transitive ones included (SPEC 9.4, 17.10; DECISIONS B-G2):
+     * go.sum is not reported by default, poetry.lock and Pipfile.lock only with {@code skip-python-lock-files}.
      */
-    public static boolean isLockFile(FileClass fc) {
-        return fc == FileClass.GO_SUM || fc == FileClass.POETRY_LOCK || fc == FileClass.PIPFILE_LOCK;
+    boolean skipsLockFile(FileClass fc) {
+        if (transitive) {
+            return false;
+        }
+        return fc == FileClass.GO_SUM
+                || skipPythonLocks && (fc == FileClass.POETRY_LOCK || fc == FileClass.PIPFILE_LOCK);
     }
 
     /** Parses a manifest's entries in declaration order. */
@@ -119,7 +126,7 @@ public final class DependencyScanner {
     /** Findings of one manifest. */
     public List<DependencyFinding> scan(String relativePath, FileClass fc, byte[] bytes, boolean test)
             throws MalformedManifestException {
-        if (isLockFile(fc) && !transitive) {
+        if (skipsLockFile(fc)) {
             return List.of(); // DECISIONS B-G2: still a scanned manifest, without findings
         }
         List<ManifestEntry> entries = entries(fc, bytes);
