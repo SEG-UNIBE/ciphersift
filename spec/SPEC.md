@@ -194,6 +194,8 @@ individually; the table lists every id and its default.
 | `wrapper-evidence-by-name` | on | W7 evidence prefers the body finding whose rule id names a token of the wrapper's name (18.5) | 18.5 |
 | `python-isinstance-keys` | on | key classes of one family in `isinstance` (8.6.1) | 8.6.1 |
 | `python-literal-names` | on | Python `literal` patterns: IANA SSH / JOSE / TLS-group names as string literals (8.6.2) | 8.6.2 |
+| `python-asn1-schemas` | on | asn1crypto schema attributes are not value positions (8.6.1) | 8.6.1 |
+| `python-fold-receivers` | on | a hit in the receiver of a call with a hit of the same type and family is dropped (8.6) | 8.6 |
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
@@ -1476,6 +1478,10 @@ both under the feature `python-unresolved` (3.1).
 
 **Emission.** For each remaining hit, in hit order:
 
+0. *Receivers* *(DECISIONS B-P-B3, feature `python-fold-receivers`)*: if the call is (through attribute
+   objects and call functions) inside the `function` of an enclosing call that has a hit with the same
+   asset type and family, drop the hit: `ECPubkey(pk).ecdsa_verify(sig, h)` is one ECDSA finding, as in
+   Java (7.7.2).
 1. *Nesting.* If the call node lies completely inside a recorded argument range of the same
    rule, drop the hit (`bcrypt.hashpw(pw, bcrypt.gensalt())` and
    `ec.generate_private_key(⏎ ec.SECP256R1())` are one finding each, even across lines).
@@ -1521,7 +1527,9 @@ prevent it.
   `isinstance`, `issubclass`, `cast`, `TypeVar` or `NewType` (class bases are not positions);
 * `keyword_argument`: a value position iff *x* is its `value` and the keyword argument belongs
   to the `argument_list` of such a call;
-* `assignment`: a value position iff *x* is its `right`;
+* `assignment`: a value position iff *x* is its `right` — except, with the feature `python-asn1-schemas`
+  *(DECISIONS B-P-B2)*, when its `left` is the identifier `_fields`, `_child_spec` or `_oid_specs` (an
+  asn1crypto schema declaration names types; it uses no algorithm);
 * any other node: a value position iff *x* is a container element and the node is not a type or
   test context: `comparison_operator`, `except_clause`, `subscript`, `type`, `generic_type`,
   `union_type`, `constrained_type`, `member_type`, `splat_type`, `type_alias_statement`,

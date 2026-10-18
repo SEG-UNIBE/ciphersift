@@ -1,0 +1,5 @@
+{"case": "python/fold-and-schemas", "findings": [
+  {"file": "f.py", "line": 5, "rule": "python.asym.ecdsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "electrum_ecc.ECPubkey().ecdsa_verify"},
+  {"file": "f.py", "line": 6, "rule": "python.asym.secp256k1", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": "secp256k1", "name": "electrum_ecc.ECPubkey"},
+  {"file": "f.py", "line": 14, "rule": "python.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "asn1crypto.x509.Certificate"}
+]}

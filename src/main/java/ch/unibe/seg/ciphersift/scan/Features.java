@@ -78,8 +78,15 @@ public final class Features {
     /** Python: IANA algorithm names as string literals in value positions (LIT, SPEC 8.6.2). */
     public static final String PYTHON_LITERAL_NAMES = "python-literal-names";
 
+    /** Python: asn1crypto schema declarations are not value positions (python-precision B2, SPEC 8.6.1). */
+    public static final String PYTHON_ASN1_SCHEMAS = "python-asn1-schemas";
+    /** Python: a key object in the receiver of an operation of the same family folds into it (B3, SPEC 8.6). */
+    public static final String PYTHON_FOLD_RECEIVERS = "python-fold-receivers";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_ASN1_SCHEMAS, true);
+        known(PYTHON_FOLD_RECEIVERS, true);
         known(PYTHON_LITERAL_NAMES, true);
         known(PYTHON_ISINSTANCE_KEYS, true);
         known(PYTHON_REEXPORTS, true);

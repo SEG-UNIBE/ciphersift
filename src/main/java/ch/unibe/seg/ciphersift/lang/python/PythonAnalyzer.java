@@ -55,6 +55,11 @@ public final class PythonAnalyzer {
     private final boolean reexports;
     /** DECISIONS B-P-ISI. */
     private final boolean isinstanceKeys;
+    /** DECISIONS B-P-B2, B-P-B3. */
+    private final boolean asn1Schemas;
+    private final boolean foldReceivers;
+    /** asn1crypto schema attributes (https://github.com/wbond/asn1crypto/blob/master/docs/universal_types.md). */
+    private static final Set<String> ASN1_SCHEMA_ATTRIBUTES = Set.of("_fields", "_child_spec", "_oid_specs");
     /** A key class name (SPEC 8.6.1, DECISIONS B-P-ISI). */
     private static final Pattern KEY_CLASS = Pattern.compile("(Private|Public)Key|Key$|SigningKey|VerifyKey");
 
@@ -66,6 +71,8 @@ public final class PythonAnalyzer {
         this.index = new PythonRuleIndex(rules.pythonRules(), features);
         this.reexports = features.on(Features.PYTHON_REEXPORTS);
         this.isinstanceKeys = features.on(Features.PYTHON_ISINSTANCE_KEYS);
+        this.asn1Schemas = features.on(Features.PYTHON_ASN1_SCHEMAS);
+        this.foldReceivers = features.on(Features.PYTHON_FOLD_RECEIVERS);
     }
 
     /**
@@ -1269,6 +1276,13 @@ public final class PythonAnalyzer {
                                 && !TYPE_CALLS.contains(methodName(c));
                     }
                     case "assignment" -> {
+                        if (asn1Schemas) {
+                            // an asn1crypto schema declaration names types, it uses no algorithm (DECISIONS B-P-B2)
+                            SyntaxNode left = p.field("left");
+                            if (left != null && left.is("identifier") && ASN1_SCHEMA_ATTRIBUTES.contains(left.text())) {
+                                return false;
+                            }
+                        }
                         return "right".equals(x.field());
                     }
                     default -> {
@@ -1487,8 +1501,44 @@ public final class PythonAnalyzer {
         /** Calls with a hit (SPEC 8.6.2: literals in their arguments are their data). */
         final Set<SyntaxNode> callsWithHits = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
 
+        /** Per call: the (asset type, family) of its hits (DECISIONS B-P-B3). */
+        final Map<SyntaxNode, Set<String>> callFamilies = new IdentityHashMap<>();
+
+        /**
+         * Is the call inside the receiver of an enclosing call with a hit of the same asset type and family
+         * (SPEC 8.6 step 1, DECISIONS B-P-B3)? {@code ECPubkey(pk).ecdsa_verify(sig, h)} is one ECDSA finding.
+         */
+        private boolean inReceiverOfSameFamily(SyntaxNode call, Hit h) {
+            String fam = h.rule().asset().family();
+            if (!foldReceivers || fam == null) {
+                return false;
+            }
+            String key = h.rule().asset().type() + "\u0000" + fam;
+            SyntaxNode x = call;
+            for (SyntaxNode p = x.parent(); p != null; x = p, p = p.parent()) {
+                if (p.is("attribute") && "object".equals(x.field())) {
+                    continue;
+                }
+                if (p.is("call") && "function".equals(x.field())) {
+                    if (callFamilies.getOrDefault(p, Set.of()).contains(key)) {
+                        return true;
+                    }
+                    continue;
+                }
+                return false;
+            }
+            return false;
+        }
+
         private void emit(Hit h, SyntaxNode call, Args args) {
             callsWithHits.add(call);
+            if (h.rule().asset().family() != null) {
+                callFamilies.computeIfAbsent(call, k -> new HashSet<>())
+                        .add(h.rule().asset().type() + "\u0000" + h.rule().asset().family());
+            }
+            if (inReceiverOfSameFamily(call, h)) {
+                return;
+            }
             List<Range> rs = ranges.computeIfAbsent(h.rule(), k -> new ArrayList<>());
             // Calls arrive in pre-order, i.e. with non-decreasing start offsets: a range that ends at or
             // before this call's start cannot contain this or any later call. Dropping those keeps the
