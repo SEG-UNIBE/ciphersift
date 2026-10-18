@@ -137,7 +137,7 @@ public final class ScanCommand implements Callable<Integer> {
         Scanner.Result result;
         try {
             result = new Scanner(new Scanner.Options(root, globs, excludeTests, n, rules, weaknessIndicators,
-                    ch.unibe.seg.ciphersift.wrappers.WrapperOptions.defaults(pythonThinWrappers), features)).run();
+                    ch.unibe.seg.ciphersift.wrappers.WrapperOptions.defaults(pythonThinWrappers, features), features)).run();
         } catch (NativeLoadException ex) {
             throw new ExitException(ExitCodes.INTERNAL, ex.getMessage(), ex);
         } catch (InterruptedException ex) {

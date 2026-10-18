@@ -30,8 +30,12 @@ public final class Features {
     /** Keep go.mod {@code // indirect} requirements and lock files (go.sum, poetry.lock, Pipfile.lock). */
     public static final String TRANSITIVE_DEPS = "transitive-deps";
 
+    /** Wrapper-name aliases for certificates, keys and protocols (V2, SPEC 18.6). */
+    public static final String WRAPPER_ALIASES_V2 = "wrapper-aliases-v2";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(WRAPPER_ALIASES_V2, true);
     }
 
     /** The defaults. */

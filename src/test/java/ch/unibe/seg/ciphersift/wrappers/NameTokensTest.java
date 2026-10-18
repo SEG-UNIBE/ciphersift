@@ -42,10 +42,25 @@ class NameTokensTest {
         "ecies_decrypt_message;EC", "parseX509;x509", "loadKeyStore;java.cert.keystore",
         "ParseX25519Recipient;Curve25519", "ed448Sign;Ed448", "newMLKEM768;ML-KEM", "pbkdf2_hmac;HMAC PBKDF2",
         "tripleDes;DES 3DES", "ecDsa;DSA EC", "loadTrustStore;java.cert.keystore", "desede;3DES", "md5A;MD5", "ripemd160;RIPEMD160", "getSHA1;SHA1",
-        "aesthetic;", "description;", "ecb;", "decode;", "rsassa;", "hashTwice;", "digest;", "ec;EC",
-        "dh_params;DH", "Blake2b;BLAKE2", "md5sum;MD5", "sha1hex;SHA1", "x25519PK;Curve25519", "chacha20poly1305;ChaCha20 Poly1305"})
+        "aesthetic;", "description;", "ecb;", "decode;", "rsassa;RSA", "rsaes_oaep;RSA", "section;", "ideal;", "hashTwice;", "digest;", "ec;EC",
+        "dh_params;DH", "Blake2b;BLAKE2", "md5sum;MD5", "sha1hex;SHA1", "x25519PK;Curve25519", "chacha20poly1305;ChaCha20 Poly1305",
+        "des3Cipher;3DES", "tdesKey;3DES", "signHS256;HMAC", "es256Verify;EC", "a256gcm;AES", "ffdhe2048;DH", "sect233k1;EC",
+        "parseCert;", "pubkey;", "hash160;"})
     void families(String name, String expected) {
         Set<String> want = expected == null ? Set.of() : Set.of(expected.split(" "));
         assertEquals(want, NameTokens.families(name), name);
+    }
+
+    @Test
+    void aliasesV2() {
+        assertEquals(Set.of("x509"), NameTokens.families("parseCert", "go", true));
+        assertEquals(Set.of("x509"), NameTokens.families("loadCertificate", "java", true));
+        assertEquals(Set.of("private-key"), NameTokens.families("loadPrivKey", "python", true));
+        assertEquals(Set.of("public-key"), NameTokens.families("PublicKeyFromPEM", "go", true));
+        assertEquals(Set.of("go.prot.tls.context"), NameTokens.families("newTLSConfig", "go", true));
+        assertEquals(Set.of("python.prot.ssh"), NameTokens.families("ssh_client", "python", true));
+        assertEquals(Set.of("RIPEMD160"), NameTokens.families("hash160", "java", true));
+        assertEquals(Set.of(), NameTokens.families("newTLSConfig", null, true)); // a rule-id key needs a language
+        assertEquals(Set.of(), NameTokens.families("newTLSConfig", "go", false));
     }
 }

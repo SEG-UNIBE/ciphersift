@@ -6,6 +6,7 @@ package ch.unibe.seg.ciphersift.wrappers;
 
 import ch.unibe.seg.ciphersift.model.SourceFinding;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
+import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -60,10 +61,10 @@ public final class WrapperPass {
         /** Family key → carried evidence. */
         final TreeMap<String, Carry> carry = new TreeMap<>(Texts.CODE_POINT_ORDER);
 
-        Node(Outline o, Outline.Def d) {
+        Node(Outline o, Outline.Def d, boolean v2) {
             this.o = o;
             this.d = d;
-            this.nameFams = NameTokens.families(d.name());
+            this.nameFams = NameTokens.families(d.name(), langPrefix(o.lang), v2);
         }
 
         String where() {
@@ -115,6 +116,15 @@ public final class WrapperPass {
     public WrapperPass(WrapperOptions options, Project project) {
         this.options = options;
         this.project = project;
+    }
+
+    /** The rule-id prefix of a language ({@code java}, {@code python}, {@code go}). */
+    static String langPrefix(Outline.Lang l) {
+        return switch (l) {
+            case JAVA -> "java";
+            case PYTHON -> "python";
+            case GO -> "go";
+        };
     }
 
     /** The Python module of a relative path (SPEC 18.2). */
@@ -172,7 +182,7 @@ public final class WrapperPass {
             byPath.put(o.path, o);
             List<Node> l = new ArrayList<>(o.defs.size());
             for (Outline.Def d : o.defs) {
-                l.add(new Node(o, d));
+                l.add(new Node(o, d, options.features().on(Features.WRAPPER_ALIASES_V2)));
             }
             nodes.put(o, l);
             index(o, l);

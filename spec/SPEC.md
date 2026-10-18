@@ -184,6 +184,7 @@ individually; the table lists every id and its default.
 | Id | Default | Behaviour when on | Section |
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
+| `wrapper-aliases-v2` | on | the V2 aliases of 18.6 (certificates, keys, TLS/SSH, `hash160`) name family keys | 18.6 |
 
 `rules validate` loads and validates the bundled rules (or `--rules DIR`), prints one line
 per rule kind and language with the count, and exits 0 or 4. `rules export <dir>` writes
@@ -2935,11 +2936,13 @@ are lower-cased (`Locale.ROOT`). Each pair of adjacent tokens is also tried join
 A token of at most 128 characters **names** the family keys of the aliases it consists of, if it decomposes completely: it
 starts with an alias (the longest alias wins at each position), and every alias is followed by the
 end of the token, another alias, a neutral part (`with`, `and`, `gcm`, `ccm`, `cbc`, `ctr`, `ecb`,
-`cfb`, `ofb`, `siv`, `xts`, `kw`, `pss`, `oaep`, `d`, `sum`, `hex`) or a run of digits; after a digit
+`cfb`, `ofb`, `siv`, `xts`, `kw`, `pss`, `oaep`, `d`, `sum`, `hex`; and, *DECISIONS B-A1*, `pkcs1`, `v15`,
+`mgf1`, `p1363`, `ssa`, `es`) or a run of digits; after a digit
 run, or an alias ending in a digit, the same holds, or at most two characters end the token (`aesgcm`
 → AES, `sha256withrsa` → SHA2 and RSA, `sha256d` → SHA2, `md5sum` → MD5, `blake2b` → BLAKE2,
 `aes256gcm` → AES, `chacha20poly1305` → ChaCha20 and Poly1305, `secp256k1` → EC;
-`aesthetic`, `ecb`, `description`, `rsassa` → nothing). The alias list *(DECISIONS T5)*:
+`rsassa` → RSA, `des3` → 3DES; `aesthetic`, `ecb`, `description`, `section` → nothing). The alias list
+*(DECISIONS T5; the rows marked V1 and V2: DECISIONS B-A1, B-A2)*:
 
 | Family key | Aliases |
 |---|---|
@@ -2970,6 +2973,21 @@ run, or an alias ending in a digit, the same holds, or at most two characters en
 | PBKDF2, HKDF, scrypt, Argon2, bcrypt | `pbkdf2`; `hkdf`; `scrypt`; `argon2`; `bcrypt` |
 | x509 (subtype) | `x509` |
 | `java.cert.keystore` (rule id) | `keystore`, `truststore` |
+| HMAC, RSA, EC, AES (V1, IANA JOSE) | `hs256`, `hs384`, `hs512`; `rs256`, `rs384`, `rs512`, `ps256`, `ps384`, `ps512`; `es256`, `es384`, `es512`; `a128`, `a192`, `a256` |
+| EC (V1, IANA TLS groups / SSH, JCA, RFC 5480) | `sect`, `nistp`, `p192`, `p224`, `ecmqv`, `x962` |
+| DH (V1, JCA, IANA TLS / SSH) | `diffie`, `diffiehellman`, `ffdhe`, `dhe`, `dhkem` |
+| DSA, 3DES (V1, IANA SSH, NIST SP 800-67) | `dss`; `tdea`, `tdes`, `des3` |
+| IDEA, SEED, CAST5, PBE (V1) | `idea`; `seed`; `cast128`; `pbe`, `pbes2` |
+| ConcatKDF, KBKDF, X963KDF, ElGamal (V1) | `concatkdf`; `kbkdf`; `x963kdf`; `elgamal` |
+| x509 (V2) | `cert`, `certificate` |
+| `private-key`, `public-key` (subtypes, V2) | `privatekey`, `privkey`; `publickey`, `pubkey` |
+| `<lang>.prot.tls.context`, `<lang>.prot.ssh` (rule ids, V2) | `tls`, `ssl`; `ssh` (`<lang>` is the definition's language: `java`, `python`, `go`) |
+| RIPEMD160 (V2, Bitcoin's HASH160) | `hash160` |
+
+The V2 aliases name what a key, certificate or protocol helper returns rather than an algorithm; they
+are on by default and can be switched off with `--feature wrapper-aliases-v2=off` (3.1). As for every
+alias, the body check makes a false name match harmless: a definition carries a key only if a body
+finding (or a called wrapper) has it.
 
 ### 18.7 Reporting, folding and interactions
 

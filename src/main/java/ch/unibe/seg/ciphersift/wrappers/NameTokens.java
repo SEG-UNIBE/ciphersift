@@ -19,15 +19,31 @@ import java.util.TreeSet;
 public final class NameTokens {
     private NameTokens() {}
 
-    /** Alias → family key (SPEC 18.6 table). */
+    /** Alias → family key (SPEC 18.6 table, with the registry aliases V1 of DECISIONS B-A1). */
     static final Map<String, String> ALIASES = new LinkedHashMap<>();
-    /** Parts that may follow or separate aliases inside one token (SPEC 18.6). */
+    /**
+     * The aliases of DECISIONS B-A2 (V2: certificates, keys, protocols): alias → family key, where a key
+     * starting with {@code *} is a rule id without its language prefix ({@code *.prot.tls.context} →
+     * {@code java.prot.tls.context}, {@code python.…}, {@code go.…}).
+     */
+    static final Map<String, String> ALIASES_V2 = new LinkedHashMap<>();
+    /** Base and V2 aliases together. */
+    static final Map<String, String> ALL_ALIASES = new LinkedHashMap<>();
+    /** Parts that may follow or separate aliases inside one token (SPEC 18.6; the last six: DECISIONS B-A1). */
     static final List<String> NEUTRAL = List.of("with", "and", "gcm", "ccm", "cbc", "ctr", "ecb", "cfb", "ofb", "siv",
-            "xts", "kw", "pss", "oaep", "d", "sum", "hex");
+            "xts", "kw", "pss", "oaep", "d", "sum", "hex", "pkcs1", "v15", "mgf1", "p1363", "ssa", "es");
 
     private static void alias(String key, String... aliases) {
         for (String a : aliases) {
             if (ALIASES.put(a, key) != null) {
+                throw new IllegalStateException("duplicate alias " + a);
+            }
+        }
+    }
+
+    private static void aliasV2(String key, String... aliases) {
+        for (String a : aliases) {
+            if (ALIASES.containsKey(a) || ALIASES_V2.put(a, key) != null) {
                 throw new IllegalStateException("duplicate alias " + a);
             }
         }
@@ -79,6 +95,33 @@ public final class NameTokens {
         alias("bcrypt", "bcrypt");
         alias("x509", "x509");
         alias("java.cert.keystore", "keystore", "truststore");
+        // DECISIONS B-A1 (V1): algorithm names of the public registries (IANA JOSE "alg"/"enc", IANA TLS supported
+        // groups, IANA SSH algorithm names, Oracle JCA standard names, NIST SP 800-67 / SP 800-131A), each mapped to
+        // the family the bundled rules use; sources in PROVENANCE.md
+        alias("HMAC", "hs256", "hs384", "hs512");
+        alias("RSA", "rs256", "rs384", "rs512", "ps256", "ps384", "ps512");
+        alias("EC", "es256", "es384", "es512", "sect", "nistp", "p192", "p224", "ecmqv", "x962");
+        alias("AES", "a128", "a192", "a256");
+        alias("DH", "diffie", "diffiehellman", "ffdhe", "dhe", "dhkem");
+        alias("DSA", "dss");
+        alias("3DES", "tdea", "tdes", "des3");
+        alias("IDEA", "idea");
+        alias("SEED", "seed");
+        alias("CAST5", "cast128");
+        alias("PBE", "pbe", "pbes2");
+        alias("ConcatKDF", "concatkdf");
+        alias("KBKDF", "kbkdf");
+        alias("X963KDF", "x963kdf");
+        alias("ElGamal", "elgamal");
+        // DECISIONS B-A2 (V2): certificates, keys, protocols, Bitcoin's HASH160 (RIPEMD-160 of SHA-256)
+        aliasV2("x509", "cert", "certificate");
+        aliasV2("private-key", "privatekey", "privkey");
+        aliasV2("public-key", "publickey", "pubkey");
+        aliasV2("*.prot.tls.context", "tls", "ssl");
+        aliasV2("*.prot.ssh", "ssh");
+        aliasV2("RIPEMD160", "hash160");
+        ALL_ALIASES.putAll(ALIASES);
+        ALL_ALIASES.putAll(ALIASES_V2);
     }
 
     /**
@@ -117,16 +160,39 @@ public final class NameTokens {
         }
     }
 
-    /** The family keys a name names (SPEC 18.6), in code-point order. */
+    /** The family keys a name names (SPEC 18.6) with the base aliases only, in code-point order. */
     public static Set<String> families(String name) {
+        return families(name, null, false);
+    }
+
+    /**
+     * The family keys a name names (SPEC 18.6), in code-point order; with {@code v2} also through the V2
+     * aliases (DECISIONS B-A2), whose rule-id keys are completed with {@code lang} ({@code java},
+     * {@code python}, {@code go}; with a null language they name nothing).
+     */
+    public static Set<String> families(String name, String lang, boolean v2) {
+        Map<String, String> aliases = v2 ? ALL_ALIASES : ALIASES;
         List<String> toks = tokens(name);
         Set<String> out = new TreeSet<>();
         for (int i = 0; i < toks.size(); i++) {
             String t = toks.get(i);
-            tokenFamilies(t, out);
+            tokenFamilies(t, aliases, out);
             if (i + 1 < toks.size()) {
-                tokenFamilies(t + toks.get(i + 1), out); // sha_256, KeyStore, tripleDES
+                tokenFamilies(t + toks.get(i + 1), aliases, out); // sha_256, KeyStore, tripleDES
             }
+        }
+        if (v2) {
+            Set<String> r = new TreeSet<>();
+            for (String k : out) {
+                if (k.startsWith("*")) {
+                    if (lang != null) {
+                        r.add(lang + k.substring(1));
+                    }
+                } else {
+                    r.add(k);
+                }
+            }
+            return r;
         }
         return out;
     }
@@ -136,12 +202,12 @@ public final class NameTokens {
     static final int MAX_TOKEN = 128;
 
     /** Adds the families of one token if it decomposes completely (SPEC 18.6). */
-    private static void tokenFamilies(String t, Set<String> out) {
+    private static void tokenFamilies(String t, Map<String, String> aliases, Set<String> out) {
         if (t.length() > MAX_TOKEN) {
             return;
         }
         Set<String> found = new TreeSet<>();
-        if (decompose(t, 0, found, false, new boolean[t.length() + 1])) {
+        if (decompose(t, 0, found, false, new boolean[t.length() + 1], aliases)) {
             out.addAll(found);
         }
     }
@@ -152,18 +218,20 @@ public final class NameTokens {
      * must be an alias. The longest alias wins at each position. {@code failed} memoises positions
      * from which (after an alias) no decomposition exists.
      */
-    private static boolean decompose(String t, int pos, Set<String> found, boolean afterAlias, boolean[] failed) {
+    private static boolean decompose(String t, int pos, Set<String> found, boolean afterAlias, boolean[] failed,
+            Map<String, String> aliases) {
         if (afterAlias && failed[pos]) {
             return false;
         }
-        boolean ok = decompose0(t, pos, found, afterAlias, failed);
+        boolean ok = decompose0(t, pos, found, afterAlias, failed, aliases);
         if (!ok && afterAlias) {
             failed[pos] = true;
         }
         return ok;
     }
 
-    private static boolean decompose0(String t, int pos, Set<String> found, boolean afterAlias, boolean[] failed) {
+    private static boolean decompose0(String t, int pos, Set<String> found, boolean afterAlias, boolean[] failed,
+            Map<String, String> aliases) {
         if (pos == t.length()) {
             return afterAlias;
         }
@@ -173,10 +241,10 @@ public final class NameTokens {
                 p++;
             }
             // a digit run, then the end, at most two more characters (secp256k1), or more parts
-            return t.length() - p <= 2 || decompose(t, p, found, true, failed);
+            return t.length() - p <= 2 || decompose(t, p, found, true, failed, aliases);
         }
         String best = null;
-        for (String a : ALIASES.keySet()) {
+        for (String a : aliases.keySet()) {
             if (t.startsWith(a, pos) && (best == null || a.length() > best.length())) {
                 best = a;
             }
@@ -186,8 +254,8 @@ public final class NameTokens {
             int end = pos + best.length();
             // an alias ending in a digit is like a digit run: at most two characters may end the token (blake2b)
             boolean shortTail = Character.isDigit(best.charAt(best.length() - 1)) && t.length() - end <= 2;
-            if (shortTail || decompose(t, end, sub, true, failed)) {
-                found.add(ALIASES.get(best));
+            if (shortTail || decompose(t, end, sub, true, failed, aliases)) {
+                found.add(aliases.get(best));
                 found.addAll(sub);
                 return true;
             }
@@ -196,7 +264,7 @@ public final class NameTokens {
             for (String nPart : NEUTRAL) {
                 if (t.startsWith(nPart, pos)) {
                     Set<String> sub = new TreeSet<>();
-                    if (decompose(t, pos + nPart.length(), sub, true, failed)) {
+                    if (decompose(t, pos + nPart.length(), sub, true, failed, aliases)) {
                         found.addAll(sub);
                         return true;
                     }

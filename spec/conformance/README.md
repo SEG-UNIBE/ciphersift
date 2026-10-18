@@ -86,6 +86,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `deps/transitive-included` | 6 | 16 | the same input with `--transitive-deps` |
 | `deps/commons-codec-used` | 3 | 3 | `commons-codec` is reported when a Java file names `org.apache.commons.codec.digest` (here fully qualified) (DECISIONS B-J4) |
 | `deps/commons-codec-unused` | 3 | 1 | `commons-codec` used only for Base64 / Hex: not reported; other libraries unaffected (DECISIONS B-J4) |
+| `common/wrapper-aliases` | 4 | 26 | V2 wrapper-name aliases in Java, Python and Go (`tls`, `ssh`, `cert`/`certificate`, `privkey`, `hash160`) and the V1 alias `des3` → 3DES, on definitions that are not thin wrappers (DECISIONS B-A1, B-A2) |
 
 ## Format of expected.json
 
