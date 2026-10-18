@@ -150,3 +150,20 @@ The package choice came from the evaluation's seed-1 misses (benchmark-informed,
 the patterns were written from the documentation above, not from the evaluated projects' code.
 Written new: `SPEC.md` section 18 and Appendix D, DECISIONS T1–T14, `wrappers/`, the scanner
 integration, the five conformance cases and the tests.
+
+## Boosters, round t2 (2026-10-18)
+
+Same clean-room process. **No Crypsy / Crypistry / Cryben material**, nothing under `work/lit-gt/`,
+`work/cryptoorchestra/` or the held-out projects of `work/eval2/`, and no other scanner's rules, queries or
+sources were consulted. Inputs: this repository; the booster assessment (`ciphersift-boost-assess/`: its
+reports, simulators and name lists, each list with the public source of every entry), which used only
+CipherSift's outputs, the development projects' code and other tools' *outputs*; the development projects'
+code (for judging); and the public documents below (names, signatures and documented purpose only). Each
+row names the decision it feeds.
+
+| Input (version / date) | Used for |
+|---|---|
+| Go Modules Reference, "go.mod files: require directive" (https://go.dev/ref/mod#go-mod-file-require, read 2026-10-18) | `// indirect` marker (B-G1) |
+| Pipenv documentation, "Pipfile" (https://pipenv.pypa.io/en/latest/pipfile.html, read 2026-10-18) | `Pipfile` tables (B-G2) |
+| pkg.go.dev `github.com/hashicorp/vault/api`, `github.com/sigstore/protobuf-specs`, `github.com/sigstore/rekor` (package overviews) | `dep.golang` entries (B-G4) |
+| PyPI project page of `certifi` (https://pypi.org/project/certifi/, "Mozilla's carefully curated collection of Root Certificates") | removal from `dep.pypi` (B-P1) |
