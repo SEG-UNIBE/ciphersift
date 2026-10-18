@@ -73,6 +73,28 @@ class CliIT {
         assertEquals(2, old.exit(), "the former option is gone: " + old.stderr());
     }
 
+    /**
+     * {@code --feature ID=on|off} (SPEC 3.1, DECISIONS B0): non-default settings are recorded in the metadata as
+     * {@code ciphersift:features}, defaults are not; a setting equal to the default records nothing; an unknown id
+     * or value is a usage error.
+     */
+    @Test
+    void featureSwitchesAreRecorded() throws Exception {
+        Path d = demo();
+        JarRunner.Run def = JarRunner.run("scan", d.toString(), "-o", "-", "--quiet");
+        assertEquals(0, def.exit(), def.stderr());
+        assertFalse(def.out().contains("ciphersift:features"), def.out());
+        JarRunner.Run same = JarRunner.run("scan", d.toString(), "-o", "-", "--quiet", "--feature", "wrapper-depth-4=on");
+        assertEquals(def.out(), same.out(), "a default setting changes nothing");
+        JarRunner.Run off = JarRunner.run("scan", d.toString(), "-o", "-", "--quiet", "--feature", "wrapper-depth-4=off",
+                "--transitive-deps");
+        assertEquals(0, off.exit(), off.stderr());
+        assertTrue(off.out().contains("\"name\": \"ciphersift:features\",\n        \"value\": \"transitive-deps=on,wrapper-depth-4=off\""),
+                off.out());
+        assertEquals(2, JarRunner.run("scan", d.toString(), "-o", "-", "--feature", "nope=on").exit());
+        assertEquals(2, JarRunner.run("scan", d.toString(), "-o", "-", "--feature", "wrapper-depth-4=maybe").exit());
+    }
+
     @Test
     void stdoutOutputIsTheCbomOnly() throws Exception {
         Path d = demo();
