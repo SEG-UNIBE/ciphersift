@@ -79,6 +79,10 @@ match:
 - field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_Ed25519_SHA512
 - field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA87_Ed448_SHA512
 - field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_Falcon512_Ed25519_SHA512
+# DECISIONS B-J-JWT: JWT library algorithm constants and classes (jjwt 0.12.6, nimbus-jose-jwt 9.40, java-jwt 4.4.0); sources per entry in spec/java-api-additions.csv
+- field: com.nimbusds.jose.JWSAlgorithm.Ed448
+- field: com.nimbusds.jose.jwk.Curve.Ed25519
+- field: com.nimbusds.jose.jwk.Curve.Ed448
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

@@ -98,6 +98,25 @@ match:
 - field: org.bouncycastle.cms.CMSAlgorithm.ECDHGOST3410_2001
 - field: org.bouncycastle.cms.CMSAlgorithm.ECDHGOST3410_2012_256
 - field: org.bouncycastle.cms.CMSAlgorithm.ECDHGOST3410_2012_512
+# DECISIONS B-J-JWT: JWT library algorithm constants and classes (jjwt 0.12.6, nimbus-jose-jwt 9.40, java-jwt 4.4.0); sources per entry in spec/java-api-additions.csv
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_ES
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_ES_A128KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_ES_A192KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_ES_A256KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_1PU
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_1PU_A128KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_1PU_A192KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_1PU_A256KW
+- field: com.nimbusds.jose.jwk.Curve.X25519
+- field: com.nimbusds.jose.jwk.Curve.X448
+- new: com.nimbusds.jose.crypto.ECDH1PUDecrypter
+- new: com.nimbusds.jose.crypto.ECDH1PUEncrypter
+- new: com.nimbusds.jose.crypto.ECDH1PUX25519Decrypter
+- new: com.nimbusds.jose.crypto.ECDH1PUX25519Encrypter
+- new: com.nimbusds.jose.crypto.ECDHDecrypter
+- new: com.nimbusds.jose.crypto.ECDHEncrypter
+- new: com.nimbusds.jose.crypto.X25519Decrypter
+- new: com.nimbusds.jose.crypto.X25519Encrypter
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

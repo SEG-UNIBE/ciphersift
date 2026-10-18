@@ -88,6 +88,44 @@ match:
 - field: org.bouncycastle.cms.CMSAlgorithm.AES128_WRAP
 - field: org.bouncycastle.cms.CMSAlgorithm.AES192_WRAP
 - field: org.bouncycastle.cms.CMSAlgorithm.AES256_WRAP
+# DECISIONS B-J-JWT: JWT library algorithm constants and classes (jjwt 0.12.6, nimbus-jose-jwt 9.40, java-jwt 4.4.0); sources per entry in spec/java-api-additions.csv
+- field: io.jsonwebtoken.Jwts.ENC.A128CBC_HS256
+- field: io.jsonwebtoken.Jwts.ENC.A192CBC_HS384
+- field: io.jsonwebtoken.Jwts.ENC.A256CBC_HS512
+- field: io.jsonwebtoken.Jwts.ENC.A128GCM
+- field: io.jsonwebtoken.Jwts.ENC.A192GCM
+- field: io.jsonwebtoken.Jwts.ENC.A256GCM
+- field: io.jsonwebtoken.Jwts.KEY.A128KW
+- field: io.jsonwebtoken.Jwts.KEY.A192KW
+- field: io.jsonwebtoken.Jwts.KEY.A256KW
+- field: io.jsonwebtoken.Jwts.KEY.A128GCMKW
+- field: io.jsonwebtoken.Jwts.KEY.A192GCMKW
+- field: io.jsonwebtoken.Jwts.KEY.A256GCMKW
+- field: com.nimbusds.jose.JWEAlgorithm.A128KW
+- field: com.nimbusds.jose.JWEAlgorithm.A192KW
+- field: com.nimbusds.jose.JWEAlgorithm.A256KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_ES_A128KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_ES_A192KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_ES_A256KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_1PU_A128KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_1PU_A192KW
+- field: com.nimbusds.jose.JWEAlgorithm.ECDH_1PU_A256KW
+- field: com.nimbusds.jose.JWEAlgorithm.A128GCMKW
+- field: com.nimbusds.jose.JWEAlgorithm.A192GCMKW
+- field: com.nimbusds.jose.JWEAlgorithm.A256GCMKW
+- field: com.nimbusds.jose.JWEAlgorithm.PBES2_HS256_A128KW
+- field: com.nimbusds.jose.JWEAlgorithm.PBES2_HS384_A192KW
+- field: com.nimbusds.jose.JWEAlgorithm.PBES2_HS512_A256KW
+- field: com.nimbusds.jose.EncryptionMethod.A128CBC_HS256
+- field: com.nimbusds.jose.EncryptionMethod.A192CBC_HS384
+- field: com.nimbusds.jose.EncryptionMethod.A256CBC_HS512
+- field: com.nimbusds.jose.EncryptionMethod.A128CBC_HS256_DEPRECATED
+- field: com.nimbusds.jose.EncryptionMethod.A256CBC_HS512_DEPRECATED
+- field: com.nimbusds.jose.EncryptionMethod.A128GCM
+- field: com.nimbusds.jose.EncryptionMethod.A192GCM
+- field: com.nimbusds.jose.EncryptionMethod.A256GCM
+- new: com.nimbusds.jose.crypto.AESDecrypter
+- new: com.nimbusds.jose.crypto.AESEncrypter
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

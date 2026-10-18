@@ -94,6 +94,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/any-call-off` | 1 | 2 | the same input with `java-any-call` and `java-any-call-short` off |
 | `java/api-additions` | 1 | 6 | Java SE classes (`CipherInputStream`, `SealedObject`, `PBEParameterSpec`) and Bouncy Castle classes named after their algorithm (DECISIONS B-J-JDK, B-J-BC2) |
 | `java/bc-oids` | 1 | 3 | a Bouncy Castle OID constant as a value (field anchor) and through `getId()` into JCA factories, with the OID recorded (DECISIONS B-J-BCOID, B-J-JP2) |
+| `java/jwt-constants` | 1 | 4 | Nimbus and jjwt algorithm constants, also a nested class `Jwts.ENC` (DECISIONS B-J-JWT) |
 | `go/thin-wrappers` | 1 | 6 | Go thin wrappers: 3 and 12 lines (an early error return) carry, 14 lines do not; a fallback getter (`if … { return crypto.SHA256 }; return c.DefaultHash`) does not (DECISIONS B-G-E) |
 | `go/typed-methods` | 1 | 26 | method anchors on typed receivers: parameters, results by position, type assertions, a single-type type-switch case (not two types), struct fields, one level of embedding (not when the file declares the method), `ecdh` / `mlkem` / `x509` / `ssh` result chains, composite and `new`, a reassigned variable, accessors (DECISIONS B-G-B1a) |
 | `go/api-b2` | 1 | 19 | Sigstore protobuf-specs key and hash values (an aliased `common/v1` import), sigstore `WithED25519ph` and `AlgorithmDetails` methods, go-piv algorithms and `Verify`, CIRCL SLH-DSA parameter sets; LMS and other members give nothing (DECISIONS B-G-B2) |

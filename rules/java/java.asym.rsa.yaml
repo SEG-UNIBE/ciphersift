@@ -133,6 +133,14 @@ match:
 - field: org.bouncycastle.cms.CMSAlgorithm.RSA_PKCS15
 - field: org.bouncycastle.cms.CMSAlgorithm.RSA_OAEP
 - field: org.bouncycastle.cms.CMSAlgorithm.RSA_KEM
+# DECISIONS B-J-JWT: JWT library algorithm constants and classes (jjwt 0.12.6, nimbus-jose-jwt 9.40, java-jwt 4.4.0); sources per entry in spec/java-api-additions.csv
+- field: com.nimbusds.jose.JWEAlgorithm.RSA1_5
+- field: com.nimbusds.jose.JWEAlgorithm.RSA_OAEP
+- field: com.nimbusds.jose.JWEAlgorithm.RSA_OAEP_256
+- field: com.nimbusds.jose.JWEAlgorithm.RSA_OAEP_384
+- field: com.nimbusds.jose.JWEAlgorithm.RSA_OAEP_512
+- new: com.nimbusds.jose.crypto.RSADecrypter
+- new: com.nimbusds.jose.crypto.RSAEncrypter
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

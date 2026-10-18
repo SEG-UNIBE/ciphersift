@@ -73,6 +73,16 @@ match:
 - field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA512_256
 - field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.hmac_sm3
 - field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.hMAC_SHA1
+# DECISIONS B-J-JWT: JWT library algorithm constants and classes (jjwt 0.12.6, nimbus-jose-jwt 9.40, java-jwt 4.4.0); sources per entry in spec/java-api-additions.csv
+- field: io.jsonwebtoken.Jwts.ENC.A128CBC_HS256
+- field: io.jsonwebtoken.Jwts.ENC.A192CBC_HS384
+- field: io.jsonwebtoken.Jwts.ENC.A256CBC_HS512
+- field: com.nimbusds.jose.EncryptionMethod.A128CBC_HS256
+- field: com.nimbusds.jose.EncryptionMethod.A192CBC_HS384
+- field: com.nimbusds.jose.EncryptionMethod.A256CBC_HS512
+- field: com.nimbusds.jose.EncryptionMethod.A128CBC_HS256_DEPRECATED
+- field: com.nimbusds.jose.EncryptionMethod.A256CBC_HS512_DEPRECATED
+- call: io.jsonwebtoken.security.Keys.secretKeyFor
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

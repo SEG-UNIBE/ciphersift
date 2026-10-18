@@ -68,6 +68,10 @@ match:
 - field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd128BitRC2_CBC
 - field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd40BitRC2_CBC
 - field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbewithSHAAnd40BitRC2_CBC
+# DECISIONS B-J-JWT: JWT library algorithm constants and classes (jjwt 0.12.6, nimbus-jose-jwt 9.40, java-jwt 4.4.0); sources per entry in spec/java-api-additions.csv
+- field: com.nimbusds.jose.JWEAlgorithm.PBES2_HS256_A128KW
+- field: com.nimbusds.jose.JWEAlgorithm.PBES2_HS384_A192KW
+- field: com.nimbusds.jose.JWEAlgorithm.PBES2_HS512_A256KW
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

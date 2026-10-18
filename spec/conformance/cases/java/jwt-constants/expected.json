@@ -1,0 +1,6 @@
+{"case": "java/jwt-constants", "findings": [
+  {"file": "j/Jwt.java", "line": 11, "rule": "java.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "JWEAlgorithm.RSA_OAEP_256"},
+  {"file": "j/Jwt.java", "line": 12, "rule": "java.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "JWEAlgorithm.ECDH_ES"},
+  {"file": "j/Jwt.java", "line": 13, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "ENC.A256GCM"},
+  {"file": "j/Jwt.java", "line": 14, "rule": "java.asym.ed25519", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "Ed25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "JWSAlgorithm.Ed448"}
+]}
