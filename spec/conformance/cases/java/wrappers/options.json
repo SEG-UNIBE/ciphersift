@@ -1,1 +1,1 @@
-{"args": ["--feature", "java-thin-12=off"]}
+{"args": ["--feature", "java-thin-12=off", "--feature", "java-propagate-random=off"]}

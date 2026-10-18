@@ -1,0 +1,6 @@
+{"case": "java/propagate-random", "findings": [
+  {"file": "r/Rand.java", "line": 9, "rule": "java.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SecureRandom.getInstanceStrong"},
+  {"file": "r/Rand.java", "line": 14, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "r/Rand.java", "line": 15, "rule": "java.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SecureRandom"},
+  {"file": "r/Rand.java", "line": 20, "rule": "java.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SecureRandom.getInstanceStrong", "via": ["r/Rand.java:8 Rand.rng"], "origin": "r/Rand.java:9"}
+]}

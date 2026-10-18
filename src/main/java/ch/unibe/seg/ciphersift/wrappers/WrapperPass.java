@@ -156,9 +156,18 @@ public final class WrapperPass {
         return r.id();
     }
 
-    /** SPEC 18.1: weakness indicators and CSPRNG findings are not propagated. */
-    static boolean propagatable(SourceFinding f) {
-        return f.rule().indicator() == null && !"prng-secure".equals(f.rule().asset().subtype()) && f.via() == null;
+    /**
+     * SPEC 18.1: weakness indicators are not propagated; CSPRNG findings only in Java (DECISIONS B-J-D, feature
+     * {@code java-propagate-random}).
+     */
+    boolean propagatable(SourceFinding f) {
+        if (f.rule().indicator() != null || f.via() != null) {
+            return false;
+        }
+        if ("prng-secure".equals(f.rule().asset().subtype())) {
+            return f.rule().id().startsWith("java.") && options.features().on(Features.JAVA_PROPAGATE_RANDOM);
+        }
+        return true;
     }
 
     // ======================================================================== compute
