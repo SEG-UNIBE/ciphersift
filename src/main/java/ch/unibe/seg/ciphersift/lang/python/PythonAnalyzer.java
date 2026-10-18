@@ -39,7 +39,8 @@ public final class PythonAnalyzer {
     /** Parents a bare reference may have to be in value position (SPEC 8.6.1); checked in full later. */
     private static final Set<String> REFERENCE_PARENTS = Set.of("list", "tuple", "set", "expression_list", "pair",
             "argument_list", "keyword_argument", "assignment", "parenthesized_expression", "conditional_expression",
-            "binary_operator", "unary_operator", "boolean_operator", "not_operator", "return_statement", "await");
+            "binary_operator", "unary_operator", "boolean_operator", "not_operator", "return_statement", "await",
+            "default_parameter", "typed_default_parameter");
     /** Operators a {@code ref} pattern's reference may be an operand of (SPEC 8.6.1). */
     private static final Set<String> OPERATORS = Set.of("binary_operator", "unary_operator", "boolean_operator",
             "not_operator", "await");
@@ -58,8 +59,9 @@ public final class PythonAnalyzer {
     /** DECISIONS B-P-B2, B-P-B3. */
     private final boolean asn1Schemas;
     private final boolean foldReceivers;
-    /** DECISIONS P3-RET. */
+    /** DECISIONS P3-RET, P3-DEF. */
     private final boolean returnValues;
+    private final boolean defaultValues;
     /** asn1crypto schema attributes (https://github.com/wbond/asn1crypto/blob/master/docs/universal_types.md). */
     private static final Set<String> ASN1_SCHEMA_ATTRIBUTES = Set.of("_fields", "_child_spec", "_oid_specs");
     /** A key class name (SPEC 8.6.1, DECISIONS B-P-ISI). */
@@ -76,6 +78,7 @@ public final class PythonAnalyzer {
         this.asn1Schemas = features.on(Features.PYTHON_ASN1_SCHEMAS);
         this.foldReceivers = features.on(Features.PYTHON_FOLD_RECEIVERS);
         this.returnValues = features.on(Features.PYTHON_RETURN_VALUES);
+        this.defaultValues = features.on(Features.PYTHON_DEFAULT_VALUES);
     }
 
     /**
@@ -221,6 +224,19 @@ public final class PythonAnalyzer {
                         }
                         s = inner;
                     }
+                    case "default_parameter", "typed_default_parameter" -> {
+                        // a default value is evaluated where the function is defined: the enclosing scope
+                        SyntaxNode v = n.field("value");
+                        if (v != null && s.parent != null) {
+                            for (int i = n.childCount() - 1; i >= 0; i--) {
+                                SyntaxNode c = n.child(i);
+                                if (c.isNamed()) {
+                                    stack.push(new Located(c, c == v ? s.parent : s));
+                                }
+                            }
+                            continue;
+                        }
+                    }
                     case "assignment" -> {
                         SyntaxNode left = n.field("left");
                         SyntaxNode right = n.field("right");
@@ -339,7 +355,7 @@ public final class PythonAnalyzer {
                 return false;
             }
             return switch (p.type()) {
-                case "keyword_argument" -> "value".equals(n.field());
+                case "keyword_argument", "default_parameter", "typed_default_parameter" -> "value".equals(n.field());
                 case "assignment" -> "right".equals(n.field());
                 default -> true;
             };
@@ -1293,6 +1309,10 @@ public final class PythonAnalyzer {
                         } else {
                             return false;
                         }
+                    }
+                    case "default_parameter", "typed_default_parameter" -> {
+                        // a parameter default selects the algorithm when the caller does not (DECISIONS P3-DEF)
+                        return defaultValues && "value".equals(x.field());
                     }
                     case "assignment" -> {
                         if (asn1Schemas) {

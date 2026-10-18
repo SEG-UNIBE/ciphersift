@@ -198,6 +198,7 @@ individually; the table lists every id and its default.
 | `python-asn1-schemas` | on | asn1crypto schema attributes are not value positions (8.6.1) | 8.6.1 |
 | `python-fold-receivers` | on | a hit in the receiver of a call with a hit of the same type and family is dropped (8.6) | 8.6 |
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
+| `python-default-values` | on | Python parameter default values are value positions, resolved in the enclosing scope (8.6.1) | 8.6.1 |
 | `python-return-values` | on | returned values and table look-ups `{…}[k]` are Python value positions (8.6.1) | 8.6.1 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
@@ -1537,6 +1538,10 @@ prevent it.
 * `subscript` *(DECISIONS P3-RET)*: if *x* is a dictionary, list or tuple display that is the subscript's `value` (a
   table look-up, `{"sha256": hashes.SHA256}[name]()`) and the feature is on, passed through; otherwise not a
   position (an index `d[hashes.SHA256]` and type subscripts `Dict[str, …]` stay none);
+* `default_parameter`, `typed_default_parameter` *(DECISIONS P3-DEF, feature `python-default-values`; reverses the
+  evaluation's D6)*: a value position iff *x* is its `value` (`def h(v, f=hashlib.sha256)`: the default selects SHA-256 whenever
+  the caller passes none). The value is resolved in the scope that encloses the function or lambda, where Python
+  evaluates it (`def f(hashlib=None, h=hashlib.sha256)` names the module, not the parameter);
 * `assignment`: a value position iff *x* is its `right` — except, with the feature `python-asn1-schemas`
   *(DECISIONS B-P-B2)*, when its `left` is the identifier `_fields`, `_child_spec` or `_oid_specs` (an
   asn1crypto schema declaration names types; it uses no algorithm);
@@ -1559,7 +1564,7 @@ A `call` pattern fires only in a value position. A `ref` pattern fires in any *e
 position*: the same walk in which `binary_operator`, `unary_operator`, `boolean_operator`,
 `not_operator` and `await` are passed through as well and every reference counts as a container
 element (`Q = P + ecc.GENERATOR * k`, `return Mechanism.ECDSA`). Default values of parameters are
-not positions (8.3: they belong to the function's scope, Appendix B).
+positions only with the feature `python-default-values` (above; without it they are not, as the evaluation's D6 decided).
 
 **Hits, refinement, emission** as in 8.6, with these differences: there are no conditions; no
 argument range is recorded; the nesting check of step 1 applies (a reference inside the recorded
@@ -3342,9 +3347,9 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
   `ecdsa_sign`, `verify=False` on HTTP-client method names such as `get` or `send`).
   Attribute *reads* are not anchors: asn1crypto certificate fingerprints (`cert.sha256`) are
   not reported *(DECISIONS E3)*.
-* Python parameter default values are not value positions (8.6.1): `def h(v,
-  f=hashlib.sha256)` reports nothing, at the definition or at the call `f(v)` (D6 of the
-  evaluation, by design).
+* Python parameter default values are value positions only with the feature `python-default-values` (on by
+  default, DECISIONS P3-DEF; 8.6.1): `def h(v, f=hashlib.sha256)` reports SHA-256 at the definition, never at the
+  call `f(v)` (D6 of the evaluation, by design, holds with the feature off).
 * Python import alternatives: only the import-failure handler of the same `try` is recognised
   (8.2, *DECISIONS F2*); alternatives chosen by `if` (version checks, `sys.platform`), by
   handlers of other exceptions or in another `try` statement are all bindings, so

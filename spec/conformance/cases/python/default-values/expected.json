@@ -1,0 +1,7 @@
+{"case": "python/default-values", "findings": [
+  {"file": "d.py", "line": 6, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha1"},
+  {"file": "d.py", "line": 10, "rule": "python.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "RS256"},
+  {"file": "d.py", "line": 10, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "RS256"},
+  {"file": "d.py", "line": 14, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"},
+  {"file": "d.py", "line": 18, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5"}
+]}

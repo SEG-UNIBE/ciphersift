@@ -91,10 +91,13 @@ public final class Features {
 
     /** Python: returned values and table look-ups {@code {..}[k]} are value positions (P3-RET, SPEC 8.6.1). */
     public static final String PYTHON_RETURN_VALUES = "python-return-values";
+    /** Python: parameter default values are value positions (P3-DEF, SPEC 8.6.1; reverses D6). */
+    public static final String PYTHON_DEFAULT_VALUES = "python-default-values";
 
     static {
         known(TRANSITIVE_DEPS, false);
         known(PYTHON_RETURN_VALUES, true);
+        known(PYTHON_DEFAULT_VALUES, true);
         known(SKIP_PYTHON_LOCK_FILES, false);
         known(PYTHON_ASN1_SCHEMAS, true);
         known(PYTHON_FOLD_RECEIVERS, true);
