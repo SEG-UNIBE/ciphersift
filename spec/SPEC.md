@@ -184,6 +184,7 @@ individually; the table lists every id and its default.
 | Id | Default | Behaviour when on | Section |
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
+| `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
 | `wrapper-depth-4` | on | wrapper chains of up to 4 definitions (else 3) | 18.5 |
 | `wrapper-aliases-v2` | on | the V2 aliases of 18.6 (certificates, keys, TLS/SSH, `hash160`) name family keys | 18.6 |
@@ -2795,7 +2796,10 @@ only within the scan root.
   else the rule id. Two findings have the same family key if the strings are equal.
 * **Propagatable finding**: a finding of phase 3 that is in the output (after the weakness-indicator
   filter of 3.1), whose rule has no `indicator`, and whose rule's subtype is not `prng-secure` (a
-  random-number call in a helper does not make the helper a cryptographic algorithm).
+  random-number call in a helper does not make the helper a cryptographic algorithm) — except in Java,
+  where `prng-secure` findings are propagatable *(DECISIONS B-J-D; not with
+  `--feature java-propagate-random=off`)*: a Java helper that only returns a `SecureRandom` is a thin
+  wrapper of the CSPRNG; a helper with a CSPRNG and another family is no longer a thin wrapper.
 * **Definition**: a function or method declaration of the project (18.2). Its **span** is the
   lines from the row of its name to its last row, inclusive; its **body findings** are the
   propagatable findings whose file is the definition's file and whose line lies in the span, and for
