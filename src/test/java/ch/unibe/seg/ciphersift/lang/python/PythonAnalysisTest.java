@@ -28,7 +28,9 @@ class PythonAnalysisTest {
     static void setUp() throws Exception {
         rules = RuleLoader.loadBundled();
         parser = new Parser(Grammars.get().python());
-        analyzer = new PythonAnalyzer(rules);
+        // these tests check name and string resolution; the U1 fallbacks (DECISIONS B-P-U1) would report every hashlib.new
+        analyzer = new PythonAnalyzer(rules, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS
+                .with(ch.unibe.seg.ciphersift.scan.Features.PYTHON_UNRESOLVED, false));
     }
 
     @AfterAll
