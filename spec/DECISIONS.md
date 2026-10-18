@@ -408,5 +408,5 @@ micro-python unchanged (11/11). All 177 new non-test findings were judged from t
 was removed. Strict precision (DEV rescore of t2r plus the judged additions): old tuning 99 → 99, old dev/regression
 94 → 94, new dev 94 → 92.8, all 15 96 → 95.7; F1 (all 15) 85.3 → 88.9. No change lowers F1 or strict precision of a
 subset by more than 2 pp, so all are on by default. Determinism: byte-identical across `--threads 1/8` and reruns;
-with `python-class-wrappers=off` byte-identical to t2r. Speed (1 thread): electrum 8.1 → 11.1 s, pyhanko 5.4 → 6.3 s,
+with `python-class-wrappers=off` byte-identical to the state before P3-CLS, with all t3 features off (and the t2r rules) to t2r. Speed (1 thread): electrum 8.1 → 11.1 s, pyhanko 5.4 → 6.3 s,
 privacyidea 14.2 → 13.3 s (t1 → t3): throughput at least 73 % of t1, above the 1/4 bound. Measurements per change: `work/ciphersift-t3/python/CHANGES.tsv`.
