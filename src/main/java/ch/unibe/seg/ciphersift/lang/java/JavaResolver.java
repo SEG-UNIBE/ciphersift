@@ -43,6 +43,11 @@ final class JavaResolver {
     /** DECISIONS B-J-JP1 / B-J-JP5 and B-J-JP3. */
     private final boolean getters;
     private final boolean deferred;
+    /**
+     * Start offsets of the deferred locals being resolved (DECISIONS B-J-JP3): a value that needs the local itself
+     * (s = s + "x", or a = b; b = a) is unresolved instead of recursing without bound.
+     */
+    private final java.util.Set<Integer> resolvingDeferred = new java.util.HashSet<>();
 
     JavaResolver(RuleSet rules, JavaContexts contexts) {
         this(rules, contexts, true, true);
@@ -198,10 +203,21 @@ final class JavaResolver {
     /**
      * A local declared without initialiser (SPEC 7.4.3, DECISIONS B-J-JP3): the right-hand sides of the plain
      * assignments {@code name = v} to it in its block after the declaration; null if there is none, if the name is
-     * also the target of a compound assignment, increment or decrement there, or if a value is unresolved. All
-     * values equal: that value; else the alternatives.
+     * also the target of a compound assignment, increment or decrement there, or if a value is unresolved (also
+     * one that needs the local itself). All values equal: that value; else the alternatives.
      */
     private Resolution deferredLocal(SyntaxNode block, SyntaxNode decl, String name, JavaContext ctx) {
+        if (!resolvingDeferred.add(decl.start())) {
+            return null;
+        }
+        try {
+            return deferredLocal0(block, decl, name, ctx);
+        } finally {
+            resolvingDeferred.remove(decl.start());
+        }
+    }
+
+    private Resolution deferredLocal0(SyntaxNode block, SyntaxNode decl, String name, JavaContext ctx) {
         List<JExpr> values = new ArrayList<>();
         java.util.ArrayDeque<SyntaxNode> stack = new java.util.ArrayDeque<>();
         stack.push(block);
