@@ -292,13 +292,14 @@ public final class WrapperPass {
                 names.computeIfAbsent(o.goDir, k -> new TreeSet<>()).add(o.goPackage);
             }
         }
-        boolean v2 = options.features().on(Features.WRAPPER_ALIASES_V2);
         for (Map.Entry<String, Set<String>> e : names.entrySet()) {
             if (e.getValue().size() != 1) {
                 continue;
             }
             String name = e.getValue().iterator().next();
-            Set<String> fams = NameTokens.families(name, "go", v2);
+            // algorithm aliases only: a package named after a protocol or key kind (sshd, tlsutil, certs) holds much
+            // more than that protocol's operations (rescore: nebula's sshd command API, DECISIONS B-G-B3L)
+            Set<String> fams = NameTokens.families(name, "go", false);
             if (fams.isEmpty()) {
                 continue;
             }

@@ -3254,7 +3254,8 @@ default):
 
 * A **package-name package** is a directory of the scan root whose non-test Go files (as indexed, 18.2)
   have exactly one package name *N* (not ending in `_test`) such that *N* names family keys by the
-  tokeniser (18.6, with the V2 aliases if they are on) and the package has a non-test propagatable finding
+  tokeniser (18.6, base and V1 aliases only: not the V2 aliases of protocols, certificates and keys, since a
+  package named `sshd` or `certs` holds much more than those operations) and the package has a non-test propagatable finding
   of such a key. Its **evidence** for key *F* is its first such finding of *F* (by path, line, rule id).
 * A **package-name call** is a Go call site (18.3) `x.M(…)` whose resolution is not ambiguous (18.4), whose
   member `M` does not contain (case-insensitively) `length`, `size`, `encode`, `decode`, `fields`, `find`,
