@@ -22,3 +22,16 @@ match:
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
 - new: org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder
 - new: org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder
+# t3 J-XSIG (benchmark-informed): XML signatures whose algorithm is configured elsewhere. JSR 105 factory (Java SE 21 API,
+# https://docs.oracle.com/en/java/javase/21/docs/api/java.xml.crypto/javax/xml/crypto/dsig/XMLSignatureFactory.html);
+# OpenSAML 4.3 signing and signature validation (sources jar org.opensaml:opensaml-xmlsec-api / -impl 4.3.0,
+# https://build.shibboleth.net/maven/releases/org/opensaml/opensaml-xmlsec-api/4.3.0/).
+- call: javax.xml.crypto.dsig.XMLSignatureFactory.getInstance
+- call: org.opensaml.xmlsec.signature.support.SignatureSupport.signObject
+- call: org.opensaml.xmlsec.signature.support.Signer.signObject
+- call: org.opensaml.xmlsec.signature.support.Signer.signObjects
+- call: org.opensaml.xmlsec.signature.support.SignatureValidator.validate
+- new: org.opensaml.xmlsec.signature.support.impl.ExplicitKeySignatureTrustEngine
+- new: org.opensaml.xmlsec.signature.support.impl.ChainingSignatureTrustEngine
+- call: org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap.buildDefaultSignatureSigningConfiguration
+- call: org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap.buildDefaultSignatureValidationConfiguration

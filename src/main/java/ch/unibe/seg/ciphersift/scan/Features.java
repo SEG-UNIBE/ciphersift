@@ -64,6 +64,18 @@ public final class Features {
 
     /** Java: a no-argument call of the file's only constant getter, and {@code key.getAlgorithm()} (JP1, JP5). */
     public static final String JAVA_CONSTANT_GETTERS = "java-constant-getters";
+    /** Java: constants inherited from project supertypes (t3 J-INH, SPEC 7.4.3, 7.4.5). */
+    public static final String JAVA_INHERITED_CONSTANTS = "java-inherited-constants";
+    /** Java: constants of classes in other source roots of the scan (t3 J-XMOD, SPEC 7.4.5). */
+    public static final String JAVA_CROSS_MODULE_CONSTANTS = "java-cross-module-constants";
+    /** Java: {@code super(…)} / {@code this(…)} constructor calls are call events for {@code anyCall} (t3 J-SUPER, SPEC 7.2). */
+    public static final String JAVA_CONSTRUCTOR_CALLS = "java-constructor-calls";
+    /** Java: constructors are definitions and {@code new C(…)} their call sites for wrapper propagation (t3 J-CTOR, SPEC 18). */
+    public static final String JAVA_CONSTRUCTOR_WRAPPERS = "java-constructor-wrappers";
+    /** Gradle scripts: version-catalog accessors {@code libs.x.y} resolved through gradle/libs.versions.toml (t3 J-CAT, SPEC 9.6). */
+    public static final String GRADLE_CATALOG_ACCESSORS = "gradle-catalog-accessors";
+    /** Maven {@code <scope>test</scope>} and Gradle test-configuration dependencies are test occurrences (t3 J-TSCOPE, SPEC 9.5, 9.6). */
+    public static final String MAVEN_TEST_SCOPE = "maven-test-scope";
     /** Java: locals declared without initialiser and assigned later (JP3, SPEC 7.4.3). */
     public static final String JAVA_DEFERRED_LOCALS = "java-deferred-locals";
 
@@ -102,6 +114,12 @@ public final class Features {
         known(PYTHON_UNRESOLVED, true);
         known(JAVA_CONSTANT_GETTERS, true);
         known(JAVA_DEFERRED_LOCALS, true);
+        known(JAVA_INHERITED_CONSTANTS, true);
+        known(JAVA_CROSS_MODULE_CONSTANTS, true);
+        known(JAVA_CONSTRUCTOR_CALLS, true);
+        known(JAVA_CONSTRUCTOR_WRAPPERS, true);
+        known(GRADLE_CATALOG_ACCESSORS, true);
+        known(MAVEN_TEST_SCOPE, true);
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
         known(GO_PACKAGE_NAMES, true);

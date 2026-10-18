@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-93 cases, 1648 expected findings. A conforming implementation produces exactly the expected
+97 cases, 1683 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -41,7 +41,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `deps/pypi` | 6 | 21 | PEP 508 lines (pins, ranges, extras, markers, options, URLs, comments), `requirements-dev.txt`, `requirements/base.txt`, pyproject (PEP 621, PEP 735, Poetry), `Pipfile.lock`, `poetry.lock` |
 | `deps/maven-managed-version` | 2 | 3 | a version from the same POM's `<dependencyManagement>` (via `<properties>`) applies to an unversioned dependency, in either order; no version anywhere → reported without version (DECISIONS M2) |
 | `deps/pyproject-direct-reference` | 1 | 3 | `pkg @ https://…`, `git+https://…`, `file:///…` direct references in `project.dependencies`, optional dependencies and dependency groups are skipped like in requirements files (DECISIONS O5) |
-| `deps/maven` | 5 | 16 | `pom.xml` (properties, dependencyManagement, plugin dependencies, unmanaged version, unknown property, comments), Groovy and Kotlin Gradle scripts (strings, map notation, variables, comments), version catalog |
+| `deps/maven` | 5 | 17 | `pom.xml` (properties, dependencyManagement, plugin dependencies, unmanaged version, unknown property, comments), Groovy and Kotlin Gradle scripts (strings, map notation, variables, comments), version catalog; since DECISIONS T3-J-TSCOPE / T3-J-CAT the test-scoped `jbcrypt` is a test occurrence and the Kotlin script's `libs.jose4j` resolves (1 expectation changed, 1 added) |
 | `common/test-files` | 6 | 5 | test-file marking with the default `--include-tests` (the `conftest.py` file holds only a weakness indicator, not reported by default: D15) |
 | `common/test-files-excluded` | 6 | 2 | the same input with `--exclude-tests` (D6) |
 | `common/exclude` | 3 | 1 | `--exclude` with `dir/**` and `**/*_pb2.py` |
@@ -111,6 +111,10 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/typed-methods` | 1 | 26 | method anchors on typed receivers: parameters, results by position, type assertions, a single-type type-switch case (not two types), struct fields, one level of embedding (not when the file declares the method), `ecdh` / `mlkem` / `x509` / `ssh` result chains, composite and `new`, a reassigned variable, accessors (DECISIONS B-G-B1a) |
 | `go/api-b2` | 1 | 19 | Sigstore protobuf-specs key and hash values (an aliased `common/v1` import), sigstore `WithED25519ph` and `AlgorithmDetails` methods, go-piv algorithms and `Verify`, CIRCL SLH-DSA parameter sets; LMS and other members give nothing (DECISIONS B-G-B2) |
 | `go/package-names` | 6 | 5 | Go package-name consistency: `aes.NewCipher()` and a method on a variable declared `*aes.Cipher` carry the AES finding of the project package `aes` (via `aes: package aes`); a variable typed only by a call, an excluded member (`EncodedLength`), a package named `ecdsa` without EC findings and a package whose only finding is in a test file give nothing (DECISIONS B-G-B3L) |
+| `java/constant-closure` | 9 | 14 | constants inherited from a superclass of another module and from its interface, a non-final inherited field (not when the subclass assigns it, review3 R3-J-INH1), `C.F` declared in a supertype of `C`, an imported class of another source root, a class path present twice (unresolved), a parameter shadowing an inherited constant; `super(…)` / `this(…)` with an algorithm name (not with a parameter or a non-name); `s.getBytes("UTF-8")` is no constant key, `"…".getBytes("UTF-8")` is (DECISIONS T3-J-INH, T3-J-XMOD, T3-J-SUPER, T3-J-GB) |
+| `java/constructor-wrappers` | 1 | 2 | a constructor with a body finding as wrapper definition, `new C()` as its call site; an overload of another arity without crypto, a class without crypto and an anonymous subclass give nothing (DECISIONS T3-J-CTOR) |
+| `deps/gradle-catalog-accessors` | 3 | 9 | `libs.a.b` and camel-case accessors, a bundle, a non-crypto library and a version accessor through `gradle/libs.versions.toml`; `testImplementation` and `<scope>test</scope>` as test occurrences, a key declared with and without test scope, `attestationImplementation` is no test configuration (DECISIONS T3-J-CAT, T3-J-TSCOPE, review3 R3-J-TS1) |
+| `java/api-t3` | 1 | 9 | `CertificateFactory.generateCertificate` / `generateCRL` on a variable, JSR 105 `XMLSignatureFactory.getInstance`, OpenSAML `Signer.signObject` and `KeyStoreCredentialResolver`, OpenSAML and jose4j constants (not jose4j `NONE`), ed25519-java `EdDSAEngine` and `EdDSANamedCurveTable.getByName` (DECISIONS T3-J-CF, T3-J-XSIG, T3-J-CONST, T3-J-I2P) |
 
 ## Format of expected.json
 

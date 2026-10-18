@@ -384,3 +384,53 @@ code (Sonnet): 124 TP, 20 debatable, 4 FP, 1 wrong-detail. Changes:
 * **B-G-B2 go-piv v1.** The v1 module `github.com/go-piv/piv-go/piv` (v1.11.0, proxy.golang.org) has no
   `AlgorithmRSA3072`, `AlgorithmRSA4096` or `AlgorithmX25519`; the three mirrored anchors are removed (no effect
   on any scan).
+
+**Tuning round t3, Java scope (2026-10-18, branch `tune-java`; scratch `work/ciphersift-t3/java/`).** Tuned on the
+15 Java DEV projects (DEV-REPOS A, B, E): recall on the old-tuning GT (seeds 1+2), the new-dev GT v2.1
+(`work/eval2/gt/dev.jsonl`) and the micro-java hand GT; precision of every added finding judged from the code
+(Sonnet, 277 units sampled of 509 added in-scope findings: 271 TP, 3 wrong-detail, 2 debatable, 1 FP; Fable audit of
+40 of them: 1 overturned TP → debatable). All 15 (estimated strict P / R / F1): 92.6 / 72.9 / 81.6 → 93.6 / 82.7 /
+87.8. Measures per change and leave-project-out gains: `work/ciphersift-t3/java/CHANGES.tsv`. All changes are
+**benchmark-informed**; every new default can be switched off (3.1) except the correctness fix T3-J-GB and the rule
+additions.
+
+| item | decision | where in SPEC.md |
+|---|---|---|
+| T3-J-INH inherited constants | **benchmark-informed** (xchange: `Mac.getInstance(HMAC_SHA_256)` in subclasses of `BaseParamsDigest`; keycloak/xchange "unresolved" labels judged wrong-detail in the DEV scoring). An unqualified name, `this.F`, `C.F` of a class of the file and `C.F` of another class also look in the project supertypes (`extends`, `implements`; interface constants), at most 4 levels, each file once. Feature `java-inherited-constants`. | 7.3.1, 7.4.3, 7.4.4, 7.4.5 |
+| T3-J-XMOD cross-module constants | **benchmark-informed** (lead R-J6: constants of other files; xchange `BaseParamsDigest.HMAC_SHA_256` lives in `xchange-core`, keycloak `JavaAlgorithm.SHA512` in `core`). When the declaring file is not below the file's own source root, the only Java file of the scan whose path ends with the class's package path is the declaring file (none or several: unresolved). Not for files whose own source root is outside the scan root (Appendix A, D5 unchanged). The R-J6 pre-filter question stays open: the closure resolves more names, so a literal-name gate would still change results. Feature `java-cross-module-constants`. | 7.4.5 |
+| T3-J-SUPER `super(…)` / `this(…)` | **benchmark-informed** (xchange: 40 digest classes `super(secret, HMAC_SHA_256)`; shiro `Sha256Hash() { super(ALGORITHM_NAME); }`). Explicit constructor invocations are `call` events named `super` / `this` for the `anyCall` patterns only. Feature `java-constructor-calls`. | 7.2 |
+| T3-J-CTOR constructor wrappers | **benchmark-informed** (shiro `new Sha512Hash()`, xchange `BinanceHmacDigest.createInstance` → `new BinanceHmacDigest(…)`, web3j `new LinuxSecureRandomProvider()`). Java constructors are wrapper definitions named like their class (W6/W7 as for methods), `new C(…)` without a class body is a call of them. Shared code: `Outlines.of` gains a flag (Java only). Feature `java-constructor-wrappers`. | 18.2, 18.3 |
+| T3-J-GB `getBytes(charset)` | Correctness. `s.getBytes("UTF-8")` was a constant key because the first argument (the charset) resolved (2 hard-coded-key FPs in xchange, 2 in uaa tests); `getBytes` / `toCharArray` now need a constant receiver. | 7.4.7 |
+| T3-J-CAT Gradle catalog accessors | **benchmark-informed** (cardano-client-lib `implementation(libs.bouncycastle.bcprov)`, uaa `implementation(libs.bouncyCastleFipsProv)`: 8 GT sites in two projects). Accessors resolve through the nearest `gradle/libs.versions.toml` (Gradle alias normalisation; bundles). Shared dependency code (Maven ecosystem only). Feature `gradle-catalog-accessors`. | 9.6 |
+| T3-J-TSCOPE test-scoped dependencies | **benchmark-informed** (DEV scoring: test-scoped jjwt serializer modules and Bouncy Castle (mid-jjwt), spring-security-crypto (pac4j) judged FP/debatable). Maven `<scope>test</scope>` and Gradle test configurations are test occurrences (dropped with `--exclude-tests`) instead of plain findings. No effect on the DEV measures (the evaluation decides test status by path). Shared dependency code; `ManifestEntry` gains `testScope`. Feature `maven-test-scope`. | 9.5, 9.6 |
+| T3-J-CF CertificateFactory methods | **benchmark-informed** (bitcoinj, pdfbox: `cf.generateCertificate(in)` GT sites). `method` anchors `generateCertificate(s)`, `generateCRL(s)`, `generateCertPath` in `java.cert.x509` (Java SE 21 API). | rules |
+| T3-J-XSIG XML signature APIs | **benchmark-informed** (pac4j, uaa, api-gateway). JSR 105 `XMLSignatureFactory.getInstance` and OpenSAML 4.3 `SignatureSupport.signObject`, `Signer.signObject(s)`, `SignatureValidator.validate`, `ExplicitKeySignatureTrustEngine`, `ChainingSignatureTrustEngine`, `DefaultSecurityConfigurationBootstrap.buildDefaultSignatureSigningConfiguration` / `…ValidationConfiguration` in `java.jca.signature.unresolved`; `KeyStoreCredentialResolver` in `java.cert.keystore` (OpenSAML sources jars, URLs in the rule files). | rules |
+| T3-J-I2P ed25519-java | **benchmark-informed** (cardano-client-lib). `net.i2p.crypto.eddsa` engine, keys, key specs, `GroupElement`, `EdDSANamedCurveTable.getByName` / `ED_25519` in `java.asym.ed25519` (the library is already on the dependency list; sources jar 0.3.0). | rules |
+| T3-J-CONST library constants | **benchmark-informed** (api-gateway jose4j `AlgorithmIdentifiers.RSA_USING_SHA256`, pac4j OpenSAML `SignatureConstants.ALGO_ID_DIGEST_SHA512`). Constants table entries for OpenSAML `SignatureConstants` / `EncryptionConstants` and jose4j `AlgorithmIdentifiers`, `KeyManagementAlgorithmIdentifiers`, `ContentEncryptionAlgorithmIdentifiers` (values from the sources jars; `none` and `dir` left out). | 5.10 |
+
+Known limits found and left: the trust-all rules (`*.cert.validation.disabled`) carry no `tls` / `x509` key, so the
+evaluation's reader never matches them to trust-all GT sites (a scoring-key question across all three languages);
+enum name-holder entries (shiro `PaddingScheme`) are GT gray zone and were not tuned for; variables with a declared
+project type as wrapper receivers (`signatureCreator.digestParamsToString(…)`) are not resolved (xchange only).
+
+**Review round t3, Java (2026-10-18, branch `review3-java` on `tune-java`; scratch `work/ciphersift-t3/review-java/`).**
+Clean-room review of the T3-J changes. Fresh precision sample: 111 added findings re-judged from the sources (Sonnet,
+mostly projects other than xchange), 17 borderline ones re-judged strictly by Fable (7 TP → debatable, all
+metadata/config labels). Owner rule applied: a CSPRNG call is TP whatever the bytes are used for.
+
+| item | decision |
+|---|---|
+| R3-J-INH1 inherited non-final fields | **Fixed.** An inherited field that is not `final` resolved to the supertype's initialiser even when the subclass assigns it (`this.algorithm = a;` in a constructor): the subclass's `reassigned` set was not consulted. Now such a field gives no result if the requesting file or the subclass on the way reassigns the name (SPEC 7.4.3 step 4). Conformance `java/constant-closure`: `FixedHash` (SHA-256) and `ConfiguredHash` (unresolved). |
+| R3-J-TS1 test configurations | **Fixed.** "contains `test`" also matched `attestationImplementation`, `latest…`, `contest…`; now the identifier must start with `test` or contain `Test`. Conformance `deps/gradle-catalog-accessors`: `attestationImplementation` is a plain finding. |
+| R3-J-DOC conformance README | **Fixed.** The tuning commit dropped the README sections "Format of expected.json", "How to compare", "Provenance of the expectations" and "Intentional deviations" (164 lines); restored from `bdcd011`. |
+| T3-J-INH, T3-J-XMOD, T3-J-SUPER | **Kept on.** Their gain comes from xchange (leave-out ~0), but they are general by construction: Java member inheritance, the Maven/Gradle convention that a source file's path ends with its package path, and explicit constructor invocations. They contain no project names, paths or tokens. XMOD's suffix lookup takes the longest package-path suffix and gives no result when it is ambiguous (a class present in two modules, multi-release or shaded copies). It does not check the found file's `package` declaration, which is accepted. Precision concern: XMOD's 116 non-test additions in keycloak are ~61–80% strict TP. The losses are the generic `anyCall` name match on keycloak label setters (`keyWrapper.setType(KeyType.EC)`, `setAlgorithm(Algorithm.RS256)`, `config.putSingle("algorithm", …)`), log arguments (`logger.tracev(…, DEFAULT_ALGORITHM_VALUE)`) and `getJavaAlgorithmForHash(RS512)` (a SHA-512 digest reported as RSA). This is a property of `anyCall`, not of the closure, and is left as an open item. |
+| T3-J-CTOR | **Kept on.** 19/21 TP in the fresh sample, mostly outside xchange. The debatable ones are shiro `Sha*Hash.fromHexString` (no hashing) and constructors that only register a type id. |
+| T3-J-CF, XSIG, I2P, CONST | **Kept.** Provenance re-checked against the sources jars (jose4j 0.9.6, opensaml-xmlsec-api/-impl and opensaml-security-impl 4.3.0, eddsa 0.3.0): every class and method exists, and all 93 constant values match. 18/20 TP. FP: api-gateway `resolveByKeyIdentifier`, which reaches `generateCertificate` on one branch only. |
+| T3-J-CAT, T3-J-TSCOPE, T3-J-GB | **Kept** (10/12 TP; the debatable ones are a test-only nimbus entry and bcutil-fips). |
+
+The review fixes change no in-scope finding on the 15 DEV projects: `review3-java` gives the same pools as the tuner's
+c8, and two runs are byte-identical apart from serial and timestamp. Strict re-estimate for all 15 (base precision
+plus this review's per-change TP rates for the added findings; TC_TRUSTALL matching): P / R / F1 92.6 / 73.5 / 82.0 →
+91.5 / 83.4 / 87.2. The tuner's estimate is 93.6 / 83.4 / 88.2. Switching any one change off lowers F1 (XMOD −2.5,
+INH −2.1, SUPER −2.2, CTOR −0.6, CAT −0.5), so all stay on. Open item: XMOD lowers strict precision on old-devreg
+(keycloak) from 88.7 to 85.8. The cause is the `anyCall` label-setter matches named above.

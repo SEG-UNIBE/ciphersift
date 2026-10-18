@@ -1,0 +1,11 @@
+[versions]
+nimbus = "10.10"
+
+[libraries]
+bouncycastle-bcprov = "org.bouncycastle:bcprov-jdk18on:1.78"
+nimbusJwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbus" }
+guava = "com.google.guava:guava:33.0.0-jre"
+tink = { group = "com.google.crypto.tink", name = "tink", version = "1.13.0" }
+
+[bundles]
+crypto = ["tink", "guava"]

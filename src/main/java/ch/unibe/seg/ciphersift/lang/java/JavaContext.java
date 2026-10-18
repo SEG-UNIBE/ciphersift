@@ -56,6 +56,11 @@ final class JavaContext {
     final Map<String, List<FieldEntry>> fields = new HashMap<>();
     final Set<String> reassigned = new HashSet<>();
     /**
+     * Supertypes named by the file's type declarations ({@code extends}, {@code implements}), as written (whitespace
+     * and generic arguments removed), in walk order without duplicates (SPEC 7.3.1, t3 J-INH).
+     */
+    final List<String> supertypes = new ArrayList<>();
+    /**
      * Constant getters (SPEC 7.4.1, DECISIONS B-J-JP1): method name → the returned expression, for a name
      * declared by exactly one method of the file, which has no parameters and whose body is {@code return e;}.
      */
@@ -90,6 +95,7 @@ final class JavaContext {
         List<SyntaxNode> fieldDecls = new ArrayList<>();
         Set<String> classes = new HashSet<>();
         Set<String> reassigned = new HashSet<>();
+        java.util.LinkedHashSet<String> supers = new java.util.LinkedHashSet<>();
         Map<String, List<SyntaxNode>> methods = new HashMap<>();
         ArrayDeque<SyntaxNode> stack = new ArrayDeque<>();
         stack.push(root);
@@ -134,6 +140,7 @@ final class JavaContext {
                         if (name != null) {
                             classes.add(name.text());
                         }
+                        collectSupertypes(n, supers);
                     }
                 }
             }
@@ -201,7 +208,28 @@ final class JavaContext {
         }
         ctx.localClasses.addAll(classes);
         ctx.reassigned.addAll(reassigned);
+        ctx.supertypes.addAll(supers);
         return ctx;
+    }
+
+    /** The types of the {@code superclass}, {@code super_interfaces} and {@code extends_interfaces} children of a type declaration. */
+    private static void collectSupertypes(SyntaxNode decl, Set<String> out) {
+        for (SyntaxNode c : decl.namedChildren()) {
+            if (!c.is("superclass") && !c.is("super_interfaces") && !c.is("extends_interfaces")) {
+                continue;
+            }
+            for (SyntaxNode t : c.namedChildren()) {
+                List<SyntaxNode> types = t.is("type_list") ? t.namedChildren() : List.of(t);
+                for (SyntaxNode x : types) {
+                    if (x.is("type_identifier") || x.is("scoped_type_identifier") || x.is("generic_type")) {
+                        String name = JavaAnalyzer.removeGenerics(Texts.removeWhitespace(x.text()));
+                        if (!name.isEmpty()) {
+                            out.add(name);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /** The {@code e} of a method {@code m() { return e; }} without parameters, else null (DECISIONS B-J-JP1). */
