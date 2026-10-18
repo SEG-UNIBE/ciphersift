@@ -195,6 +195,25 @@ public final class WrapperPass {
         return out;
     }
 
+    /** Key-material keys (subtypes of key loading, SPEC 18.1) left out of the Go thin test next to another key. */
+    static final Set<String> KEY_MATERIAL_KEYS = Set.of("private-key", "public-key");
+
+    /**
+     * {@link #thinKeys(Set)} plus, for Go with feature {@code go-thin-key-material} (DECISIONS T3-G3): key loading
+     * next to another key does not count either (a helper that parses a key and hands it to an SSH server or a
+     * signer is a thin wrapper of that operation); {@code lang} null: no such exclusion.
+     */
+    Set<String> thinKeys(Set<String> keys, Outline.Lang lang) {
+        Set<String> out = thinKeys(keys);
+        if (lang != Outline.Lang.GO || !options.features().on(Features.GO_THIN_KEY_MATERIAL) || out.size() < 2) {
+            return out;
+        }
+        Set<String> rest = new TreeSet<>(Texts.CODE_POINT_ORDER);
+        rest.addAll(out);
+        rest.removeAll(KEY_MATERIAL_KEYS);
+        return rest.isEmpty() ? out : rest;
+    }
+
     static String familyKey(SourceRule r) {
         if (r.asset().family() != null) {
             return r.asset().family();
@@ -423,8 +442,10 @@ public final class WrapperPass {
                 // the guard only removes evidence: a guarded finding of another family still makes two (SPEC 18.5);
                 // a CSPRNG next to another key does not count (R-J2)
                 if (thin && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
-                    Set<String> ks = thinKeys(n.thinDirect.keySet());
-                    if (ks.size() == 1 && ks.equals(thinKeys(n.direct.keySet()))) {
+                    // T3-G3 only for a definition without a name-consistent carry (loadPrivKey stays a key loader)
+                    Outline.Lang tl = n.carry.isEmpty() ? o.lang : null;
+                    Set<String> ks = thinKeys(n.thinDirect.keySet(), tl);
+                    if (ks.size() == 1 && ks.equals(thinKeys(n.direct.keySet(), tl))) {
                         String k = ks.iterator().next();
                         n.carry.putIfAbsent(k, new Carry(1, 1, n.thinDirect.get(k), List.of(n)));
                     }
@@ -479,8 +500,8 @@ public final class WrapperPass {
                                 keys.addAll(below);
                             }
                         }
-                        keys = thinKeys(keys);
-                        if (keys.size() == 1 && keys.equals(thinKeys(all))) {
+                        keys = thinKeys(keys, o.lang);
+                        if (keys.size() == 1 && keys.equals(thinKeys(all, o.lang))) {
                             String f = keys.iterator().next();
                             Carry c = bestVia(n, f, unguarded, rs, level);
                             if (c != null) {

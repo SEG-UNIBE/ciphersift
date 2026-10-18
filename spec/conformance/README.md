@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-95 cases, 1670 expected findings. A conforming implementation produces exactly the expected
+96 cases, 1679 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -113,6 +113,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/package-names` | 6 | 5 | Go package-name consistency: `aes.NewCipher()` and a method on a variable declared `*aes.Cipher` carry the AES finding of the project package `aes` (via `aes: package aes`); a variable typed only by a call, an excluded member (`EncodedLength`), a package named `ecdsa` without EC findings and a package whose only finding is in a test file give nothing (DECISIONS B-G-B3L) |
 | `go/nested-same-rule` | 1 | 11 | a finding of a rule without family nested on the same line in an event of the same rule is dropped (`rand.Int(rand.Reader, n)`, `VerifyOptions{Roots: NewCertPool()}`); other lines and other rules keep theirs (DECISIONS T3-G1) |
 | `go/api-ethereum` | 1 | 11 | go-ethereum `crypto` (Keccak, secp256k1 signatures and keys) and `accounts/keystore` (scrypt key files, `KeyStore.SignHash` on a typed receiver); nothing for address derivation, size constants or `Accounts()` (DECISIONS T3-G2) |
+| `go/thin-key-material` | 3 | 9 | Go thin wrappers whose key loading sits next to an SSH host-key registration or a SHA-256 key id carry that operation; key loading alone stays a key-loading wrapper (DECISIONS T3-G3) |
 
 ## Format of expected.json
 

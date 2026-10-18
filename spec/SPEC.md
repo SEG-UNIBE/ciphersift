@@ -200,6 +200,7 @@ individually; the table lists every id and its default.
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
+| `go-thin-key-material` | on | Go thin wrappers: key loading (`private-key`, `public-key`) next to another key does not count (18.5) | 18.5 |
 | `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
@@ -3143,7 +3144,12 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
 * **Level 1, W6 (thin)**, where enabled: a definition whose span has at most *L* lines (*L* = 12 for Java,
   *DECISIONS B-J-G*, 8 with `--feature java-thin-12=off`; 8 for Python; 12 for Go, *DECISIONS B-G-E*) and whose body
   findings have exactly one family key carries that key (whatever its name); the key `prng-secure` is left
-  out of this test when another key is present (18.1). Evidence as above.
+  out of this test when another key is present (18.1); in Go, so are the key-loading keys `private-key` and
+  `public-key` *(DECISIONS T3-G3, feature `go-thin-key-material`)*: a helper that parses a key and hands it to
+  an SSH server (`ssh.ParsePrivateKey` + `config.AddHostKey`) or hashes its encoding is a thin wrapper of that
+  operation; a helper with key loading only still carries the key-loading key, and a definition that already
+  carries a key by its name (W7: `loadPrivKey`) gets nothing more from this. The same holds at level *k*.
+  Evidence as above.
 * **Level *k* ≥ 2, W7**: a definition that does not yet carry a key *F* carries *F* if *F* is one of
   its name families and a call site of its body resolves to a group carrying *F* below level *k*.
 * **Fallback-getter guard (Go W6)** *(DECISIONS B-G-E)*: in a Go definition with at least two
