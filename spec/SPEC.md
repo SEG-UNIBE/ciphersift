@@ -190,6 +190,8 @@ individually; the table lists every id and its default.
 | `java-constant-getters` | on | constant getters and `SecretKeySpec.getAlgorithm()` in Java string resolution (7.4.1) | 7.4.1 |
 | `java-deferred-locals` | on | Java locals assigned after their declaration (7.4.3, 7.7.1) | 7.4.3 |
 | `python-unresolved` | on | the Python fallbacks `python.hash.unresolved`, `python.cipher.unresolved` (8.6) | 8.6 |
+| `python-hash-wrappers` | on | Python wrapper names with `hash` / `digest` carry `python.hash.unresolved` (18.6) | 18.6 |
+| `wrapper-evidence-by-name` | on | W7 evidence prefers the body finding whose rule id names a token of the wrapper's name (18.5) | 18.5 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
@@ -3078,7 +3080,9 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
 
 * **Level 1, W7 (name-consistent)**: a definition carries every family key that is both one of its
   name families and the family key of one of its body findings. Evidence: the first such body
-  finding (by line, then rule id).
+  finding (by line, then rule id) whose rule id has a `.`-segment equal to a token of the definition's
+  name (18.6), else the first such body finding *(DECISIONS B-P-B5, feature `wrapper-evidence-by-name`;
+  `_ecdh_recipient` reports the ECDH finding of its body, not the earlier EC key generation)*.
 * **Level 1, W6 (thin)**, where enabled: a definition whose span has at most *L* lines (*L* = 12 for Java,
   *DECISIONS B-J-G*, 8 with `--feature java-thin-12=off`; 8 for Python; 12 for Go, *DECISIONS B-G-E*) and whose body
   findings have exactly one family key carries that key (whatever its name). Evidence as above.
@@ -3161,6 +3165,7 @@ run, or an alias ending in a digit, the same holds, or at most two characters en
 | `private-key`, `public-key` (subtypes, V2) | `privatekey`, `privkey`; `publickey`, `pubkey` |
 | `<lang>.prot.tls.context`, `<lang>.prot.ssh` (rule ids, V2) | `tls`, `ssl`; `ssh` (`<lang>` is the definition's language: `java`, `python`, `go`) |
 | RIPEMD160 (V2, Bitcoin's HASH160) | `hash160` |
+| `python.hash.unresolved` (rule id; Python only, U1W) | `hash`, `digest` (feature `python-hash-wrappers`, *DECISIONS B-P-U1W*) |
 
 The V2 aliases name what a key, certificate or protocol helper returns rather than an algorithm; they
 are on by default and can be switched off with `--feature wrapper-aliases-v2=off` (3.1). As for every

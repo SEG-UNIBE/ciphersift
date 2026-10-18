@@ -29,6 +29,8 @@ public final class NameTokens {
     static final Map<String, String> ALIASES_V2 = new LinkedHashMap<>();
     /** Base and V2 aliases together. */
     static final Map<String, String> ALL_ALIASES = new LinkedHashMap<>();
+    /** Python's hash-fallback aliases (DECISIONS B-P-U1W): {@code hash}, {@code digest} → the fallback rule id. */
+    static final Map<String, String> ALIASES_U1W = Map.of("hash", "*.hash.unresolved", "digest", "*.hash.unresolved");
     /** Parts that may follow or separate aliases inside one token (SPEC 18.6; the last six: DECISIONS B-A1). */
     static final List<String> NEUTRAL = List.of("with", "and", "gcm", "ccm", "cbc", "ctr", "ecb", "cfb", "ofb", "siv",
             "xts", "kw", "pss", "oaep", "d", "sum", "hex", "pkcs1", "v15", "mgf1", "p1363", "ssa", "es");
@@ -171,7 +173,16 @@ public final class NameTokens {
      * {@code python}, {@code go}; with a null language they name nothing).
      */
     public static Set<String> families(String name, String lang, boolean v2) {
+        return families(name, lang, v2, false);
+    }
+
+    /** As {@link #families(String, String, boolean)}, with the U1W aliases if {@code u1w} (DECISIONS B-P-U1W). */
+    public static Set<String> families(String name, String lang, boolean v2, boolean u1w) {
         Map<String, String> aliases = v2 ? ALL_ALIASES : ALIASES;
+        if (u1w) {
+            aliases = new LinkedHashMap<>(aliases);
+            aliases.putAll(ALIASES_U1W);
+        }
         List<String> toks = tokens(name);
         Set<String> out = new TreeSet<>();
         for (int i = 0; i < toks.size(); i++) {
@@ -181,7 +192,7 @@ public final class NameTokens {
                 tokenFamilies(t + toks.get(i + 1), aliases, out); // sha_256, KeyStore, tripleDES
             }
         }
-        if (v2) {
+        if (v2 || u1w) {
             Set<String> r = new TreeSet<>();
             for (String k : out) {
                 if (k.startsWith("*")) {

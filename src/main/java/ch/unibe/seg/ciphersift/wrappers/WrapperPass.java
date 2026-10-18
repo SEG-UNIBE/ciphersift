@@ -94,10 +94,14 @@ public final class WrapperPass {
         /** Family key → carried evidence. */
         final TreeMap<String, Carry> carry = new TreeMap<>(Texts.CODE_POINT_ORDER);
 
-        Node(Outline o, Outline.Def d, boolean v2) {
+        /** Family key → all body findings with that key, by line then rule id (for the B5 tie-break). */
+        final TreeMap<String, List<SourceFinding>> bodyByKey = new TreeMap<>(Texts.CODE_POINT_ORDER);
+
+        Node(Outline o, Outline.Def d, boolean v2, boolean u1w) {
             this.o = o;
             this.d = d;
-            this.nameFams = NameTokens.families(d.name(), langPrefix(o.lang), v2);
+            this.nameFams = NameTokens.families(d.name(), langPrefix(o.lang), v2,
+                    u1w && o.lang == Outline.Lang.PYTHON);
         }
 
         String where() {
@@ -228,7 +232,8 @@ public final class WrapperPass {
             byPath.put(o.path, o);
             List<Node> l = new ArrayList<>(o.defs.size());
             for (Outline.Def d : o.defs) {
-                l.add(new Node(o, d, options.features().on(Features.WRAPPER_ALIASES_V2)));
+                l.add(new Node(o, d, options.features().on(Features.WRAPPER_ALIASES_V2),
+                        options.features().on(Features.PYTHON_HASH_WRAPPERS)));
             }
             nodes.put(o, l);
             index(o, l);
@@ -254,6 +259,7 @@ public final class WrapperPass {
                 int d = innermost(o, f.line());
                 if (d >= 0) {
                     l.get(d).direct.putIfAbsent(familyKey(f.rule()), f);
+                    l.get(d).bodyByKey.computeIfAbsent(familyKey(f.rule()), k -> new ArrayList<>()).add(f);
                     if (!guarded(o, d, f.line())) {
                         l.get(d).thinDirect.putIfAbsent(familyKey(f.rule()), f);
                     }
@@ -344,6 +350,26 @@ public final class WrapperPass {
         return dir == null || dir.equals(o.goDir) ? null : goPkgs.get(dir);
     }
 
+    /**
+     * W7 evidence (SPEC 18.5, DECISIONS B-P-B5): the first body finding of key {@code f} whose rule id has a
+     * segment equal to a token of the definition's name (`_ecdh_recipient` → `python.asym.ecdh` rather than the
+     * earlier `python.asym.ec`), else {@code first}.
+     */
+    private SourceFinding byName(Node n, String f, SourceFinding first) {
+        if (!options.features().on(Features.WRAPPER_EVIDENCE_BY_NAME)) {
+            return first;
+        }
+        List<String> toks = NameTokens.tokens(n.d.name());
+        for (SourceFinding x : n.bodyByKey.getOrDefault(f, List.of())) {
+            for (String seg : x.rule().id().split("\\.")) {
+                if (toks.contains(seg)) {
+                    return x;
+                }
+            }
+        }
+        return first;
+    }
+
     /** The innermost definition of a file whose span contains the line (SPEC 18.1), or -1. */
     private static int innermost(Outline o, int line) {
         int best = -1;
@@ -372,7 +398,7 @@ public final class WrapperPass {
                     for (String f : n.nameFams) {
                         SourceFinding e = n.direct.get(f);
                         if (e != null) {
-                            n.carry.put(f, new Carry(1, 1, e, List.of(n)));
+                            n.carry.put(f, new Carry(1, 1, byName(n, f, e), List.of(n)));
                         }
                     }
                 }

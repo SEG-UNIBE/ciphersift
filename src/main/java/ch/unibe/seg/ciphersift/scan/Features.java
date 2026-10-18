@@ -64,8 +64,15 @@ public final class Features {
     /** Python {@code *.unresolved} fallbacks for algorithms chosen at run time (U1, SPEC 8.6). */
     public static final String PYTHON_UNRESOLVED = "python-unresolved";
 
+    /** Python wrapper names with {@code hash} / {@code digest} carry the hash fallback (U1W, SPEC 18.6). */
+    public static final String PYTHON_HASH_WRAPPERS = "python-hash-wrappers";
+    /** W7 evidence: prefer a body finding whose rule id names a token of the wrapper's name (B5, SPEC 18.5). */
+    public static final String WRAPPER_EVIDENCE_BY_NAME = "wrapper-evidence-by-name";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_HASH_WRAPPERS, true);
+        known(WRAPPER_EVIDENCE_BY_NAME, true);
         known(PYTHON_UNRESOLVED, true);
         known(JAVA_CONSTANT_GETTERS, true);
         known(JAVA_DEFERRED_LOCALS, true);
