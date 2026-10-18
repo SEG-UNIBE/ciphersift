@@ -19,3 +19,6 @@ match:
   firstString: CAST5$
 - new: org.bouncycastle.crypto.engines.CAST5Engine
 - call: org.bouncycastle.crypto.engines.CAST5Engine.newInstance
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.cast5CBC
+- field: org.bouncycastle.cms.CMSAlgorithm.CAST5_CBC

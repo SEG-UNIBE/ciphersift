@@ -39,6 +39,13 @@ match:
 - call: org.bouncycastle.crypto.generators.DESedeKeyGenerator.newInstance
 - new: org.bouncycastle.crypto.params.DESedeParameters
 - call: org.bouncycastle.crypto.params.DESedeParameters.newInstance
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.des_EDE3_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd3_KeyTripleDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd2_KeyTripleDES_CBC
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.desEDE
+- field: org.bouncycastle.cms.CMSAlgorithm.DES_EDE3_CBC
+- field: org.bouncycastle.cms.CMSAlgorithm.DES_EDE3_WRAP
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

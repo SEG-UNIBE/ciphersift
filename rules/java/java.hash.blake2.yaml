@@ -47,3 +47,19 @@ match:
 - call: org.bouncycastle.crypto.macs.Blake3Mac.newInstance
 - new: org.bouncycastle.crypto.params.Blake3Parameters
 - call: org.bouncycastle.crypto.params.Blake3Parameters.newInstance
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.sm2encrypt_with_blake2b512
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.sm2encrypt_with_blake2s256
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.sm2sign_with_blake2b512
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.sm2sign_with_blake2s256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.blake2
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2b160
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2b256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2b384
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2b512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2s128
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2s160
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2s224
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_blake2s256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.blake3
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.blake3_256

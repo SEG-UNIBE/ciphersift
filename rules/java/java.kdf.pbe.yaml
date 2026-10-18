@@ -52,6 +52,22 @@ match:
 - new: org.bouncycastle.jce.provider.BrokenJCEBlockCipher.OldPBEWithSHAAndTwofish
 - new: org.bouncycastle.jce.provider.BrokenPBE
 - new: org.bouncycastle.operator.PBEMacCalculatorProvider
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD2AndDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD2AndRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD5AndDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD5AndRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHA1AndDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHA1AndRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_PBES2
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pkcs_12PbeIds
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd128BitRC4
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd40BitRC4
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd3_KeyTripleDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd2_KeyTripleDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd128BitRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd40BitRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbewithSHAAnd40BitRC2_CBC
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

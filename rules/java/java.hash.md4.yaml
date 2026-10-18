@@ -26,3 +26,8 @@ match:
 - call: org.bouncycastle.crypto.digests.MD4Digest.newInstance
 - new: org.springframework.security.crypto.password.Md4PasswordEncoder
 - new: org.bouncycastle.jcajce.provider.digest.MD4.Digest
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.md4WithRSAEncryption
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.md4
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.md4WithRSA
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.md4WithRSAEncryption

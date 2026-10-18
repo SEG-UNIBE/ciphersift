@@ -590,7 +590,9 @@ segment of the qualifier as written) has an entry with field `F`, resolves to th
 string, regardless of imports. The bundled table covers commons-codec
 `MessageDigestAlgorithms` and `HmacAlgorithms`, Android `KeyProperties`, the
 `ALGORITHM_NAME` / `DEFAULT_ALGORITHM_NAME` constants of Apache Shiro's hash classes
-*(DECISIONS E16)*, and the algorithm URIs of the Java SE XML signature API (JSR 105)
+*(DECISIONS E16)*, the algorithm OIDs of Bouncy Castle's `NISTObjectIdentifiers`, `PKCSObjectIdentifiers`,
+`X9ObjectIdentifiers` and `TeleTrusTObjectIdentifiers` that the OID table (5.11) knows *(DECISIONS
+B-J-JP2)*, and the algorithm URIs of the Java SE XML signature API (JSR 105)
 `javax.xml.crypto.dsig.DigestMethod` and `SignatureMethod` *(DECISIONS B-J-XD2)*.
 
 ### 5.11 Algorithm OIDs *(DECISIONS E15, decided by owner)*
@@ -628,8 +630,9 @@ case), with no surrounding white space, whose dotted form is listed in the table
   string containing a needle for `stringContains`, the value that satisfied the first
   `dictItems` entry. An algorithm component with an oid writes it as `cryptoProperties.oid`
   (11.3) and has the oid in its key (10.1).
-* **Not covered:** OIDs computed at run time or held in library constants
-  (`PKCSObjectIdentifiers.rsaEncryption`, `NISTObjectIdentifiers.id_sha256.getId()`), and
+* **Not covered:** OIDs computed at run time or held in library constants other than the Bouncy Castle
+  constants of the constants document (5.10, *DECISIONS B-J-JP2*: `NISTObjectIdentifiers.id_sha256.getId()`
+  is covered; Bouncy Castle OID constants used as values are anchors of their rules, *B-J-BCOID*), and
   Java `final` locals assigned after their declaration (7.4.3, Appendix B). OIDs whose family
   has no rule in a language (PBES2 and the PQC OIDs in Python) give no Python finding.
 
@@ -938,7 +941,7 @@ unresolved. Each rule below that evaluates a sub-expression does so at depth `d 
 | `character_literal` | its text with all leading and trailing `'` removed |
 | `parenthesized_expression` | value of its first named child |
 | `binary_expression` with operator `+` | value(left) concatenated with value(right); unresolved if either is unresolved. Other operators: unresolved |
-| `method_invocation` with an `object` and a name in {`getName`, `toString`, `name`, `trim`, `intern`} | value of the object (unchanged; `trim` does not trim) |
+| `method_invocation` with an `object` and a name in {`getName`, `toString`, `name`, `trim`, `intern`, `getId`} | value of the object (unchanged; `trim` does not trim; `getId` of an `ASN1ObjectIdentifier` constant is its OID, *DECISIONS B-J-JP2*) |
 | `identifier` | look the name up (7.4.3); if it yields *(initialiser, ctx′)* → `value(initialiser, ctx′)`; a constants-table hit yields its string |
 | `field_access` | look the access up (7.4.4), then as for `identifier` |
 | anything else | unresolved (ternaries, other calls, `String.format`, array access, …) |

@@ -30,6 +30,9 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (MD2)$
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.md2WithRSAEncryption
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.md2
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

@@ -15,3 +15,7 @@ match:
   firstString: AES-?GMAC$
 - new: org.bouncycastle.crypto.macs.GMac
 - call: org.bouncycastle.crypto.macs.GMac.newInstance
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_GMAC
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_GMAC
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_GMAC

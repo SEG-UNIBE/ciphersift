@@ -82,6 +82,22 @@ match:
 - new: org.bouncycastle.crypto.params.XDHUPublicParameters
 - call: org.bouncycastle.crypto.params.XDHUPublicParameters.newInstance
 - new: org.bouncycastle.jcajce.spec.XDHParameterSpec
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.edec.EdECObjectIdentifiers.id_X25519
+- field: org.bouncycastle.asn1.edec.EdECObjectIdentifiers.id_X448
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDH_SHA1KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECMQV_SHA1KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDH_SHA224KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECMQV_SHA224KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDH_SHA256KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECMQV_SHA256KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDH_SHA384KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECMQV_SHA384KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDH_SHA512KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECMQV_SHA512KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDHGOST3410_2001
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDHGOST3410_2012_256
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDHGOST3410_2012_512
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

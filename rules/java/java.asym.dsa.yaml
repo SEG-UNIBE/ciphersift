@@ -64,6 +64,19 @@ match:
 - call: org.bouncycastle.crypto.signers.StandardDSAEncoding.newInstance
 - new: org.bouncycastle.operator.bc.BcDSAContentSignerBuilder
 - new: org.bouncycastle.operator.bc.BcDSAContentVerifierProviderBuilder
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_dsa_with_sha2
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.dsa_with_sha224
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.dsa_with_sha256
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.dsa_with_sha384
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.dsa_with_sha512
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_dsa_with_sha3_224
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_dsa_with_sha3_256
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_dsa_with_sha3_384
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_dsa_with_sha3_512
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.id_dsa
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.id_dsa_with_sha1
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.dsaWithSHA1
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

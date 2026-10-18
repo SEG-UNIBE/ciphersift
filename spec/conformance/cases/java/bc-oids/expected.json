@@ -1,0 +1,5 @@
+{"case": "java/bc-oids", "findings": [
+  {"file": "b/Oids.java", "line": 12, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "NISTObjectIdentifiers.id_sha256"},
+  {"file": "b/Oids.java", "line": 13, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-384", "oid": "2.16.840.1.101.3.4.2.2"},
+  {"file": "b/Oids.java", "line": 14, "rule": "java.sym.rc2", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "RC2", "variant": null, "protocol": null, "version": null, "param": null, "name": "RC2/CBC/NoPadding", "oid": "1.2.840.113549.3.2"}
+]}

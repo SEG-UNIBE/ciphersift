@@ -17,7 +17,8 @@ import java.util.Set;
 /** Constant resolution (SPEC 7.4): {@code value}, lookups, string lists and constant bytes. */
 final class JavaResolver {
     static final int MAX_DEPTH = 12;
-    private static final Set<String> VALUE_METHODS = Set.of("getName", "toString", "name", "trim", "intern");
+    /** Calls that return their receiver's value (SPEC 7.4.1); {@code getId}: DECISIONS B-J-JP2. */
+    private static final Set<String> VALUE_METHODS = Set.of("getName", "toString", "name", "trim", "intern", "getId");
     private static final Set<String> DECODERS = Set.of("getBytes", "toCharArray", "decode", "decodeHex",
             "decodeBase64", "parseHexBinary", "parseBase64Binary", "fromHexString", "hexStringToByteArray",
             "hexToBytes", "fromHex");

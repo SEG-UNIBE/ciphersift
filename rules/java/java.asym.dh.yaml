@@ -65,6 +65,24 @@ match:
 - new: org.bouncycastle.jcajce.spec.DHExtendedPrivateKeySpec
 - new: org.bouncycastle.jcajce.spec.DHExtendedPublicKeySpec
 - new: org.bouncycastle.jce.provider.DHUtil
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.dhKeyAgreement
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhSinglePass_stdDH_sha1kdf_scheme
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhSinglePass_cofactorDH_sha1kdf_scheme
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhStatic
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhEphem
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhOneFlow
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhHybrid1
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhHybrid2
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhHybridOneFlow
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_stdDH_sha224kdf_scheme
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_stdDH_sha256kdf_scheme
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_stdDH_sha384kdf_scheme
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_stdDH_sha512kdf_scheme
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_cofactorDH_sha224kdf_scheme
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_cofactorDH_sha256kdf_scheme
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_cofactorDH_sha384kdf_scheme
+- field: org.bouncycastle.asn1.sec.SECObjectIdentifiers.dhSinglePass_cofactorDH_sha512kdf_scheme
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

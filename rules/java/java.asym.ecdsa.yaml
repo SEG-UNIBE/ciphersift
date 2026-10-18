@@ -36,6 +36,27 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (SHA1withECDSA|SHA224withECDSA|SHA256withECDSA|SHA384withECDSA|SHA512withECDSA|SHA3-224withECDSA|SHA3-256withECDSA|SHA3-384withECDSA|SHA3-512withECDSA)$
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_ecdsa_with_sha3_224
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_ecdsa_with_sha3_256
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_ecdsa_with_sha3_384
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_ecdsa_with_sha3_512
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.ecdsa_with_SHA1
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.ecdsa_with_SHA2
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.ecdsa_with_SHA224
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.ecdsa_with_SHA256
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.ecdsa_with_SHA384
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.ecdsa_with_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_ECDSA_brainpoolP256r1_SHA256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_ECDSA_P256_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_ECDSA_brainpoolP256r1_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA87_ECDSA_P384_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA87_ECDSA_brainpoolP384r1_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_Falcon512_ECDSA_P256_SHA256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_Falcon512_ECDSA_brainpoolP256r1_SHA256
+- field: org.bouncycastle.asn1.x509.X509ObjectIdentifiers.id_ecdsa_with_shake128
+- field: org.bouncycastle.asn1.x509.X509ObjectIdentifiers.id_ecdsa_with_shake256
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

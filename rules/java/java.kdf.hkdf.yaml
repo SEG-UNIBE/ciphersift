@@ -21,3 +21,7 @@ match:
 - new: org.bouncycastle.crypto.params.HKDFParameters
 - call: org.bouncycastle.crypto.params.HKDFParameters.newInstance
 - new: org.bouncycastle.jcajce.spec.HKDFParameterSpec
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_alg_hkdf_with_sha256
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_alg_hkdf_with_sha384
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_alg_hkdf_with_sha512

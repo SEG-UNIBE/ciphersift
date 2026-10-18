@@ -30,3 +30,5 @@ match:
 - new: org.bouncycastle.crypto.util.ScryptConfig
 - call: org.bouncycastle.crypto.util.ScryptConfig.newInstance
 - new: org.bouncycastle.jcajce.spec.ScryptKeySpec
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_scrypt

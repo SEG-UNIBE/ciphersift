@@ -30,6 +30,8 @@ match:
 - new: org.bouncycastle.crypto.util.PBKDF2Config
 - call: org.bouncycastle.crypto.util.PBKDF2Config.newInstance
 - new: org.bouncycastle.jcajce.spec.PBKDF2KeySpec
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_PBKDF2
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

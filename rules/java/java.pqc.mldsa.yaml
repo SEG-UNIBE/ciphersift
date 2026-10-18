@@ -61,6 +61,20 @@ match:
 - new: org.bouncycastle.pqc.crypto.mldsa.MLDSAPrivateKeyParameters
 - new: org.bouncycastle.pqc.crypto.mldsa.MLDSAPublicKeyParameters
 - new: org.bouncycastle.pqc.jcajce.provider.Dilithium
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_RSA2048_PSS_SHA256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_RSA2048_PKCS15_SHA256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_Ed25519_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_ECDSA_brainpoolP256r1_SHA256
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_RSA3072_PSS_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_RSA3072_PKCS15_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_ECDSA_P256_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_ECDSA_brainpoolP256r1_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_Ed25519_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA87_ECDSA_P384_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA87_ECDSA_brainpoolP384r1_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA87_Ed448_SHA512
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

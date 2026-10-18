@@ -72,6 +72,13 @@ match:
 - call: org.bouncycastle.crypto.signers.Ed448phSigner.newInstance
 - new: org.bouncycastle.jcajce.spec.EdDSAParameterSpec
 - new: org.bouncycastle.operator.bc.BcEdDSAContentVerifierProviderBuilder
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.edec.EdECObjectIdentifiers.id_Ed25519
+- field: org.bouncycastle.asn1.edec.EdECObjectIdentifiers.id_Ed448
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA44_Ed25519_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA65_Ed25519_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_MLDSA87_Ed448_SHA512
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_Falcon512_Ed25519_SHA512
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

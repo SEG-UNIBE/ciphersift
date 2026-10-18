@@ -59,6 +59,20 @@ match:
 - new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_384
 - new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_512
 - new: org.bouncycastle.jcajce.provider.digest.Tiger.TigerHmac
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_hmacWithSHA3_224
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_hmacWithSHA3_256
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_hmacWithSHA3_384
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_hmacWithSHA3_512
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA1
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA224
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA256
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA384
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA512
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA512_224
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.id_hmacWithSHA512_256
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.hmac_sm3
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.hMAC_SHA1
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

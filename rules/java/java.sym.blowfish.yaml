@@ -23,6 +23,11 @@ match:
 - call: org.bouncycastle.crypto.engines.BlowfishEngine.newInstance
 - call: java.security.AlgorithmParameters.getInstance
   firstString: Blowfish$
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.cryptlib_algorithm_blowfish_ECB
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.cryptlib_algorithm_blowfish_CBC
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.cryptlib_algorithm_blowfish_CFB
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.cryptlib_algorithm_blowfish_OFB
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

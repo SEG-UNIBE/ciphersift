@@ -40,6 +40,15 @@ match:
 - call: org.bouncycastle.crypto.params.DESParameters.newInstance
 - new: org.bouncycastle.jce.provider.BrokenJCEBlockCipher.BrokePBEWithMD5AndDES
 - new: org.bouncycastle.jce.provider.BrokenJCEBlockCipher.BrokePBEWithSHA1AndDES
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD2AndDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD5AndDES_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHA1AndDES_CBC
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.desECB
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.desCBC
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.desOFB
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.desCFB
+- field: org.bouncycastle.cms.CMSAlgorithm.DES_CBC
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

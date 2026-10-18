@@ -40,6 +40,12 @@ match:
   firstString: (MD5)$
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
 - call: org.bouncycastle.crypto.util.DigestFactory.createMD5
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.md5WithRSAEncryption
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.md5
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.sm2encrypt_with_md5
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.md5WithRSA
+- field: org.bouncycastle.cms.CMSAlgorithm.MD5
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

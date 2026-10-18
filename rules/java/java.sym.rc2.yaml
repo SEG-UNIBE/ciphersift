@@ -16,13 +16,16 @@ match:
 - call: javax.crypto.Cipher.getInstance
   firstString: RC2(/.*)?$
 - call: javax.crypto.KeyGenerator.getInstance
-  firstString: RC2$
+  firstString: RC2(/CBC/NoPadding)?$
 - new: javax.crypto.spec.SecretKeySpec
   firstString: RC2$
 - new: org.bouncycastle.crypto.engines.RC2Engine
 - call: org.bouncycastle.crypto.engines.RC2Engine.newInstance
 - call: java.security.AlgorithmParameters.getInstance
-  firstString: RC2$
+  firstString: RC2(/CBC/NoPadding)?$
+# DECISIONS B-J-JP2: the table name of the rc2CBC OID (5.11) also in the key and parameter generators
+- call: java.security.AlgorithmParameterGenerator.getInstance
+  firstString: RC2(/CBC/NoPadding)?$
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (RC2/CBC/NoPadding)$
@@ -33,6 +36,15 @@ match:
 - call: org.bouncycastle.crypto.engines.RC2WrapEngine.newInstance
 - new: org.bouncycastle.crypto.params.RC2Parameters
 - call: org.bouncycastle.crypto.params.RC2Parameters.newInstance
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD2AndRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithMD5AndRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHA1AndRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.RC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd128BitRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd40BitRC2_CBC
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbewithSHAAnd40BitRC2_CBC
+- field: org.bouncycastle.cms.CMSAlgorithm.RC2_CBC
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

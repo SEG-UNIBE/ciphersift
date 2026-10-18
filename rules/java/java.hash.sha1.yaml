@@ -46,6 +46,25 @@ match:
 - call: org.bouncycastle.crypto.digests.SHA1InterleaveDigest.newInstance
 - new: org.bouncycastle.jcajce.provider.digest.SHA1.SHA1Mac
 - call: org.bouncycastle.crypto.util.DigestFactory.createSHA1
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.sha1WithRSAEncryption
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.ecdsa_with_SHA1
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.id_dsa_with_sha1
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhSinglePass_stdDH_sha1kdf_scheme
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.dhSinglePass_cofactorDH_sha1kdf_scheme
+- field: org.bouncycastle.asn1.x9.X9ObjectIdentifiers.mqvSinglePass_sha1kdf_scheme
+- field: org.bouncycastle.asn1.teletrust.TeleTrusTObjectIdentifiers.ecSignWithSha1
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.sm2encrypt_with_sha1
+- field: org.bouncycastle.asn1.gm.GMObjectIdentifiers.sm2sign_with_sha1
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.idSHA1
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.dsaWithSHA1
+- field: org.bouncycastle.asn1.oiw.OIWObjectIdentifiers.sha1WithRSA
+- field: org.bouncycastle.asn1.x509.X509ObjectIdentifiers.id_SHA1
+- field: org.bouncycastle.cms.CMSAlgorithm.ECDH_SHA1KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECCDH_SHA1KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.ECMQV_SHA1KDF
+- field: org.bouncycastle.cms.CMSAlgorithm.SHA1
+- field: org.bouncycastle.cert.ocsp.CertificateID.HASH_SHA1
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

@@ -47,6 +47,47 @@ match:
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
 - new: org.bouncycastle.operator.bc.BcAESSymmetricKeyUnwrapper
 - new: org.bouncycastle.operator.bc.BcAESSymmetricKeyWrapper
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.aes
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_ECB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_CBC
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_OFB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_CFB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_wrap
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_GCM
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_CCM
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_wrap_pad
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes128_GMAC
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_ECB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_CBC
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_OFB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_CFB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_wrap
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_GCM
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_CCM
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_wrap_pad
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes192_GMAC
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_ECB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_CBC
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_OFB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_CFB
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_wrap
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_GCM
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_CCM
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_wrap_pad
+- field: org.bouncycastle.asn1.nist.NISTObjectIdentifiers.id_aes256_GMAC
+- field: org.bouncycastle.cms.CMSAlgorithm.AES128_CBC
+- field: org.bouncycastle.cms.CMSAlgorithm.AES192_CBC
+- field: org.bouncycastle.cms.CMSAlgorithm.AES256_CBC
+- field: org.bouncycastle.cms.CMSAlgorithm.AES128_CCM
+- field: org.bouncycastle.cms.CMSAlgorithm.AES192_CCM
+- field: org.bouncycastle.cms.CMSAlgorithm.AES256_CCM
+- field: org.bouncycastle.cms.CMSAlgorithm.AES128_GCM
+- field: org.bouncycastle.cms.CMSAlgorithm.AES192_GCM
+- field: org.bouncycastle.cms.CMSAlgorithm.AES256_GCM
+- field: org.bouncycastle.cms.CMSAlgorithm.AES128_WRAP
+- field: org.bouncycastle.cms.CMSAlgorithm.AES192_WRAP
+- field: org.bouncycastle.cms.CMSAlgorithm.AES256_WRAP
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

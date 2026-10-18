@@ -19,3 +19,7 @@ match:
   firstString: IDEA$
 - new: org.bouncycastle.crypto.engines.IDEAEngine
 - call: org.bouncycastle.crypto.engines.IDEAEngine.newInstance
+# DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
+- field: org.bouncycastle.asn1.misc.MiscObjectIdentifiers.as_sys_sec_alg_ideaCBC
+- field: org.bouncycastle.asn1.x509.X509ObjectIdentifiers.id_ea_rsa
+- field: org.bouncycastle.cms.CMSAlgorithm.IDEA_CBC
