@@ -73,7 +73,7 @@ class RuleLoaderTest {
         for (RuleLoader.RuleFile f : RuleLoader.bundledFiles()) {
             tests.add(DynamicTest.dynamicTest(f.path(), () -> RuleLoader.load(List.of(f))));
         }
-        assertEquals(263, tests.size());
+        assertEquals(264, tests.size()); // + go.pqc.slhdsa (DECISIONS B-G-B2)
         return tests.stream();
     }
 
