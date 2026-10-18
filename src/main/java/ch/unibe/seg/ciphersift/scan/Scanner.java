@@ -134,7 +134,7 @@ public final class Scanner {
         this.javaAnalyzer = new JavaAnalyzer(options.rules(), contexts, options.features());
         this.pythonAnalyzer = new PythonAnalyzer(options.rules(), options.features());
         this.goAnalyzer = new GoAnalyzer(options.rules(), options.features());
-        this.dependencyScanner = new DependencyScanner(options.rules(), options.features());
+        this.dependencyScanner = new DependencyScanner(options.rules(), options.features(), options.root());
         boolean filter = !Boolean.getBoolean(NO_PREFILTER);
         this.javaFilter = filter ? AnchorPrefilter.java(options.rules().javaRules(), options.features()) : AnchorPrefilter.ALL;
         this.pythonFilter = filter ? AnchorPrefilter.python(options.rules().pythonRules(), options.features()) : AnchorPrefilter.ALL;
@@ -360,8 +360,12 @@ public final class Scanner {
                         null);
             }
             try {
-                return new FileResult(Outcome.MANIFEST,
-                        FileFindings.ofDependencies(dependencyScanner.scan(rel, fc, bytes, f.test())));
+                List<DependencyFinding> deps = dependencyScanner.scan(rel, fc, bytes, f.test());
+                if (options.excludeTests()) {
+                    // test-scoped entries are test occurrences (t3 J-TSCOPE); --exclude-tests drops them
+                    deps = deps.stream().filter(d -> !d.test()).toList();
+                }
+                return new FileResult(Outcome.MANIFEST, FileFindings.ofDependencies(deps));
             } catch (DependencyScanner.MalformedManifestException ex) {
                 Log.warning("cannot parse manifest " + rel + ": " + ex.getMessage());
                 return new FileResult(Outcome.MANIFEST, FileFindings.EMPTY);
@@ -410,7 +414,7 @@ public final class Scanner {
             return null;
         }
         try {
-            return Outlines.of(l, root, rel, test);
+            return Outlines.of(l, root, rel, test, options.features().on(Features.JAVA_CONSTRUCTOR_WRAPPERS));
         } catch (RuntimeException | StackOverflowError ex) {
             Log.debug("cannot index " + rel + " for wrapper propagation (" + message(ex) + ")");
             return null;

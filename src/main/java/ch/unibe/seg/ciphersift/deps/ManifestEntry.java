@@ -12,10 +12,21 @@ package ch.unibe.seg.ciphersift.deps;
  * @param snippet the coordinate as text
  * @param transitive the manifest marks the entry as a transitive requirement (go.mod {@code // indirect},
  *        SPEC 17.10, DECISIONS B-G1)
+ * @param testScope declared for tests only: Maven {@code <scope>test</scope>}, a Gradle test configuration
+ *        (t3 J-TSCOPE)
  */
-public record ManifestEntry(String key, String version, String snippet, boolean transitive) {
+public record ManifestEntry(String key, String version, String snippet, boolean transitive, boolean testScope) {
     /** A direct entry. */
     public ManifestEntry(String key, String version, String snippet) {
-        this(key, version, snippet, false);
+        this(key, version, snippet, false, false);
+    }
+
+    public ManifestEntry(String key, String version, String snippet, boolean transitive) {
+        this(key, version, snippet, transitive, false);
+    }
+
+    /** This entry declared for tests only. */
+    ManifestEntry asTestScope() {
+        return new ManifestEntry(key, version, snippet, transitive, true);
     }
 }

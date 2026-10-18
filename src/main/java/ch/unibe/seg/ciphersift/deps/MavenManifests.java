@@ -108,7 +108,8 @@ final class MavenManifests {
             if (v != null) {
                 v = substitute(v, props);
             }
-            out.add(entry(g, a, v));
+            ManifestEntry e = entry(g, a, v);
+            out.add("test".equals(childText(d, "scope")) ? e.asTestScope() : e);
         }
         return out;
     }
@@ -233,6 +234,18 @@ final class MavenManifests {
     private record Literal(int start, String content, boolean triple) {}
 
     static List<ManifestEntry> gradle(String text) {
+        return gradle(text, Map.of());
+    }
+
+    /** {@code libs.<alias>} / {@code libs.bundles.<name>} accessors (t3 J-CAT). */
+    private static final Pattern ACCESSOR = Pattern.compile("(?<![A-Za-z0-9_.$])libs\\.([A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*)");
+
+    /**
+     * Gradle script entries (SPEC 9.6); with a catalog (aliases as of {@link #catalogAliases}, t3 J-CAT), each
+     * accessor {@code libs.a.b…} (not {@code libs.versions…} or {@code libs.plugins…}) is the catalog entry of the
+     * longest alias it starts with, and {@code libs.bundles.n} the entries of bundle n.
+     */
+    static List<ManifestEntry> gradle(String text, Map<String, List<ManifestEntry>> catalog) {
         List<Literal> literals = new ArrayList<>();
         String clean = stripComments(text, literals);
         Map<String, String> vars = new HashMap<>();
@@ -261,7 +274,7 @@ final class MavenManifests {
             String v = substituteVariables(l.content(), vars);
             ManifestEntry e = coordinate(v);
             if (e != null) {
-                found.add(new Positioned(l.start(), e));
+                found.add(new Positioned(l.start(), testConfiguration(clean, l.start()) ? e.asTestScope() : e));
             }
         }
         // same matches as MAP_NOTATION.matcher(clean).find(), in linear-logarithmic time
@@ -275,7 +288,29 @@ final class MavenManifests {
             if (v != null && v.indexOf('$') >= 0) {
                 v = null;
             }
-            found.add(new Positioned(m.start(), entry(g, a, v)));
+            ManifestEntry me = entry(g, a, v);
+            found.add(new Positioned(m.start(), testConfiguration(clean, m.start()) ? me.asTestScope() : me));
+        }
+        if (!catalog.isEmpty()) {
+            Matcher am = ACCESSOR.matcher(clean);
+            while (am.find()) {
+                String[] segs = am.group(1).split("\\.");
+                if (segs[0].equals("versions") || segs[0].equals("plugins")) {
+                    continue;
+                }
+                boolean bundle = segs[0].equals("bundles");
+                for (int k = segs.length; k >= (bundle ? 2 : 1); k--) {
+                    String alias = String.join(".", java.util.Arrays.copyOfRange(segs, 0, k));
+                    List<ManifestEntry> es = catalog.get(alias);
+                    if (es != null) {
+                        boolean t = testConfiguration(clean, am.start());
+                        for (ManifestEntry e : es) {
+                            found.add(new Positioned(am.start(), t ? e.asTestScope() : e));
+                        }
+                        break;
+                    }
+                }
+            }
         }
         found.sort((x, y) -> Integer.compare(x.start(), y.start()));
         List<ManifestEntry> out = new ArrayList<>();
@@ -283,6 +318,31 @@ final class MavenManifests {
             out.add(p.entry());
         }
         return out;
+    }
+
+    /**
+     * Whether the dependency notation starting at {@code start} (a string literal, map notation or catalog accessor;
+     * {@code start} may point at its opening quote) is the argument of a test configuration (t3 J-TSCOPE): the
+     * identifier before it, skipping whitespace and one {@code (}, contains {@code test} or {@code Test}
+     * ({@code testImplementation}, {@code androidTestImplementation}, {@code testFixturesApi}, …).
+     */
+    static boolean testConfiguration(String clean, int start) {
+        int i = start - 1;
+        while (i >= 0 && Character.isWhitespace(clean.charAt(i))) {
+            i--;
+        }
+        if (i >= 0 && clean.charAt(i) == '(') {
+            i--;
+            while (i >= 0 && Character.isWhitespace(clean.charAt(i))) {
+                i--;
+            }
+        }
+        int end = i + 1;
+        while (i >= 0 && (Character.isLetterOrDigit(clean.charAt(i)) || clean.charAt(i) == '_')) {
+            i--;
+        }
+        String id = clean.substring(i + 1, end);
+        return id.contains("test") || id.contains("Test");
     }
 
     /** A {@code g:a[:v]} coordinate string (SPEC 9.6 step 3), or null. */
@@ -390,6 +450,48 @@ final class MavenManifests {
     // ------------------------------------------------------------------ version catalogs (9.7)
 
     static List<ManifestEntry> versionCatalog(String text) throws IOException {
+        List<ManifestEntry> out = new ArrayList<>();
+        for (Map.Entry<String, ManifestEntry> e : catalogLibraries(text)) {
+            out.add(e.getValue());
+        }
+        return out;
+    }
+
+    /** Gradle's alias normalisation: {@code -} and {@code _} separate like {@code .} (t3 J-CAT). */
+    static String normaliseAlias(String alias) {
+        return alias.replace('-', '.').replace('_', '.');
+    }
+
+    /**
+     * A catalog's libraries by normalised alias, and its bundles as {@code bundles.<normalised name>} → the entries
+     * of their aliases (t3 J-CAT).
+     */
+    static Map<String, List<ManifestEntry>> catalogAliases(String text) throws IOException {
+        Map<String, List<ManifestEntry>> out = new HashMap<>();
+        for (Map.Entry<String, ManifestEntry> e : catalogLibraries(text)) {
+            out.put(normaliseAlias(e.getKey()), List.of(e.getValue()));
+        }
+        JsonNode bundles = PythonManifests.TOML.readTree(text).path("bundles");
+        if (bundles.isObject()) {
+            for (Iterator<Map.Entry<String, JsonNode>> it = bundles.properties().iterator(); it.hasNext();) {
+                Map.Entry<String, JsonNode> b = it.next();
+                if (!b.getValue().isArray()) {
+                    continue;
+                }
+                List<ManifestEntry> es = new ArrayList<>();
+                for (JsonNode a : b.getValue()) {
+                    List<ManifestEntry> l = a.isTextual() ? out.get(normaliseAlias(a.asText())) : null;
+                    if (l != null) {
+                        es.addAll(l);
+                    }
+                }
+                out.put("bundles." + normaliseAlias(b.getKey()), List.copyOf(es));
+            }
+        }
+        return out;
+    }
+
+    private static List<Map.Entry<String, ManifestEntry>> catalogLibraries(String text) throws IOException {
         JsonNode root = PythonManifests.TOML.readTree(text);
         Map<String, String> versions = new HashMap<>();
         JsonNode vs = root.path("versions");
@@ -402,17 +504,18 @@ final class MavenManifests {
                 }
             }
         }
-        List<ManifestEntry> out = new ArrayList<>();
+        List<Map.Entry<String, ManifestEntry>> out = new ArrayList<>();
         JsonNode libs = root.path("libraries");
         if (!libs.isObject()) {
             return out;
         }
         for (Iterator<Map.Entry<String, JsonNode>> it = libs.properties().iterator(); it.hasNext();) {
-            JsonNode lib = it.next().getValue();
+            Map.Entry<String, JsonNode> libEntry = it.next();
+            JsonNode lib = libEntry.getValue();
             if (lib.isTextual()) {
                 ManifestEntry e = coordinate(lib.asText());
                 if (e != null) {
-                    out.add(e);
+                    out.add(Map.entry(libEntry.getKey(), e));
                 }
                 continue;
             }
@@ -447,7 +550,7 @@ final class MavenManifests {
                     version = richVersion(v);
                 }
             }
-            out.add(entry(group, name, version));
+            out.add(Map.entry(libEntry.getKey(), entry(group, name, version)));
         }
         return out;
     }

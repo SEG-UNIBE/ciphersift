@@ -1,0 +1,11 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>x</groupId><artifactId>lib</artifactId><version>1</version>
+  <dependencies>
+    <!-- want: dep.maven org.bouncycastle:bcpkix-jdk18on 1.78 test -->
+    <dependency><groupId>org.bouncycastle</groupId><artifactId>bcpkix-jdk18on</artifactId><version>1.78</version><scope>test</scope></dependency>
+    <!-- declared twice, once outside test scope: want: dep.maven org.bouncycastle:bcprov-jdk18on 1.78 (not test) -->
+    <dependency><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk18on</artifactId><version>1.78</version><scope>test</scope></dependency>
+    <dependency><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk18on</artifactId><version>1.78</version></dependency>
+  </dependencies>
+</project>
