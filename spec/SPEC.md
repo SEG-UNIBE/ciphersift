@@ -3135,7 +3135,10 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
   inside an `if_statement` of the definition is a *conditional return*. Body findings and call sites on
   the lines of a conditional return do not count for the W6 tests (here and at level *k*): a getter
   `if c.DefaultHash == 0 { return crypto.SHA256 }; return c.DefaultHash` returns a configured value with
-  a default, it does not wrap SHA-256. W7 is not affected.
+  a default, it does not wrap SHA-256. The guard only removes evidence: the families of conditional
+  returns still count for "exactly one family key", so a definition `if m.IsChaCha { return
+  chacha20poly1305.New(k) }; … return cipher.NewGCM(aes.NewCipher(k))` (two families) is not a thin
+  wrapper of AES *(review fix, DECISIONS B-G-E)*. W7 is not affected.
 * **Level *k* ≥ 2, W6**, where enabled: a definition of at most *L* lines that carries nothing yet
   carries *F* if the family keys of its body findings together with the keys carried (below level
   *k*) by the groups its call sites resolve to are exactly {*F*} (a thin wrapper of a wrapper; the

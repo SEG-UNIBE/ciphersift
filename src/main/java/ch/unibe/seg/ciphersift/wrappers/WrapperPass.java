@@ -403,7 +403,9 @@ public final class WrapperPass {
                         }
                     }
                 }
-                if (thin && n.thinDirect.size() == 1 && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
+                // the guard only removes evidence: a guarded finding of another family still makes two (SPEC 18.5)
+                if (thin && n.thinDirect.size() == 1 && n.direct.size() == 1
+                        && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                     Map.Entry<String, SourceFinding> e = n.thinDirect.firstEntry();
                     n.carry.putIfAbsent(e.getKey(), new Carry(1, 1, e.getValue(), List.of(n)));
                 }
@@ -444,14 +446,20 @@ public final class WrapperPass {
                     if (thin && n.carry.isEmpty() && m.isEmpty() && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                         Set<String> keys = new TreeSet<>(Texts.CODE_POINT_ORDER);
                         keys.addAll(n.thinDirect.keySet());
+                        // all families, the guarded ones included: the guard only removes evidence, it never
+                        // turns a definition with two families into a one-family wrapper (SPEC 18.5)
+                        Set<String> all = new TreeSet<>(Texts.CODE_POINT_ORDER);
+                        all.addAll(n.direct.keySet());
                         List<Integer> unguarded = new ArrayList<>();
                         for (int i : e.getValue()) {
+                            Set<String> below = carriedBelow(rs[i].group(), level);
+                            all.addAll(below);
                             if (!guarded(o, e.getKey(), o.calls.get(i).line())) {
                                 unguarded.add(i);
-                                keys.addAll(carriedBelow(rs[i].group(), level));
+                                keys.addAll(below);
                             }
                         }
-                        if (keys.size() == 1) {
+                        if (keys.size() == 1 && all.size() == 1) {
                             String f = keys.iterator().next();
                             Carry c = bestVia(n, f, unguarded, rs, level);
                             if (c != null) {

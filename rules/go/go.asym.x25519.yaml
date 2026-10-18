@@ -36,4 +36,4 @@ match:
 # DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
 # member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
 - ref: github.com/go-piv/piv-go/v2/piv.AlgorithmX25519
-- ref: github.com/go-piv/piv-go/piv.AlgorithmX25519
+# (the v1 module github.com/go-piv/piv-go/piv, v1.11.0, has no AlgorithmX25519 / AlgorithmRSA3072 / AlgorithmRSA4096)

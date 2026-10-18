@@ -62,9 +62,4 @@ match:
 - ref: github.com/go-piv/piv-go/piv.AlgorithmRSA2048
   param:
     value: '2048'
-- ref: github.com/go-piv/piv-go/piv.AlgorithmRSA3072
-  param:
-    value: '3072'
-- ref: github.com/go-piv/piv-go/piv.AlgorithmRSA4096
-  param:
-    value: '4096'
+# (the v1 module github.com/go-piv/piv-go/piv, v1.11.0, has no AlgorithmRSA3072 / AlgorithmRSA4096)

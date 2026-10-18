@@ -355,3 +355,14 @@ TP, Go 38/42 TP (3 wrong-detail: B3L `ecc` package for Ed25519, a dynamic Noise 
 fix. No booster lowers a language's F1 or strict precision by more than 2 pp, so all are on by default (the owner's
 rule); two were corrected during the gauntlet (B-G-B3L without V2 aliases, B-P-U1 without HMAC variants). Per-booster
 contributions (switching each feature off): `work/ciphersift-t2-impl/ablation-t2c.tsv`.
+
+**Clean-room review, Go scope (2026-10-18, branch `review-go`).** Two corrections, no default changed:
+* **B-G-E guard fix.** The fallback-getter guard removed the findings and calls of conditional returns from the
+  thin test altogether, so it could also *create* a thin wrapper: a definition with a second family in a
+  conditional return (xray-core `CipherMethod.NewAEAD`: `if m.IsChaCha { return chacha20poly1305.New(k) }` …
+  `aes.NewCipher`) became an AES wrapper (7 call sites on a new dev project, all wrong-detail). Now the guard only
+  removes evidence: all families, the guarded ones included, must be exactly one (SPEC 18.5). `go/thin-wrappers`
+  gains a second file (6 expectations); no GT site of the old or new dev projects changes.
+* **B-G-B2 go-piv v1.** The v1 module `github.com/go-piv/piv-go/piv` (v1.11.0, proxy.golang.org) has no
+  `AlgorithmRSA3072`, `AlgorithmRSA4096` or `AlgorithmX25519`; the three mirrored anchors are removed (no effect
+  on any scan).
