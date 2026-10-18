@@ -8,3 +8,5 @@ sk = mldsa.MLDSA65PrivateKey.generate()  # want: python.pqc.mldsa cryptography.h
 KEY_TYPES = (MLKEM1024PrivateKey,)  # want: python.pqc.mlkem cryptography.hazmat.primitives.asymmetric.mlkem.MLKEM1024PrivateKey ML-KEM-1024
 kem = oqs.KeyEncapsulation("ML-KEM-512")  # want: python.pqc.mlkem oqs.KeyEncapsulation ML-KEM-512
 sig = oqs.Signature("ML-DSA-87")  # want: python.pqc.mldsa oqs.Signature ML-DSA-87
+other = oqs.Signature("Falcon-512")  # another scheme: nothing
+frodo = oqs.KeyEncapsulation("FrodoKEM-640-AES")  # another scheme: nothing

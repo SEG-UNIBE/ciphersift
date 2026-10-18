@@ -1384,6 +1384,9 @@ public final class PythonAnalyzer {
             if (p.minArgs != null && (a.generator != null || a.positional.size() < p.minArgs)) {
                 return false;
             }
+            if (p.noString && !a.strings().isEmpty()) {
+                return false; // a constant name: not chosen at run time (DECISIONS B-P-U1, review)
+            }
             if (p.noSymbolPrefix != null) {
                 for (String sym : a.symbols()) {
                     for (String pre : p.noSymbolPrefix) {

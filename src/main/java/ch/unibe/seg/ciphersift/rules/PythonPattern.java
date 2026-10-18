@@ -47,6 +47,8 @@ public final class PythonPattern {
     public final List<String> noSymbolPrefix;
     /** {@code minArgs}: the least number of positional arguments, or null. */
     public final Integer minArgs;
+    /** {@code noString}: the call's string list (8.5.1) is empty (SPEC 5.6, DECISIONS B-P-U1 review). */
+    public final boolean noString;
     /** {@code literal} anchor: exact string values (SPEC 5.6, DECISIONS B-P-LIT), or null. */
     public final List<String> literal;
     /** The feature switch the pattern belongs to (SPEC 5.6 {@code feature}), or null. */
@@ -57,7 +59,7 @@ public final class PythonPattern {
             List<String> allSymbols, Map<String, Pattern> kwargs, Map<String, Pattern> dictItems,
             List<String> notInside, Pattern value, List<String> valueContains, String paramKeyword,
             Integer paramIndex, boolean paramSelf, String paramValue, boolean hasParam, List<String> reportAt,
-            List<String> noSymbolPrefix, Integer minArgs, List<String> literal, String feature) {
+            List<String> noSymbolPrefix, Integer minArgs, boolean noString, List<String> literal, String feature) {
         this.rule = rule;
         this.position = position;
         this.call = call;
@@ -82,6 +84,7 @@ public final class PythonPattern {
         this.reportAt = reportAt;
         this.noSymbolPrefix = noSymbolPrefix;
         this.minArgs = minArgs;
+        this.noString = noString;
         this.literal = literal;
         this.feature = feature;
     }
@@ -96,7 +99,7 @@ public final class PythonPattern {
         }
         return call != null && methods == null && firstString == null && stringContains == null
                 && anySymbol == null && allSymbols == null && kwargs == null && dictItems == null
-                && notInside == null && noSymbolPrefix == null && minArgs == null;
+                && notInside == null && noSymbolPrefix == null && minArgs == null && !noString;
     }
 
     /** The name a reference must resolve to: the {@code ref} or {@code call} value. */

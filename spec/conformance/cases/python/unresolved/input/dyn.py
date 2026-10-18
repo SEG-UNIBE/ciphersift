@@ -25,3 +25,8 @@ def stdlib_hmac(key, msg, mod):
     hmac.new(key, msg, mod)  # want: python.mac.hmac hmac.new
     hmac.new(key, msg, digestmod=hashlib.sha256)  # want: python.mac.hmac hmac.new | python.hash.sha2 hmac.new
     hmac.new(key, msg, digestmod="sha512")  # want: python.mac.hmac hmac.new | python.hash.sha2 hmac.new
+
+
+def constant_names(data):
+    getattr(hashlib, "sha256")(data)  # a constant name (review): no fallback
+    return getattr(hashlib, "scrypt", None)  # feature detection: nothing

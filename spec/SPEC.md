@@ -515,6 +515,7 @@ Conditions:
 | `notInside` | list of method names | call, method, anyCall | The walk of 8.7 from the call finds no enclosing call whose method name is listed: `padding.PKCS1v15()` not passed (directly or nested) to `sign`, `verify`, `encrypt` or `decrypt` *(DECISIONS E12)*. |
 | `noSymbolPrefix` | list of strings | call, method, anyCall | No symbol of the call's symbol set (8.5.2) starts with a listed string *(DECISIONS B-P-U1)*: `hashes.Hash(alg)` whose argument is not one of pyca's hash classes. |
 | `minArgs` | integer *n* ≥ 1 | call, method, anyCall | The call has at least *n* positional arguments (and no generator argument) *(DECISIONS B-P-U1)*. |
+| `noString` | `true` | call, method, anyCall | The call's string list (8.5.1) is empty *(DECISIONS B-P-U1, review)*: `getattr(hashlib, name)`, not `getattr(hashlib, "sha256")` or `getattr(hashlib, "scrypt", None)`. |
 | `value` | regex | assign | The regex is found (case-insensitive) in at least one value text of the right-hand side (8.5.3). |
 | `valueContains` | list | assign | Some value text contains some listed string (case-insensitive). |
 | `param` | `{keyword: k, index: i}` (either or both), `{self: true}` or `{value: s}` | call, method, anyCall, ref (`self` or `value` only) | *Not a filter.* Names the argument reported as param (8.8); `value` reports the fixed string *s* (a library whose curve is implied, e.g. secp256k1 bindings). |
