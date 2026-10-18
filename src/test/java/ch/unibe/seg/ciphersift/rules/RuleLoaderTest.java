@@ -41,8 +41,14 @@ class RuleLoaderTest {
         assertFalse(r.dependencyRule("golang").matches("golang.org/x/crypto/ssh"), "a pattern covers the whole key");
         // DECISIONS F3: crypto services are listed, general platform clients and data-model modules are not
         assertTrue(r.dependencyRule("golang").matches("github.com/aws/aws-sdk-go-v2/service/kms"));
-        assertFalse(r.dependencyRule("golang").matches("github.com/hashicorp/vault/api"));
-        assertFalse(r.dependencyRule("golang").matches("github.com/sigstore/protobuf-specs"));
+        // DECISIONS B-G4 (owner decision): these two exceptions are listed now
+        assertTrue(r.dependencyRule("golang").matches("github.com/hashicorp/vault/api"));
+        assertTrue(r.dependencyRule("golang").matches("github.com/sigstore/protobuf-specs"));
+        assertFalse(r.dependencyRule("golang").matches("github.com/hashicorp/vault/sdk"));
+        // DECISIONS B-J4: commons-codec only where its digest package is used
+        assertEquals(java.util.List.of("org.apache.commons.codec.digest"),
+                r.dependencyRule("maven").usedIf("commons-codec:commons-codec"));
+        assertEquals(java.util.List.of(), r.dependencyRule("maven").usedIf("org.bouncycastle:bcprov-jdk18on"));
         for (int i = 1; i < r.goRules().size(); i++) {
             assertTrue(r.goRules().get(i - 1).id().compareTo(r.goRules().get(i).id()) < 0, "id order");
         }
