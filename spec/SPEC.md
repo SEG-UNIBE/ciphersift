@@ -1663,10 +1663,14 @@ if its own documentation states as its purpose one of:
 
 Not listed: SDK cores, transport and HTTP libraries that only use TLS; secret stores that hold
 opaque values (Azure Key Vault secrets, cloud secret managers); general clients of platforms that
-offer cryptographic services among others (the HashiCorp Vault API client, a cloud SDK as a
-whole); data-model, schema and protobuf packages; transparency logs and supply-chain frameworks
-that use signatures as one part of a broader model (Rekor, TUF, in-toto). The entries
-`commons-codec` and `certifi`, kept from earlier versions, are documented as debatable (README).
+offer cryptographic services among others (a cloud SDK as a whole); data-model, schema and protobuf
+packages; transparency logs and supply-chain frameworks that use signatures as one part of a broader
+model (TUF, in-toto). **Exceptions by owner decision** *(DECISIONS B-G4, reversing these parts of
+F3)*: the Go modules `github.com/hashicorp/vault/api` (Vault's transit and PKI engines are reached
+through it), `github.com/sigstore/protobuf-specs` (Sigstore's key-type and hash-algorithm data model)
+and `github.com/sigstore/rekor` (Sigstore transparency log) are listed. `certifi` (a CA bundle,
+none of a–d) is no longer listed *(DECISIONS B-P1)*; `commons-codec` is reported only where the
+project uses its digest package *(DECISIONS B-J4, 9.10)*.
 A `*` glob is used where a project publishes several modules or major versions under one prefix.
 
 ---

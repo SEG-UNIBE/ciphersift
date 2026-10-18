@@ -82,3 +82,12 @@ packages:
   note: RFC 3161 time-stamping, (d)
 - package: github.com/digitorus/timestamp
   note: RFC 3161 time-stamps, (d)
+# Added with DECISIONS B-G4 (owner decision, reverses part of F3; benchmark-informed: go-eval GT sites in
+# go.mod): clients and data models of signing / secret services whose Go modules a project imports to use
+# their cryptographic operations.
+- package: github.com/hashicorp/vault/api
+  note: HashiCorp Vault API client (transit encryption/signing, PKI); https://pkg.go.dev/github.com/hashicorp/vault/api
+- package: github.com/sigstore/protobuf-specs
+  note: Sigstore bundle/key/hash data model (PublicKeyDetails, HashAlgorithm); https://pkg.go.dev/github.com/sigstore/protobuf-specs
+- package: github.com/sigstore/rekor
+  note: Sigstore transparency log (signed entries, inclusion proofs); https://pkg.go.dev/github.com/sigstore/rekor
