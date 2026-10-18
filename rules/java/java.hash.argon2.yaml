@@ -20,3 +20,5 @@ match:
 - call: de.mkammerer.argon2.Argon2Factory.createAdvanced
 - new: org.springframework.security.crypto.argon2.Argon2PasswordEncoder
 - call: org.springframework.security.crypto.argon2.Argon2PasswordEncoder.defaultsFor*
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.jcajce.spec.Argon2KeySpec

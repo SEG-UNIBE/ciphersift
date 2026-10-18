@@ -14,3 +14,10 @@ asset:
   primitive: hash
 match:
 - call: java.security.MessageDigest.getInstance
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: java.security.DigestInputStream
+- new: java.security.DigestOutputStream
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder
+- new: org.bouncycastle.operator.bc.BcDigestCalculatorProvider
+- new: org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder

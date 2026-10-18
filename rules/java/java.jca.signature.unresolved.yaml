@@ -17,3 +17,8 @@ asset:
 match:
 - call: java.security.Signature.getInstance
 - new: org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: java.security.SignedObject
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder
+- new: org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder

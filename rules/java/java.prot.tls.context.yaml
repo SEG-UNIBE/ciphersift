@@ -40,6 +40,12 @@ match:
 - call: okhttp3.TlsVersion.forJavaName
 - method: cipherSuites
 - method: tlsVersions
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: javax.net.ssl.CertPathTrustManagerParameters
+- new: javax.net.ssl.HttpsURLConnection
+- new: javax.net.ssl.KeyStoreBuilderParameters
+- new: javax.net.ssl.SNIHostName
+- new: javax.net.ssl.SSLParameters
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

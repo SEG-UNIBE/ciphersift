@@ -26,3 +26,30 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (SLH-DSA-SHA2-128s|SLH-DSA-SHA2-128f|SLH-DSA-SHA2-192s|SLH-DSA-SHA2-192f|SLH-DSA-SHA2-256s|SLH-DSA-SHA2-256f|SLH-DSA-SHAKE-128s|SLH-DSA-SHAKE-128f|SLH-DSA-SHAKE-192s|SLH-DSA-SHAKE-192f|SLH-DSA-SHAKE-256s|SLH-DSA-SHAKE-256f)$
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.generators.SLHDSAKeyPairGenerator
+- call: org.bouncycastle.crypto.generators.SLHDSAKeyPairGenerator.newInstance
+- new: org.bouncycastle.crypto.params.SLHDSAKeyGenerationParameters
+- call: org.bouncycastle.crypto.params.SLHDSAKeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.SLHDSAKeyParameters
+- call: org.bouncycastle.crypto.params.SLHDSAKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.SLHDSAParameters
+- call: org.bouncycastle.crypto.params.SLHDSAParameters.newInstance
+- new: org.bouncycastle.crypto.params.SLHDSAPrivateKeyParameters
+- call: org.bouncycastle.crypto.params.SLHDSAPrivateKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.SLHDSAPublicKeyParameters
+- call: org.bouncycastle.crypto.params.SLHDSAPublicKeyParameters.newInstance
+- new: org.bouncycastle.crypto.signers.HashSLHDSASigner
+- call: org.bouncycastle.crypto.signers.HashSLHDSASigner.newInstance
+- new: org.bouncycastle.crypto.signers.SLHDSASigner
+- call: org.bouncycastle.crypto.signers.SLHDSASigner.newInstance
+- new: org.bouncycastle.jcajce.spec.SLHDSAParameterSpec
+- new: org.bouncycastle.pqc.crypto.slhdsa.HashSLHDSASigner
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAEngine
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAKeyGenerationParameters
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAKeyParameters
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAParameters
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAPrivateKeyParameters
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAPublicKeyParameters
+- new: org.bouncycastle.pqc.jcajce.provider.SPHINCS
+- new: org.bouncycastle.pqc.jcajce.provider.SPHINCSPlus

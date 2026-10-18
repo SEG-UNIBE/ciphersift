@@ -18,6 +18,24 @@ match:
     index: 0
 - call: java.security.SecureRandom.getInstanceStrong
 - call: org.springframework.security.crypto.keygen.KeyGenerators.secureRandom
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: java.security.DrbgParameters
+- new: java.security.SecureRandomParameters
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.prng.DigestRandomGenerator
+- call: org.bouncycastle.crypto.prng.DigestRandomGenerator.newInstance
+- new: org.bouncycastle.crypto.prng.FixedSecureRandom
+- call: org.bouncycastle.crypto.prng.FixedSecureRandom.newInstance
+- new: org.bouncycastle.crypto.prng.SP800SecureRandom
+- call: org.bouncycastle.crypto.prng.SP800SecureRandom.newInstance
+- new: org.bouncycastle.crypto.prng.SP800SecureRandomBuilder
+- call: org.bouncycastle.crypto.prng.SP800SecureRandomBuilder.newInstance
+- new: org.bouncycastle.crypto.prng.X931SecureRandom
+- call: org.bouncycastle.crypto.prng.X931SecureRandom.newInstance
+- new: org.bouncycastle.crypto.prng.X931SecureRandomBuilder
+- call: org.bouncycastle.crypto.prng.X931SecureRandomBuilder.newInstance
+- new: org.bouncycastle.crypto.util.JournalingSecureRandom
+- call: org.bouncycastle.crypto.util.JournalingSecureRandom.newInstance
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

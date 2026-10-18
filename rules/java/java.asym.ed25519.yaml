@@ -52,6 +52,26 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (Ed25519|Ed448)$
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: java.security.spec.EdDSAParameterSpec
+- new: java.security.spec.EdECPoint
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters
+- call: org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
+- call: org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
+- call: org.bouncycastle.crypto.params.Ed25519PublicKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.Ed448KeyGenerationParameters
+- call: org.bouncycastle.crypto.params.Ed448KeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.Ed448PrivateKeyParameters
+- call: org.bouncycastle.crypto.params.Ed448PrivateKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.Ed448PublicKeyParameters
+- call: org.bouncycastle.crypto.params.Ed448PublicKeyParameters.newInstance
+- new: org.bouncycastle.crypto.signers.Ed448phSigner
+- call: org.bouncycastle.crypto.signers.Ed448phSigner.newInstance
+- new: org.bouncycastle.jcajce.spec.EdDSAParameterSpec
+- new: org.bouncycastle.operator.bc.BcEdDSAContentVerifierProviderBuilder
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

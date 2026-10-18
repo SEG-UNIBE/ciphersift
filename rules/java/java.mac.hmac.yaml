@@ -42,6 +42,23 @@ match:
   firstString: (HmacSHA1|HmacSHA224|HmacSHA256|HmacSHA384|HmacSHA512|HmacSHA512/224|HmacSHA512/256|HmacSHA3-224|HmacSHA3-256|HmacSHA3-384|HmacSHA3-512)$
 # DECISIONS B-J-XD2: JSR 105 HMAC output length parameters (Java SE javax.xml.crypto.dsig.spec.HMACParameterSpec)
 - new: javax.xml.crypto.dsig.spec.HMACParameterSpec
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.macs.OldHMac
+- call: org.bouncycastle.crypto.macs.OldHMac.newInstance
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_1024_1024
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_1024_384
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_1024_512
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_256_128
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_256_160
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_256_224
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_256_256
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_128
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_160
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_224
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_256
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_384
+- new: org.bouncycastle.jcajce.provider.digest.Skein.HMacKeyGenerator_512_512
+- new: org.bouncycastle.jcajce.provider.digest.Tiger.TigerHmac
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

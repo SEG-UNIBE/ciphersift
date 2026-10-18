@@ -63,6 +63,14 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (SHA-224|SHA-256|SHA-384|SHA-512|SHA-512/224|SHA-512/256)$
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.jcajce.provider.digest.SHA384.OldSHA384
+- new: org.bouncycastle.jcajce.provider.digest.SHA512.OldSHA512
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAEngine.Sha2Engine
+- call: org.bouncycastle.crypto.util.DigestFactory.createSHA224
+- call: org.bouncycastle.crypto.util.DigestFactory.createSHA256
+- call: org.bouncycastle.crypto.util.DigestFactory.createSHA384
+- call: org.bouncycastle.crypto.util.DigestFactory.createSHA512
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

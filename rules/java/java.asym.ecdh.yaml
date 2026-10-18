@@ -46,6 +46,42 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (ECDH|X25519|X448)$
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.agreement.ECDHCRawAgreement
+- call: org.bouncycastle.crypto.agreement.ECDHCRawAgreement.newInstance
+- new: org.bouncycastle.crypto.agreement.ECDHCStagedAgreement
+- call: org.bouncycastle.crypto.agreement.ECDHCStagedAgreement.newInstance
+- new: org.bouncycastle.crypto.agreement.ECDHCUnifiedAgreement
+- call: org.bouncycastle.crypto.agreement.ECDHCUnifiedAgreement.newInstance
+- new: org.bouncycastle.crypto.agreement.ECDHRawAgreement
+- call: org.bouncycastle.crypto.agreement.ECDHRawAgreement.newInstance
+- new: org.bouncycastle.crypto.agreement.ECMQVBasicAgreement
+- call: org.bouncycastle.crypto.agreement.ECMQVBasicAgreement.newInstance
+- new: org.bouncycastle.crypto.agreement.ECMQVRawAgreement
+- call: org.bouncycastle.crypto.agreement.ECMQVRawAgreement.newInstance
+- new: org.bouncycastle.crypto.agreement.XDHUnifiedAgreement
+- call: org.bouncycastle.crypto.agreement.XDHUnifiedAgreement.newInstance
+- new: org.bouncycastle.crypto.params.ECDHUPrivateParameters
+- call: org.bouncycastle.crypto.params.ECDHUPrivateParameters.newInstance
+- new: org.bouncycastle.crypto.params.ECDHUPublicParameters
+- call: org.bouncycastle.crypto.params.ECDHUPublicParameters.newInstance
+- new: org.bouncycastle.crypto.params.X25519KeyGenerationParameters
+- call: org.bouncycastle.crypto.params.X25519KeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.X25519PrivateKeyParameters
+- call: org.bouncycastle.crypto.params.X25519PrivateKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.X25519PublicKeyParameters
+- call: org.bouncycastle.crypto.params.X25519PublicKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.X448KeyGenerationParameters
+- call: org.bouncycastle.crypto.params.X448KeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.X448PrivateKeyParameters
+- call: org.bouncycastle.crypto.params.X448PrivateKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.X448PublicKeyParameters
+- call: org.bouncycastle.crypto.params.X448PublicKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.XDHUPrivateParameters
+- call: org.bouncycastle.crypto.params.XDHUPrivateParameters.newInstance
+- new: org.bouncycastle.crypto.params.XDHUPublicParameters
+- call: org.bouncycastle.crypto.params.XDHUPublicParameters.newInstance
+- new: org.bouncycastle.jcajce.spec.XDHParameterSpec
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

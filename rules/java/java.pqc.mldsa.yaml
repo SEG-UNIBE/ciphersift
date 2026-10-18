@@ -28,6 +28,39 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (ML-DSA-44|ML-DSA-65|ML-DSA-87)$
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.generators.MLDSAKeyPairGenerator
+- call: org.bouncycastle.crypto.generators.MLDSAKeyPairGenerator.newInstance
+- new: org.bouncycastle.crypto.params.MLDSAKeyGenerationParameters
+- call: org.bouncycastle.crypto.params.MLDSAKeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLDSAKeyParameters
+- call: org.bouncycastle.crypto.params.MLDSAKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLDSAParameters
+- call: org.bouncycastle.crypto.params.MLDSAParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLDSAPrivateKeyParameters
+- call: org.bouncycastle.crypto.params.MLDSAPrivateKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLDSAPublicKeyParameters
+- call: org.bouncycastle.crypto.params.MLDSAPublicKeyParameters.newInstance
+- new: org.bouncycastle.crypto.signers.HashMLDSASigner
+- call: org.bouncycastle.crypto.signers.HashMLDSASigner.newInstance
+- new: org.bouncycastle.crypto.signers.MLDSASigner
+- call: org.bouncycastle.crypto.signers.MLDSASigner.newInstance
+- new: org.bouncycastle.jcajce.spec.MLDSAParameterSpec
+- new: org.bouncycastle.jcajce.spec.MLDSAPrivateKeySpec
+- new: org.bouncycastle.jcajce.spec.MLDSAPublicKeySpec
+- new: org.bouncycastle.pqc.crypto.crystals.dilithium.DilithiumKeyGenerationParameters
+- new: org.bouncycastle.pqc.crypto.crystals.dilithium.DilithiumKeyPairGenerator
+- new: org.bouncycastle.pqc.crypto.crystals.dilithium.DilithiumKeyParameters
+- new: org.bouncycastle.pqc.crypto.crystals.dilithium.DilithiumParameters
+- new: org.bouncycastle.pqc.crypto.crystals.dilithium.DilithiumPrivateKeyParameters
+- new: org.bouncycastle.pqc.crypto.crystals.dilithium.DilithiumPublicKeyParameters
+- new: org.bouncycastle.pqc.crypto.mldsa.HashMLDSASigner
+- new: org.bouncycastle.pqc.crypto.mldsa.MLDSAKeyGenerationParameters
+- new: org.bouncycastle.pqc.crypto.mldsa.MLDSAKeyParameters
+- new: org.bouncycastle.pqc.crypto.mldsa.MLDSAParameters
+- new: org.bouncycastle.pqc.crypto.mldsa.MLDSAPrivateKeyParameters
+- new: org.bouncycastle.pqc.crypto.mldsa.MLDSAPublicKeyParameters
+- new: org.bouncycastle.pqc.jcajce.provider.Dilithium
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

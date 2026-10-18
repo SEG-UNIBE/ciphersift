@@ -1,0 +1,8 @@
+{"case": "java/api-additions", "findings": [
+  {"file": "x/Additions.java", "line": 15, "rule": "java.jca.cipher.unresolved", "type": "algorithm", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "CipherInputStream"},
+  {"file": "x/Additions.java", "line": 16, "rule": "java.jca.cipher.unresolved", "type": "algorithm", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "SealedObject"},
+  {"file": "x/Additions.java", "line": 17, "rule": "java.kdf.pbe", "type": "algorithm", "subtype": null, "primitive": "kdf", "family": "PBE", "variant": null, "protocol": null, "version": null, "param": null, "name": "PBEParameterSpec"},
+  {"file": "x/Additions.java", "line": 21, "rule": "java.hash.blake2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "BLAKE2", "variant": null, "protocol": null, "version": null, "param": null, "name": "Blake2bpDigest"},
+  {"file": "x/Additions.java", "line": 22, "rule": "java.pqc.mlkem", "type": "algorithm", "subtype": null, "primitive": "kem", "family": "ML-KEM", "variant": null, "protocol": null, "version": null, "param": null, "name": "MLKEMKeyPairGenerator"},
+  {"file": "x/Additions.java", "line": 23, "rule": "java.kdf.scrypt", "type": "algorithm", "subtype": null, "primitive": "kdf", "family": "scrypt", "variant": null, "protocol": null, "version": null, "param": null, "name": "ScryptKeySpec"}
+]}

@@ -19,3 +19,6 @@ match:
   firstString: Serpent$
 - new: org.bouncycastle.crypto.engines.SerpentEngine
 - call: org.bouncycastle.crypto.engines.SerpentEngine.newInstance
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.engines.SerpentEngineBase
+- call: org.bouncycastle.crypto.engines.SerpentEngineBase.newInstance

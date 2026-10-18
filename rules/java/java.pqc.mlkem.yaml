@@ -30,6 +30,33 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (ML-KEM-512|ML-KEM-768|ML-KEM-1024)$
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.generators.MLKEMKeyPairGenerator
+- call: org.bouncycastle.crypto.generators.MLKEMKeyPairGenerator.newInstance
+- new: org.bouncycastle.crypto.kems.MLKEMExtractor
+- call: org.bouncycastle.crypto.kems.MLKEMExtractor.newInstance
+- new: org.bouncycastle.crypto.kems.MLKEMGenerator
+- call: org.bouncycastle.crypto.kems.MLKEMGenerator.newInstance
+- new: org.bouncycastle.crypto.params.MLKEMKeyGenerationParameters
+- call: org.bouncycastle.crypto.params.MLKEMKeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLKEMKeyParameters
+- call: org.bouncycastle.crypto.params.MLKEMKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLKEMParameters
+- call: org.bouncycastle.crypto.params.MLKEMParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLKEMPrivateKeyParameters
+- call: org.bouncycastle.crypto.params.MLKEMPrivateKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.MLKEMPublicKeyParameters
+- call: org.bouncycastle.crypto.params.MLKEMPublicKeyParameters.newInstance
+- new: org.bouncycastle.jcajce.spec.MLKEMParameterSpec
+- new: org.bouncycastle.jcajce.spec.MLKEMPrivateKeySpec
+- new: org.bouncycastle.jcajce.spec.MLKEMPublicKeySpec
+- new: org.bouncycastle.pqc.crypto.mlkem.MLKEMExtractor
+- new: org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyGenerationParameters
+- new: org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyParameters
+- new: org.bouncycastle.pqc.crypto.mlkem.MLKEMParameters
+- new: org.bouncycastle.pqc.crypto.mlkem.MLKEMPrivateKeyParameters
+- new: org.bouncycastle.pqc.crypto.mlkem.MLKEMPublicKeyParameters
+- new: org.bouncycastle.pqc.jcajce.provider.Kyber
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

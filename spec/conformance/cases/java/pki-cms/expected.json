@@ -1,6 +1,7 @@
 {"case": "java/pki-cms", "findings": [
   {"file": "src/p/Pki.java", "line": 14, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "PKIXParameters"},
   {"file": "src/p/Pki.java", "line": 15, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "CertStore.getInstance"},
+  {"file": "src/p/Pki.java", "line": 15, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "CollectionCertStoreParameters"},
   {"file": "src/p/Pki.java", "line": 16, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "X509CertificateHolder"},
   {"file": "src/p/Pki.java", "line": 17, "rule": "java.cert.cms.signed", "type": "related-crypto-material", "subtype": "cms-signed-data", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
   {"file": "src/p/Pki.java", "line": 18, "rule": "java.cert.cms.signed", "type": "related-crypto-material", "subtype": "cms-signed-data", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
@@ -9,5 +10,6 @@
   {"file": "src/p/Pki.java", "line": 21, "rule": "java.cert.cms.enveloped", "type": "related-crypto-material", "subtype": "cms-enveloped-data", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
   {"file": "src/p/Pki.java", "line": 22, "rule": "java.cert.cms.signed", "type": "related-crypto-material", "subtype": "cms-signed-data", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
   {"file": "src/p/Pki.java", "line": 23, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "TrustAnchor"},
-  {"file": "src/p/Pki.java", "line": 24, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "PKIXBuilderParameters"}
+  {"file": "src/p/Pki.java", "line": 24, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "PKIXBuilderParameters"},
+  {"file": "src/p/Pki.java", "line": 24, "rule": "java.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "X509CertSelector"}
 ]}

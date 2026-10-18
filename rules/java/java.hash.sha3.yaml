@@ -48,6 +48,18 @@ match:
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512)$
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.asn1.nist.KMACwithSHAKE128_params
+- new: org.bouncycastle.asn1.nist.KMACwithSHAKE256_params
+- new: org.bouncycastle.jcajce.provider.digest.Keccak.DigestKeccak
+- new: org.bouncycastle.jcajce.provider.digest.SHA3.DigestShake128_256
+- new: org.bouncycastle.jcajce.provider.digest.SHA3.DigestShake256_512
+- new: org.bouncycastle.jcajce.provider.digest.SHA3.HashMacSHA3
+- new: org.bouncycastle.jcajce.provider.digest.SHA3.KeyFactorySHA3
+- new: org.bouncycastle.jcajce.provider.digest.SHA3.KeyGeneratorSHA3
+- new: org.bouncycastle.pqc.crypto.slhdsa.SLHDSAEngine.Shake256Engine
+- call: org.bouncycastle.crypto.util.DigestFactory.createSHA3_256
+- call: org.bouncycastle.crypto.util.DigestFactory.createSHAKE256
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

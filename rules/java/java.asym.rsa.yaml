@@ -60,6 +60,41 @@ match:
   firstString: (RSA|RSASSA-PSS|MD2withRSA|MD5withRSA|SHA1withRSA|SHA224withRSA|SHA256withRSA|SHA384withRSA|SHA512withRSA|SHA512/224withRSA|SHA512/256withRSA|SHA3-224withRSA|SHA3-256withRSA|SHA3-384withRSA|SHA3-512withRSA)$
 # DECISIONS B-J-XD2: JSR 105 RSASSA-PSS parameters (Java SE 17+ javax.xml.crypto.dsig.spec.RSAPSSParameterSpec)
 - new: javax.xml.crypto.dsig.spec.RSAPSSParameterSpec
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: java.security.spec.RSAMultiPrimePrivateCrtKeySpec
+- new: java.security.spec.RSAOtherPrimeInfo
+- new: javax.crypto.spec.PSource.PSpecified
+- field: javax.crypto.spec.OAEPParameterSpec.DEFAULT
+- field: javax.crypto.spec.PSource.PSpecified.DEFAULT
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.engines.RSABlindingEngine
+- call: org.bouncycastle.crypto.engines.RSABlindingEngine.newInstance
+- new: org.bouncycastle.crypto.generators.RSABlindingFactorGenerator
+- call: org.bouncycastle.crypto.generators.RSABlindingFactorGenerator.newInstance
+- new: org.bouncycastle.crypto.kems.RSAKEMExtractor
+- call: org.bouncycastle.crypto.kems.RSAKEMExtractor.newInstance
+- new: org.bouncycastle.crypto.kems.RSAKEMGenerator
+- call: org.bouncycastle.crypto.kems.RSAKEMGenerator.newInstance
+- new: org.bouncycastle.crypto.kems.RSAKeyEncapsulation
+- call: org.bouncycastle.crypto.kems.RSAKeyEncapsulation.newInstance
+- new: org.bouncycastle.crypto.params.RSABlindSignatureParameters
+- call: org.bouncycastle.crypto.params.RSABlindSignatureParameters.newInstance
+- new: org.bouncycastle.crypto.params.RSABlindingParameters
+- call: org.bouncycastle.crypto.params.RSABlindingParameters.newInstance
+- new: org.bouncycastle.crypto.params.RSAKeyGenerationParameters
+- call: org.bouncycastle.crypto.params.RSAKeyGenerationParameters.newInstance
+- new: org.bouncycastle.crypto.params.RSAKeyParameters
+- call: org.bouncycastle.crypto.params.RSAKeyParameters.newInstance
+- new: org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters
+- call: org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters.newInstance
+- new: org.bouncycastle.crypto.signers.RSABlindSignatureClient
+- call: org.bouncycastle.crypto.signers.RSABlindSignatureClient.newInstance
+- new: org.bouncycastle.crypto.signers.RSABlindSignatureServer
+- call: org.bouncycastle.crypto.signers.RSABlindSignatureServer.newInstance
+- new: org.bouncycastle.operator.bc.BcRSAAsymmetricKeyUnwrapper
+- new: org.bouncycastle.operator.bc.BcRSAAsymmetricKeyWrapper
+- new: org.bouncycastle.operator.bc.BcRSAContentSignerBuilder
+- new: org.bouncycastle.operator.bc.BcRSAContentVerifierProviderBuilder
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);

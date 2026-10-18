@@ -13,3 +13,8 @@ asset:
   type: algorithm
 match:
 - call: javax.crypto.Cipher.getInstance
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: javax.crypto.CipherInputStream
+- new: javax.crypto.CipherOutputStream
+- new: javax.crypto.NullCipher
+- new: javax.crypto.SealedObject

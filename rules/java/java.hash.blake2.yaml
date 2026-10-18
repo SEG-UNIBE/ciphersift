@@ -38,3 +38,12 @@ match:
 - new: org.bouncycastle.jcajce.provider.digest.Blake2s.Blake2s224
 - new: org.bouncycastle.jcajce.provider.digest.Blake2s.Blake2s256
 - new: org.bouncycastle.jcajce.provider.digest.Blake3.Blake3_256
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.digests.Blake2bpDigest
+- call: org.bouncycastle.crypto.digests.Blake2bpDigest.newInstance
+- new: org.bouncycastle.crypto.digests.Blake2spDigest
+- call: org.bouncycastle.crypto.digests.Blake2spDigest.newInstance
+- new: org.bouncycastle.crypto.macs.Blake3Mac
+- call: org.bouncycastle.crypto.macs.Blake3Mac.newInstance
+- new: org.bouncycastle.crypto.params.Blake3Parameters
+- call: org.bouncycastle.crypto.params.Blake3Parameters.newInstance

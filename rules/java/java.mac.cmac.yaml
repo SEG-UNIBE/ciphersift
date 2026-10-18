@@ -17,3 +17,6 @@ match:
 - call: org.bouncycastle.crypto.macs.CMac.newInstance
 - call: com.google.crypto.tink.KeyTemplates.get
   firstString: AES(256)?_CMAC.*$
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.crypto.macs.CMacWithIV
+- call: org.bouncycastle.crypto.macs.CMacWithIV.newInstance

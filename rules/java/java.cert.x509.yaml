@@ -37,6 +37,19 @@ match:
 - new: org.bouncycastle.cert.jcajce.JcaX509CRLConverter
 - new: org.bouncycastle.cert.jcajce.JcaX509v1CertificateBuilder
 - new: org.bouncycastle.cert.X509v2AttributeCertificateBuilder
+# DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
+- new: java.security.cert.CertPath
+- new: java.security.cert.CollectionCertStoreParameters
+- new: java.security.cert.LDAPCertStoreParameters
+- new: java.security.cert.PKIXRevocationChecker
+- new: java.security.cert.URICertStoreParameters
+- new: java.security.cert.X509CRLSelector
+- new: java.security.cert.X509CertSelector
+# DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
+- new: org.bouncycastle.cert.ocsp.BasicOCSPRespBuilder
+- new: org.bouncycastle.cert.ocsp.CertificateID
+- new: org.bouncycastle.cert.ocsp.OCSPReqBuilder
+- new: org.bouncycastle.cert.ocsp.jcajce.JcaCertificateID
 # DECISIONS B-J-SNx (benchmark-informed): algorithm names of the public registries (XML-Security URIs,
 # multi-token JCA standard names, TLS groups, provider service keys; with java-any-call-short also the short
 # JCA names, JOSE names and TLS cipher suites) as a string argument of any method call (SPEC 5.5 anyCall);
