@@ -390,10 +390,13 @@ public final class RuleLoader {
                         continue;
                     }
                     List<Pattern> pkgs = new ArrayList<>();
+                    List<String> usedIf = new ArrayList<>();
                     for (JsonNode pk : doc.get("packages")) {
                         pkgs.add(DependencyRule.compilePackage(pk.get("package").asText()));
+                        usedIf.add(pk.has("usedIf") ? pk.get("usedIf").asText() : null);
                     }
-                    deps.put(eco, new DependencyRule(id, eco, doc.get("name").asText(), List.copyOf(pkgs)));
+                    deps.put(eco, new DependencyRule(id, eco, doc.get("name").asText(), List.copyOf(pkgs),
+                            java.util.Collections.unmodifiableList(usedIf)));
                 }
                 case "constants" -> {
                     String lang = doc.get("language").asText();

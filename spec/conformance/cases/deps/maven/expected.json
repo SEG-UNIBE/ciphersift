@@ -13,7 +13,6 @@
   {"file": "kts/gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "com.password4j:password4j", "version": "1.8.1"},
   {"file": "kts/gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bitbucket.b_c:jose4j", "version": "0.9.6"},
   {"file": "kts/gradle/libs.versions.toml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.springframework.security:spring-security-crypto", "version": "6.2.2"},
-  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "commons-codec:commons-codec", "version": "1.16.1"},
   {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "io.jsonwebtoken:jjwt-api", "version": "0.12.5"},
   {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": "1.78.1"}
 ]}

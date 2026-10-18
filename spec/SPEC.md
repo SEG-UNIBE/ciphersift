@@ -541,6 +541,15 @@ characters (including `.`, `-`, `:`); matching is case-insensitive and covers th
 A manifest entry is reported iff its key matches at least one pattern of the rule of its
 ecosystem. `note` is documentation only.
 
+`usedIf` (optional, a non-empty string) makes an entry conditional *(DECISIONS B-J4)*: a key that
+matches only patterns with `usedIf` is reported only if the text of at least one of them occurs
+(plain substring, case-sensitive) in some source file of the ecosystem's language — Maven: Java,
+PyPI: Python, Go: Go — that the scan collects (4.1–4.6: excluded, too large, binary and unreadable
+files do not count; files skipped by the pre-filter do). A key that also matches a pattern without
+`usedIf` is reported as before. The bundled `dep.maven` uses it for `commons-codec:commons-codec`
+with `usedIf: org.apache.commons.codec.digest`: the library is reported only where the project
+imports (or names fully qualified) its digest package, not where it is used for Base64 or Hex.
+
 ### 5.10 Constants document
 
 ```yaml
@@ -1670,7 +1679,7 @@ F3)*: the Go modules `github.com/hashicorp/vault/api` (Vault's transit and PKI e
 through it), `github.com/sigstore/protobuf-specs` (Sigstore's key-type and hash-algorithm data model)
 and `github.com/sigstore/rekor` (Sigstore transparency log) are listed. `certifi` (a CA bundle,
 none of a–d) is no longer listed *(DECISIONS B-P1)*; `commons-codec` is reported only where the
-project uses its digest package *(DECISIONS B-J4, 9.10)*.
+project uses its digest package *(DECISIONS B-J4, 5.9 `usedIf`)*.
 A `*` glob is used where a project publishes several modules or major versions under one prefix.
 
 ---

@@ -1,0 +1,5 @@
+{"case": "deps/commons-codec-used", "findings": [
+  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "commons-codec:commons-codec", "version": "1.17.1"},
+  {"file": "pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.bouncycastle:bcprov-jdk18on", "version": "1.78.1"},
+  {"file": "src/main/java/app/Digests.java", "line": 6, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "DigestUtils.sha256Hex"}
+]}

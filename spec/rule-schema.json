@@ -273,7 +273,8 @@
             "required": ["package"],
             "properties": {
               "package": {"$ref": "#/$defs/nonEmptyString"},
-              "note": {"type": "string"}
+              "note": {"type": "string"},
+              "usedIf": {"$ref": "#/$defs/nonEmptyString"}
             }
           }
         }

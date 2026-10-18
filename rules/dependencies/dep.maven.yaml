@@ -20,7 +20,7 @@ packages:
   - {package: "software.amazon.cryptography:*", note: "AWS Cryptographic Material Providers"}
   - {package: "com.amazonaws:aws-encryption-sdk-java", note: "AWS Encryption SDK"}
   - {package: "org.apache.commons:commons-crypto", note: "Apache Commons Crypto (OpenSSL)"}
-  - {package: "commons-codec:commons-codec", note: "DigestUtils / HmacUtils"}
+  - {package: "commons-codec:commons-codec", note: "DigestUtils / HmacUtils; only where its digest package is used (DECISIONS B-J4)", usedIf: org.apache.commons.codec.digest}
   - {package: "org.jasypt:*", note: "Jasypt"}
   - {package: "org.apache.shiro:shiro-crypto*", note: "Apache Shiro crypto modules"}
   - {package: "org.apache.shiro.crypto:*", note: "Apache Shiro 2.x crypto modules (hash formats Argon2, bcrypt)"}

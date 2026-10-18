@@ -22,6 +22,7 @@ import ch.unibe.seg.ciphersift.model.DependencyFinding;
 import ch.unibe.seg.ciphersift.model.FileFindings;
 import ch.unibe.seg.ciphersift.model.SourceFinding;
 import ch.unibe.seg.ciphersift.natives.Grammars;
+import ch.unibe.seg.ciphersift.rules.DependencyRule;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.syntax.SyntaxTrees;
@@ -109,6 +110,10 @@ public final class Scanner {
     private final AnchorPrefilter javaFilter;
     private final AnchorPrefilter pythonFilter;
     private final AnchorPrefilter goFilter;
+    /** {@code usedIf} texts of the dependency rules, by source file class (SPEC 5.9, DECISIONS B-J4). */
+    private final Map<FileClass, Set<String>> usedIfTexts = new java.util.EnumMap<>(FileClass.class);
+    /** The {@code usedIf} texts found so far, as {@code <file class>:<text>} (thread-safe). */
+    private final Set<String> usedIfFound = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /**
      * System property that disables the anchor pre-filter (every source file is parsed and analysed).
@@ -134,6 +139,49 @@ public final class Scanner {
         this.javaFilter = filter ? AnchorPrefilter.java(options.rules().javaRules()) : AnchorPrefilter.ALL;
         this.pythonFilter = filter ? AnchorPrefilter.python(options.rules().pythonRules()) : AnchorPrefilter.ALL;
         this.goFilter = filter ? AnchorPrefilter.go(options.rules().goRules()) : AnchorPrefilter.ALL;
+        for (DependencyRule r : options.rules().dependencyRules().values()) {
+            FileClass lang = languageOf(r.ecosystem());
+            if (lang != null && !r.usedIfTexts().isEmpty()) {
+                usedIfTexts.computeIfAbsent(lang, k -> new java.util.TreeSet<>()).addAll(r.usedIfTexts());
+            }
+        }
+    }
+
+    /** The source language whose files decide {@code usedIf} entries of an ecosystem (SPEC 5.9). */
+    static FileClass languageOf(String ecosystem) {
+        return switch (ecosystem) {
+            case "maven" -> FileClass.JAVA;
+            case "pypi" -> FileClass.PYTHON;
+            case "golang" -> FileClass.GO;
+            default -> null;
+        };
+    }
+
+    /** Records which {@code usedIf} texts of the file's language occur in its text. */
+    private void noteUsedIf(FileClass fc, String text) {
+        Set<String> ts = usedIfTexts.get(fc);
+        if (ts != null) {
+            for (String t : ts) {
+                if (text.contains(t)) {
+                    usedIfFound.add(fc + ":" + t);
+                }
+            }
+        }
+    }
+
+    /** Whether a dependency finding passes its {@code usedIf} condition (SPEC 5.9, DECISIONS B-J4). */
+    private boolean used(DependencyFinding d) {
+        List<String> need = d.rule().usedIf(d.packageKey());
+        if (need.isEmpty()) {
+            return true;
+        }
+        FileClass lang = languageOf(d.ecosystem());
+        for (String t : need) {
+            if (usedIfFound.contains(lang + ":" + t)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -230,7 +278,11 @@ public final class Scanner {
                     source.add(f);
                 }
             }
-            deps.addAll(r.findings().dependencies());
+            for (DependencyFinding d : r.findings().dependencies()) {
+                if (used(d)) {
+                    deps.add(d);
+                }
+            }
         }
         if (options.wrappers().any()) {
             try {
@@ -275,6 +327,7 @@ public final class Scanner {
                     return SKIP;
                 }
                 String text = SourceText.decode(bytes);
+                noteUsedIf(fc, text);
                 if (fc == FileClass.GO) {
                     return goFile(text, rel, f.test());
                 }

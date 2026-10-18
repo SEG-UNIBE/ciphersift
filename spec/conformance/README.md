@@ -41,7 +41,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `deps/pypi` | 6 | 21 | PEP 508 lines (pins, ranges, extras, markers, options, URLs, comments), `requirements-dev.txt`, `requirements/base.txt`, pyproject (PEP 621, PEP 735, Poetry), `Pipfile.lock`, `poetry.lock` |
 | `deps/maven-managed-version` | 2 | 3 | a version from the same POM's `<dependencyManagement>` (via `<properties>`) applies to an unversioned dependency, in either order; no version anywhere → reported without version (DECISIONS M2) |
 | `deps/pyproject-direct-reference` | 1 | 3 | `pkg @ https://…`, `git+https://…`, `file:///…` direct references in `project.dependencies`, optional dependencies and dependency groups are skipped like in requirements files (DECISIONS O5) |
-| `deps/maven` | 5 | 17 | `pom.xml` (properties, dependencyManagement, plugin dependencies, unmanaged version, unknown property, comments), Groovy and Kotlin Gradle scripts (strings, map notation, variables, comments), version catalog |
+| `deps/maven` | 5 | 16 | `pom.xml` (properties, dependencyManagement, plugin dependencies, unmanaged version, unknown property, comments), Groovy and Kotlin Gradle scripts (strings, map notation, variables, comments), version catalog |
 | `common/test-files` | 6 | 5 | test-file marking with the default `--include-tests` (the `conftest.py` file holds only a weakness indicator, not reported by default: D15) |
 | `common/test-files-excluded` | 6 | 2 | the same input with `--exclude-tests` (D6) |
 | `common/exclude` | 3 | 1 | `--exclude` with `dir/**` and `**/*_pb2.py` |
@@ -84,6 +84,8 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `deps/crypto-services` | 3 | 24 | the list policy of SPEC 9.9 in all three ecosystems: cloud KMS key clients, HPKE, Noise, WireGuard, PIV, Sigstore signing and time-stamping are listed; storage, secret stores and general SDKs are not (DECISIONS F3); the Vault API client, Rekor and Sigstore's protobuf-specs are listed by owner decision (DECISIONS B-G4, 3 expectations added) |
 | `deps/transitive` | 6 | 6 | default: `go.mod` `// indirect` entries (also `//indirect`, `// indirect; …`, not `// indirectly …`), `go.sum`, `poetry.lock` and `Pipfile.lock` give nothing; `Pipfile` `[packages]` / `[dev-packages]` and `pyproject.toml` do (DECISIONS B-G1, B-G2) |
 | `deps/transitive-included` | 6 | 16 | the same input with `--transitive-deps` |
+| `deps/commons-codec-used` | 3 | 3 | `commons-codec` is reported when a Java file names `org.apache.commons.codec.digest` (here fully qualified) (DECISIONS B-J4) |
+| `deps/commons-codec-unused` | 3 | 1 | `commons-codec` used only for Base64 / Hex: not reported; other libraries unaffected (DECISIONS B-J4) |
 
 ## Format of expected.json
 
@@ -212,7 +214,7 @@ Listed in `deviations.yaml` with reasons; summarised in SPEC.md Appendix A.
 | D5 | `common/binary` | − `blob.py` (binary) |
 | D6 | `common/test-files-excluded` | − the four test files |
 | D7 | `deps/pypi` | + `requirements-dev.txt`, `requirements/base.txt`, `poetry.lock`, PEP 735 group |
-| D8 | `deps/maven` | all 17 findings (hand-written) |
+| D8 | `deps/maven` | all 17 findings (hand-written; 16 since DECISIONS B-J4 removed commons-codec) |
 | D9 | `java/constant-args` | + DES at `Keys.java:14` (byte-array numbers are not strings) |
 | D10 | `python/fork-fixtures`, `python/name-resolution` | + SHA2 at `pycryptodome/legacy.py:23`, + SHA1 at `pkg/imports.py:14` (bare references) |
 | D11 | `python/arguments` | − validation disabled at `args.py:15` (`verify=False` on a non-HTTP function) |
