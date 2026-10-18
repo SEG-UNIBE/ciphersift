@@ -55,3 +55,60 @@ match:
 - ref: github.com/go-piv/piv-go/piv.AlgorithmEC384
   param:
     value: P-384
+# DECISIONS T3-G2 (benchmark-informed in the choice of package: node, chain33): go-ethereum crypto and accounts/keystore,
+# written from https://pkg.go.dev/github.com/ethereum/go-ethereum/crypto and .../accounts/keystore (v1.17.8, fetched 2026-10-18).
+- call: github.com/ethereum/go-ethereum/crypto.GenerateKey
+  param:
+    value: secp256k1
+- call: github.com/ethereum/go-ethereum/crypto.S256
+  param:
+    value: secp256k1
+# DECISIONS T3-G4: golang-jwt PEM key parsers whose name fixes the algorithm (https://pkg.go.dev/github.com/golang-jwt/jwt/v5).
+- call: github.com/golang-jwt/jwt.ParseECPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt.ParseECPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseECPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseECPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseECPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseECPublicKeyFromPEM
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/btcsuite/btcd/btcec/v2.PrivKeyFromBytes
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.PrivKeyFromScalar
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.NewPrivateKey
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.NewPublicKey
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.ParsePubKey
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.S256
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateSecp256k1Key
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalSecp256k1PrivateKey
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalSecp256k1PublicKey
+  param:
+    value: secp256k1
+- ref: github.com/libp2p/go-libp2p/core/crypto.Secp256k1
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalECDSAPrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalECDSAPublicKey
+- call: github.com/libp2p/go-libp2p/core/crypto.MarshalECDSAPrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.MarshalECDSAPublicKey
+- call: github.com/libp2p/go-libp2p/core/crypto.ECDSAKeyPairFromKey
+- call: github.com/libp2p/go-libp2p/core/crypto.ECDSAPublicKeyFromPubKey
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['ES256', 'ES256K', 'ES384', 'ES512', 'GC256A', 'GC256B', 'GC256C', 'GC256D', 'GC512A', 'GC512B', 'GC512C', 'P-256', 'P-384', 'P-521', 'SecP256r1Kyber768Draft00', 'SecP256r1MLKEM512', 'SecP256r1MLKEM768', 'SecP384r1MLKEM1024', 'brainpoolP256r1', 'brainpoolP256r1tls13', 'brainpoolP384r1', 'brainpoolP384r1tls13', 'brainpoolP512r1', 'brainpoolP512r1tls13', 'curveSM2', 'curveSM2MLKEM768', 'ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ecmqv-sha2', 'mlkem1024nistp384-sha384', 'mlkem768nistp256-sha256', 'secp160k1', 'secp160r1', 'secp160r2', 'secp192k1', 'secp192r1', 'secp224k1', 'secp224r1', 'secp256k1', 'secp256r1', 'secp384r1', 'secp521r1', 'sect163k1', 'sect163r1', 'sect163r2', 'sect193r1', 'sect193r2', 'sect233k1', 'sect233r1', 'sect239k1', 'sect283k1', 'sect283r1', 'sect409k1', 'sect409r1', 'sect571k1', 'sect571r1', 'x509v3-ecdsa-sha2-nistp256', 'x509v3-ecdsa-sha2-nistp384', 'x509v3-ecdsa-sha2-nistp521']
+  feature: go-literal-names

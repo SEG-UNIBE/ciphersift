@@ -24,3 +24,12 @@ match:
 - call: github.com/secure-systems-lab/go-securesystemslib/encrypted.Marshal
 - call: github.com/secure-systems-lab/go-securesystemslib/encrypted.MarshalWithCustomKDFParameters
 - call: github.com/secure-systems-lab/go-securesystemslib/encrypted.Unmarshal
+# DECISIONS T3-G2 (benchmark-informed in the choice of package: node): go-ethereum crypto and accounts/keystore,
+# written from https://pkg.go.dev/github.com/ethereum/go-ethereum/crypto and .../accounts/keystore (v1.17.8, fetched 2026-10-18).
+# The keystore encrypts keys with scrypt-derived keys (StandardScryptN/P, LightScryptN/P are its scrypt parameters).
+- call: github.com/ethereum/go-ethereum/accounts/keystore.NewKeyStore
+- call: github.com/ethereum/go-ethereum/accounts/keystore.EncryptKey
+- call: github.com/ethereum/go-ethereum/accounts/keystore.DecryptKey
+- call: github.com/ethereum/go-ethereum/accounts/keystore.EncryptDataV3
+- call: github.com/ethereum/go-ethereum/accounts/keystore.DecryptDataV3
+- call: github.com/ethereum/go-ethereum/accounts/keystore.StoreKey

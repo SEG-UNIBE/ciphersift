@@ -209,6 +209,13 @@ individually; the table lists every id and its default.
 | `python-return-values` | on | returned values and table look-ups `{…}[k]` are Python value positions (8.6.1) | 8.6.1 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
+| `go-thin-key-material` | on | Go thin wrappers: key loading (`private-key`, `public-key`) next to another key does not count (18.5) | 18.5 |
+| `go-random-index` | off | a Go `rand.Int(r, big.NewInt(len(x)))` (also `int64(len(x))`) draws an index into a collection and is not reported (17.8) | 17.8 |
+| `go-generic-variants` | on | a Go propagated finding whose evidence definition (or package, 18.8) has findings of one rule with different params is reported under the rule's name without param (18.7) | 18.7, 18.8 |
+| `go-compared-calls` | on | a Go argument-less identifier call whose property (`.ID()`, `.Params().Name`) is compared or a `case` value is a test position (17.5) | 17.5 |
+| `go-fold-receiver-keys` | on | a Go `GenerateKey` method finding without family whose receiver call has a finding with a family on the same line is dropped (17.8) | 17.8 |
+| `go-literal-names` | on | Go `literal` patterns: IANA SSH / JOSE / TLS-group / TLS cipher-suite and OpenSSL cipher names as string literals (17.3, 17.5) | 17.3, 17.5 |
+| `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
 | `wrapper-depth-4` | on | wrapper chains of up to 4 definitions (else 3) | 18.5 |
@@ -2695,6 +2702,7 @@ one anchor:
 | `composite` | `path.Type` (no `*`) | A composite-literal event (17.5): `tls.Config{…}`, `&rsa.PSSOptions{…}`, `new(tls.Config)`. |
 | `assign` | a field name | A field-assignment event (17.5): the keyed element `InsecureSkipVerify: true` of any composite literal, or the assignment `cfg.InsecureSkipVerify = true`. |
 | `method` | `path.Type.Method` (split at the last two `.`; no `*`) | A method event (17.12): a call `r.Method(…)` whose receiver `r` has the known type `path.Type` *(DECISIONS B-G-B1a)*. Takes no `anySymbol` and no `param: {self}`; `param: {index}` and `{value}` work as for `call`. |
+| `literal` | a list of exact strings, optional `feature` | A literal event (17.5): a string literal in value position whose value equals a listed string *(DECISIONS T3-G10, feature `go-literal-names`)*. Takes no `anySymbol` and no `param`. |
 
 Conditions:
 
@@ -2726,7 +2734,11 @@ practice; a path written with escapes is not recognised). The spec's **local nam
 * without `name`: the last `/`-segment of the path; if that segment is a major-version suffix
   `v2`, `v3`, … (`^v[0-9]+$`) and there is a segment before it, that previous segment
   (`math/rand/v2` → `rand`, `github.com/golang-jwt/jwt/v5` → `jwt`); a trailing `.vN` of the
-  segment is removed (`gopkg.in/yaml.v3` → `yaml`). (Go takes the name from the package clause
+  segment is removed (`gopkg.in/yaml.v3` → `yaml`). If the result is not a Go identifier (it contains `-` or `.`), a leading
+  `go-` is removed and the longest identifier prefix taken, the name `goimports` assumes for such a path
+  (`golang.org/x/tools/internal/imports.ImportPathToAssumedName`; `goimports` writes an explicit name whenever
+  the package clause differs): `github.com/go-jose/go-jose/v4` → `jose`, `gopkg.in/square/go-jose.v2` → `jose`,
+  `github.com/dgrijalva/jwt-go` → `jwt`, `github.com/nats-io/nats.go` → `nats` *(DECISIONS T3-G4)*. (Go takes the name from the package clause
   of the imported package, which a scanner cannot see; these are the naming conventions of
   every package the bundled rules name.)
 
@@ -2760,6 +2772,13 @@ One pre-order walk enumerates the events of the file (import declarations are no
 | composite | `composite_literal` whose `type` is a `qualified_type` or `type_identifier` with names; and a call of the identifier `new` (not a declared name) whose single argument is a `qualified_type`, or a qualified selector, with names | the type's names | start row + 1 | the node text |
 | reference | a qualified selector, or an unqualified identifier with names, that is not the `function` of a `call_expression`, not the type argument of a `new` composite event, not the expression of the `key` of a `keyed_element` (a struct field name or a map key), and not in a *test position* | its names | row of the `field` + 1 for a selector, else start row + 1 | the node text |
 | assign | a `keyed_element` whose `key` is a `literal_element` holding a single `identifier` (the field name); an `assignment_statement` with operator `=` for each position *i* whose left element is a `selector_expression` (field name = its `field`), when left and right have the same number of elements (value = right element *i*) | – | start row + 1 | the node text |
+| literal | an `interpreted_string_literal` or `raw_string_literal` in reference position (not a map key or struct key, not in a test position) whose text between the quotes (not decoded: a name written with escapes is not recognised, as for import paths) a `literal` pattern lists, and that is no name-table entry: not the value of a keyed element whose key is a qualified selector or an `int_literal` (`x509.PureEd25519: "Ed25519"`, `0x1301: "TLS_AES_128_GCM_SHA256"`), not returned by a method `String()` without parameters (the `fmt.Stringer` display name) | the string | start row + 1 | the string |
+
+A literal finding is dropped when an expression ancestor (the 17.8 ancestors and `type_conversion_expression`) has a
+selection — the literal is that call's or literal's data (`sha256.Sum256([]byte("RS512"))`) — or is a call that
+formats a message (functions of `fmt`, `log`, `log/slog`, `errors`; methods named `Print…`, `Log…`, `Debug…`,
+`Info…`, `Warn…`, `Error…`, `Fatal…`, `Panic…`, `Trace…`), and when a non-literal event selects the same rule on
+its line *(DECISIONS T3-G10)*.
 
 **Test positions** *(DECISIONS G6)*: walking up from the reference through
 `parenthesized_expression` and `unary_expression`, the walk reaches the `left` or `right` of a
@@ -2767,6 +2786,11 @@ One pre-order walk enumerates the events of the file (import declarations are no
 `expression_list` that is the `value` of an `expression_case`. Such a reference compares a
 value obtained elsewhere (`if state.Version == tls.VersionTLS10`, `case tls.VersionTLS12:` in a
 version-name table); it does not choose an algorithm.
+The same holds for a **call event** without arguments (an identifier function: `hpke.MLKEM768P256()`) whose value
+reaches such a position through at least one selector or argument-less method call
+(`k.ID() == hpke.MLKEM768P256().ID()`, `c.Params().Name == elliptic.P384().Params().Name`): it reads a property to
+test a value chosen elsewhere *(DECISIONS T3-G8, feature `go-compared-calls`)*. The call itself as a `case` value or
+operand (`case elliptic.P256():`, a key-type dispatch) stays an event.
 
 Snippets are truncated to 500 code points.
 
@@ -2852,6 +2876,19 @@ expression ancestors `argument_list`, `call_expression`, `parenthesized_expressi
 *(DECISIONS G8)*: `ecdsa.GenerateKey(elliptic.P256(), rand.Reader)` is one ECDSA finding (the
 inner EC curve has the same family) plus the CSPRNG (no family); `cipher.NewGCM(` … `aes.NewCipher(k)` … `)`
 written inline is AES-GCM only.
+A rule **without** `family` (CSPRNG, key loading, certificates) is compared by rule id instead: such a
+selection is dropped if an expression ancestor **on the same line** has a selection of the same rule
+*(DECISIONS T3-G1, feature `go-nested-same-rule`)*: `rand.Int(rand.Reader, n)` is one CSPRNG finding
+(`crypto/rand.Int`), `c.Verify(x509.VerifyOptions{Roots: x509.NewCertPool()})` one X.509 finding; an inner
+event on another line (a field of a multi-line literal) keeps its finding.
+With the feature `go-random-index` (off by default, *DECISIONS T3-G6*), a `crypto/rand.Int` call whose bound is
+`big.NewInt(len(x))` or `big.NewInt(int64(len(x)))` is not reported (nor, as its nested duplicate, its
+`rand.Reader`): it picks an element of a collection (a server, a port), not secret material.
+A `GenerateKey` method event of a rule without family (`crypto/ecdh.Curve.GenerateKey`, key generation filed as
+key material) whose receiver is a call with a selection that has a family on the same line
+(`ecdh.X25519().GenerateKey(r)`) is dropped: the receiver's finding names the algorithm of the generated key
+*(DECISIONS T3-G9, feature `go-fold-receiver-keys`)*. `NewPrivateKey(b)` / `NewPublicKey(b)` (key loading) and
+receivers held in variables keep their findings.
 
 Each kept (event, rule) pair yields one finding:
 
@@ -2983,7 +3020,8 @@ and the `tls.MLDSA*` signature schemes *(DECISIONS F4–F6)*) and `golang.org/x/
 `math/rand/v2` as a weakness indicator. Not covered: `golang.org/x/crypto/openpgp` (deprecated;
 no fitting CycloneDX asset), third-party APIs (JWT, JOSE, age, circl — their modules are reported
 through `go.mod`; the exception is `filippo.io/hpke`, whose API is that of `crypto/hpke`), method calls on values whose type is not known (`key.Sign(…)`, `aead.Seal(…)`;
-receiver types are not inferred), and algorithm names in strings (`ssh.Config{Ciphers: […]}`).
+receiver types are not inferred), and algorithm names in strings (`ssh.Config{Ciphers: […]}`) other than the
+exact registry names of the `literal` patterns (DECISIONS T3-G10).
 
 **Third-party APIs** *(DECISIONS T11, benchmark-informed)*: package functions and values of
 selected libraries, written from their pkg.go.dev documentation and filed under the existing rules
@@ -3008,6 +3046,12 @@ selected libraries, written from their pkg.go.dev documentation and filed under 
 | `github.com/sigstore/sigstore/pkg/signature[/options]` (B-G-B2) | `options.WithED25519ph` / methods `AlgorithmDetails.GetECDSACurve` / `GetRSAKeySize` (17.12) | `go.asym.ed25519` / `go.asym.ec` / `go.asym.rsa` |
 | `github.com/go-piv/piv-go[/v2]/piv` (B-G-B2) | `AlgorithmEC256`, `AlgorithmEC384` (curve) / `AlgorithmRSA1024…4096` (bits) / `AlgorithmEd25519` / `AlgorithmX25519` / `Verify` (attestation certificate chain) | `go.asym.ec` / `go.asym.rsa` / `go.asym.ed25519` / `go.asym.x25519` / `go.cert.x509` |
 | `github.com/cloudflare/circl/sign/slhdsa` (B-G-B2) | the twelve FIPS 205 parameter-set identifiers `SHA2_128s` … `SHAKE_256f` (param `SLH-DSA-…`), `GenerateKey` (param from argument 1) | `go.pqc.slhdsa` (new rule) |
+| `github.com/ethereum/go-ethereum/crypto` (*DECISIONS T3-G2*) | `Keccak256`, `Keccak256Hash`, `NewKeccakState`, `HashData` / `Sign`, `VerifySignature`, `Ecrecover`, `SigToPub` (param `secp256k1`) / `GenerateKey`, `S256` (param `secp256k1`) / `ToECDSA`, `ToECDSAUnsafe`, `HexToECDSA`, `LoadECDSA`, `FromECDSA`, `SaveECDSA` / `UnmarshalPubkey`, `DecompressPubkey`, `FromECDSAPub`, `CompressPubkey` (address derivation, `ValidateSignatureValues` and the size constants name no operation) | `go.hash.sha3` / `go.asym.ecdsa` / `go.asym.ec` / `go.key.load.private` / `go.key.load.public` |
+| `github.com/ethereum/go-ethereum/accounts/keystore` (T3-G2) | `NewKeyStore`, `EncryptKey`, `DecryptKey`, `EncryptDataV3`, `DecryptDataV3`, `StoreKey` (scrypt-protected key files) / methods `KeyStore.SignHash`, `SignHashWithPassphrase`, `SignTx`, `SignTxWithPassphrase` (17.12; `NewKeyStore` → `KeyStore` in the result-type table) | `go.kdf.scrypt` / `go.asym.ecdsa` (param `secp256k1`) |
+| `github.com/go-jose/go-jose/v3`, `/v4`, `gopkg.in/square/go-jose.v2`, `gopkg.in/go-jose/go-jose.v2` (values; *DECISIONS T3-G4*) | JOSE identifiers (RFC 7518): `HS*` / `RS*` / `PS*` / `ES*` (curve as param) / `EdDSA`, `ED25519` / `RSA1_5` / `RSA_OAEP`, `RSA_OAEP_256` / `A*KW` / `A*GCMKW`, `A*GCM` / `ECDH_ES`, `ECDH_ES_A*KW` / `PBES2_*` / `A*CBC_HS*` (key size as param for AES); not `DIRECT`, `DEFLATE`, `NONE` | `go.mac.hmac` / `go.asym.rsa.pkcs1v15.sign` / `go.asym.rsa.pss` / `go.asym.ecdsa` / `go.asym.ed25519` / `go.asym.rsa.pkcs1v15.encrypt` / `go.asym.rsa.oaep` / `go.sym.aes` / `go.sym.aes.gcm` / `go.asym.ecdh` / `go.kdf.pbkdf2` / `go.sym.aes.cbc` |
+| `github.com/golang-jwt/jwt`, `/v4`, `/v5` (T3-G4) | `SigningMethodHS*` / `RS*` / `PS*` / `ES*` / `EdDSA` (not `SigningMethodNone`); `ParseRSA…`, `ParseEC…`, `ParseEd…` `Private`/`PublicKeyFromPEM` under the algorithm their name fixes | as for go-jose; `go.asym.rsa`, `go.asym.ec`, `go.asym.ed25519` |
+| `github.com/btcsuite/btcd/btcec/v2` and `…/btcec/v2/ecdsa` (*DECISIONS T3-G5*) | `PrivKeyFromBytes`, `PrivKeyFromScalar`, `NewPrivateKey`, `NewPublicKey`, `ParsePubKey`, `S256` / `GenerateSharedSecret` / `ecdsa.Sign`, `SignCompact`, `RecoverCompact` (all param `secp256k1`; signature parsing and point arithmetic are not anchors) | `go.asym.ec` / `go.asym.ecdh` / `go.asym.ecdsa` |
+| `github.com/libp2p/go-libp2p/core/crypto` (T3-G5) | key generation and (un)marshalling functions of a fixed type under that type's rule (`…Secp256k1…` EC with param `secp256k1`, `…ECDSA…`, `…Ed25519…`, `…Rsa…`, `GenerateRSAKeyPair` bits as param), the key-type constants `RSA`, `Ed25519`, `Secp256k1`, `ECDSA`; the type-generic `UnmarshalPrivateKey` / `MarshalPrivateKey` / `PrivKeyToStdKey` / `KeyPairFromStdKey` and the public-key counterparts as key loading | `go.asym.ec`, `go.asym.ecdsa`, `go.asym.ed25519`, `go.asym.rsa` / `go.key.load.*` |
 
 The `go-containerregistry` package is named `v1`; it is recognised only when imported with that
 explicit name (17.4 skips a `vN` segment); the same holds for protobuf-specs' `common/v1` package (any
@@ -3197,7 +3241,12 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
 * **Level 1, W6 (thin)**, where enabled: a definition whose span has at most *L* lines (*L* = 12 for Java,
   *DECISIONS B-J-G*, 8 with `--feature java-thin-12=off`; 8 for Python; 12 for Go, *DECISIONS B-G-E*) and whose body
   findings have exactly one family key carries that key (whatever its name); the key `prng-secure` is left
-  out of this test when another key is present (18.1). Evidence as above.
+  out of this test when another key is present (18.1); in Go, so are the key-loading keys `private-key` and
+  `public-key` *(DECISIONS T3-G3, feature `go-thin-key-material`)*: a helper that parses a key and hands it to
+  an SSH server (`ssh.ParsePrivateKey` + `config.AddHostKey`) or hashes its encoding is a thin wrapper of that
+  operation; a helper with key loading only still carries the key-loading key, and a definition that already
+  carries a key by its name (W7: `loadPrivKey`) gets nothing more from this. The same holds at level *k*.
+  Evidence as above.
 * **Level *k* ≥ 2, W7**: a definition that does not yet carry a key *F* carries *F* if *F* is one of
   its name families and a call site of its body resolves to a group carrying *F* below level *k*.
 * **Fallback-getter guard (Go W6)** *(DECISIONS B-G-E)*: in a Go definition with at least two
@@ -3308,6 +3357,11 @@ occurrence records the chain (11.4): `via` = the group representative and the de
 each as `<path>:<line of the name> <display name>` (Java `Outer.Inner.m`, Python `module.f` or
 `module.Class.m`, Go `pkg.F` or `pkg.Type.M`), and `origin` = `<path>:<line>` of the evidence.
 
+* **Open variants (Go)** *(DECISIONS T3-G7, feature `go-generic-variants`)*: if the definition holding the
+  evidence (the last of the chain) has body findings of the carried key from one rule with two different
+  non-null params (`ecdh.P256()` and `ecdh.P384()` in one curve selector; `mldsa65` and `mldsa87`), the call
+  cannot be tied to one of them: the propagated finding takes the rule's `name` as its name and no param or OID
+  (its origin stays the evidence). The same holds for 18.8 when the package has such findings.
 * **Folding of nested duplicates**: a propagated finding is dropped if a finding of phase 3 at the
   same (file, line) has the same family key (the direct finding is more specific); of several
   propagated findings with the same (file, line, family key) only the one of the leftmost call is

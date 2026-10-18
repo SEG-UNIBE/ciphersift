@@ -37,6 +37,9 @@ public final class GoAnalyzer {
     private static final Set<String> EXPRESSION_ANCESTORS = Set.of("argument_list", "call_expression",
             "parenthesized_expression", "unary_expression", "composite_literal", "literal_value", "literal_element",
             "keyed_element");
+    /** Message-formatting packages and method names (DECISIONS T3-G10). */
+    private static final Set<String> MESSAGE_PACKAGES = Set.of("fmt", "log", "log/slog", "errors");
+    private static final Pattern MESSAGE_METHOD = Pattern.compile("(Print|Log|Debug|Info|Warn|Error|Fatal|Panic|Trace)");
     private static final Set<String> COMPARISONS = Set.of("==", "!=", "<", "<=", ">", ">=");
     private static final Set<String> NO_SYMBOLS = Set.of("func_literal", "interpreted_string_literal",
             "raw_string_literal", "int_literal", "float_literal", "imaginary_literal", "rune_literal", "comment");
@@ -47,6 +50,16 @@ public final class GoAnalyzer {
     private final GoRuleIndex index;
     /** Method events on typed receivers (SPEC 17.12, DECISIONS B-G-B1a, feature {@code go-typed-methods}). */
     private final boolean methods;
+    /** Nested duplicates of a rule without family (SPEC 17.8, DECISIONS T3-G1, feature {@code go-nested-same-rule}). */
+    private final boolean nestedSameRule;
+    /** CSPRNG draws of a random index into a collection are not reported (DECISIONS T3-G6, feature {@code go-random-index}). */
+    private final boolean randomIndex;
+    /** Argument-less identifier calls in comparisons are test positions (DECISIONS T3-G8, feature {@code go-compared-calls}). */
+    private final boolean comparedCalls;
+    /** Key generation on a receiver call that names the algorithm folds into it (T3-G9, {@code go-fold-receiver-keys}). */
+    private final boolean foldReceiverKeys;
+    /** Settings of the scan, for pattern-level {@code feature} gates (DECISIONS T3-G10). */
+    private final Features features;
 
     public GoAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -55,6 +68,11 @@ public final class GoAnalyzer {
     public GoAnalyzer(RuleSet rules, Features features) {
         this.index = new GoRuleIndex(rules.goRules());
         this.methods = !index.method.isEmpty() && features.on(Features.GO_TYPED_METHODS);
+        this.nestedSameRule = features.on(Features.GO_NESTED_SAME_RULE);
+        this.randomIndex = features.on(Features.GO_RANDOM_INDEX);
+        this.comparedCalls = features.on(Features.GO_COMPARED_CALLS);
+        this.foldReceiverKeys = features.on(Features.GO_FOLD_RECEIVER_KEYS);
+        this.features = features;
     }
 
     /** Analyses one parsed Go file. */
@@ -75,7 +93,32 @@ public final class GoAnalyzer {
         if (seg.length > 1 && MAJOR_VERSION.matcher(last).matches()) {
             last = seg[seg.length - 2];
         }
-        return DOT_MAJOR_VERSION.matcher(last).replaceFirst("");
+        String n = DOT_MAJOR_VERSION.matcher(last).replaceFirst("");
+        // DECISIONS T3-G4 (review): a segment that is no Go identifier (go-jose, jwt-go, nats.go) is not the package
+        // name; as goimports assumes (golang.org/x/tools internal/imports ImportPathToAssumedName), a leading "go-" is
+        // removed and the identifier prefix taken (jose, jwt, nats). goimports adds an explicit name whenever the
+        // package clause differs, so formatted code either matches this or names the import.
+        if (!n.isEmpty() && !isIdentifier(n)) {
+            String c = n.startsWith("go-") ? n.substring(3) : n;
+            int i = 0;
+            while (i < c.length() && (Character.isLetterOrDigit(c.charAt(i)) || c.charAt(i) == '_')) {
+                i++;
+            }
+            if (i > 0) {
+                return c.substring(0, i);
+            }
+        }
+        return n;
+    }
+
+    private static boolean isIdentifier(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (!(Character.isLetterOrDigit(ch) || ch == '_')) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Decodes the content of an interpreted string literal (SPEC 17.6). */
@@ -159,7 +202,7 @@ public final class GoAnalyzer {
 
     // ====================================================================== per file
 
-    private enum Kind { CALL, REF, COMPOSITE, ASSIGN, METHOD }
+    private enum Kind { CALL, REF, COMPOSITE, ASSIGN, METHOD, LITERAL }
 
     /**
      * An event (SPEC 17.5). {@code names}: the qualified names (call, ref, composite); {@code field} and
@@ -223,7 +266,11 @@ public final class GoAnalyzer {
             }
             List<SourceFinding> out = new ArrayList<>();
             for (Selected s : selected) {
-                if (nestedDuplicate(s, byNode)) {
+                if (s.event().kind() == Kind.LITERAL && literalShadowed(s, byNode, selected)) {
+                    continue;
+                }
+                if (nestedDuplicate(s, byNode) || randomIndex && randomIndexDraw(s)
+                        || foldReceiverKeys && keyOfAlgorithmReceiver(s, byNode)) {
                     continue;
                 }
                 Event e = s.event();
@@ -795,6 +842,18 @@ public final class GoAnalyzer {
                             }
                         }
                     }
+                    case "interpreted_string_literal", "raw_string_literal" -> {
+                        // DECISIONS T3-G10: algorithm names as string literals in value positions
+                        if (!index.literals.isEmpty() && isReferencePosition(n) && !nameTableEntry(n)) {
+                            // the text between the quotes, undecoded: a name written with escapes is not one (as
+                            // for import paths, 17.4), which keeps the textual prefilter exact
+                            String t = n.text();
+                            String v = t.length() < 2 ? "" : t.substring(1, t.length() - 1);
+                            if (index.literals.containsKey(v)) {
+                                out.add(new Event(Kind.LITERAL, n, List.of(v), null, null, null, null, n.line()));
+                            }
+                        }
+                    }
                     case "keyed_element" -> {
                         SyntaxNode key = n.field("key");
                         SyntaxNode value = n.field("value");
@@ -861,8 +920,87 @@ public final class GoAnalyzer {
                 }
                 return;
             }
+            if (comparedCalls && comparedIdentifierCall(n, args)) {
+                return;
+            }
             int line = fn.is("selector_expression") ? fn.field("field").line() : n.line();
             out.add(new Event(Kind.CALL, n, names, null, null, args, null, line));
+        }
+
+        /**
+         * DECISIONS T3-G10 (review): a name table entry, not a choice of algorithm: the value of a keyed element whose
+         * key is a qualified constant or a number ({@code x509.PureEd25519: "Ed25519"}, {@code 0x1301:
+         * "TLS_AES_128_GCM_SHA256"}), or a result of a {@code String()} method (the {@code fmt.Stringer} display name).
+         */
+        private boolean nameTableEntry(SyntaxNode n) {
+            SyntaxNode p = n.parent();
+            if (p != null && p.is("literal_element") && "value".equals(p.field()) && p.parent() != null
+                    && p.parent().is("keyed_element")) {
+                SyntaxNode k = p.parent().field("key");
+                SyntaxNode ke = k == null || k.namedChildren().isEmpty() ? null : k.namedChildren().get(0);
+                if (ke != null && (ke.is("selector_expression") || ke.is("int_literal"))) {
+                    return true;
+                }
+            }
+            boolean returned = false;
+            for (SyntaxNode a = n.parent(); a != null; a = a.parent()) {
+                if (a.is("return_statement")) {
+                    returned = true;
+                } else if (a.is("func_literal") || a.is("function_declaration")) {
+                    return false;
+                } else if (a.is("method_declaration")) {
+                    SyntaxNode name = a.field("name");
+                    SyntaxNode params = a.field("parameters");
+                    return returned && name != null && "String".equals(name.text())
+                            && (params == null || params.namedChildren().isEmpty());
+                }
+            }
+            return false;
+        }
+
+        /**
+         * DECISIONS T3-G8: a call without arguments (an identifier function such as {@code hpke.MLKEM768P256()})
+         * whose value, through at least one selector or argument-less method call ({@code .ID()},
+         * {@code .Params().Name}), is an operand of a comparison or a {@code case} value is in a test position like a
+         * reference (17.5): it reads a property to test a value chosen elsewhere. {@code case elliptic.P256():}
+         * itself stays an event (a key-type dispatch).
+         */
+        private boolean comparedIdentifierCall(SyntaxNode n, SyntaxNode args) {
+            if (args != null && !expressions(args).isEmpty()) {
+                return false;
+            }
+            SyntaxNode y = n;
+            SyntaxNode p = n.parent();
+            boolean selected = false;
+            while (p != null) {
+                if (p.is("parenthesized_expression")) {
+                    y = p;
+                    p = p.parent();
+                } else if (p.is("selector_expression") && "operand".equals(y.field())) {
+                    selected = true;
+                    y = p;
+                    p = p.parent();
+                    if (p != null && p.is("call_expression") && "function".equals(y.field())) {
+                        SyntaxNode a = p.field("arguments");
+                        if (a != null && !expressions(a).isEmpty()) {
+                            return false;
+                        }
+                        y = p;
+                        p = p.parent();
+                    }
+                } else {
+                    break;
+                }
+            }
+            if (p == null || !selected) {
+                return false;
+            }
+            if (p.is("binary_expression") && ("left".equals(y.field()) || "right".equals(y.field()))) {
+                SyntaxNode op = p.field("operator");
+                return op != null && COMPARISONS.contains(op.text());
+            }
+            return p.is("expression_list") && "value".equals(p.field()) && p.parent() != null
+                    && p.parent().is("expression_case");
         }
 
         /**
@@ -935,6 +1073,13 @@ public final class GoAnalyzer {
                 case METHOD -> {
                     for (String n : e.names()) {
                         addAll(found, index.method.get(n), n);
+                    }
+                }
+                case LITERAL -> {
+                    for (GoPattern p : index.literals.getOrDefault(e.names().get(0), List.of())) {
+                        if (p.feature == null || features.on(p.feature)) {
+                            found.putIfAbsent(p, e.names().get(0));
+                        }
                     }
                 }
                 default -> throw new IllegalStateException();
@@ -1036,10 +1181,130 @@ public final class GoAnalyzer {
             return true;
         }
 
+        /**
+         * DECISIONS T3-G6: {@code rand.Int(r, big.NewInt(len(x)))} (also with an {@code int64(…)} conversion) draws an
+         * index into a collection (a server, a port), not secret material.
+         */
+        private boolean randomIndexDraw(Selected s) {
+            Event e = s.event();
+            if (e.kind() != Kind.CALL || !"crypto/rand.Int".equals(s.nameUsed())) {
+                return false;
+            }
+            SyntaxNode args = e.node().field("arguments");
+            List<SyntaxNode> a = args == null ? List.of() : args.namedChildren();
+            if (a.size() != 2 || !a.get(1).is("call_expression")) {
+                return false;
+            }
+            SyntaxNode bound = a.get(1);
+            List<String> fn = names(bound.field("function"));
+            if (!fn.contains("math/big.NewInt")) {
+                return false;
+            }
+            SyntaxNode ba = bound.field("arguments");
+            List<SyntaxNode> b = ba == null ? List.of() : ba.namedChildren();
+            if (b.size() != 1) {
+                return false;
+            }
+            SyntaxNode x = b.get(0);
+            for (int i = 0; i < 2 && x != null; i++) {
+                if (x.is("call_expression") && x.field("function") != null && x.field("function").is("identifier")) {
+                    String f = x.field("function").text();
+                    SyntaxNode xa = x.field("arguments");
+                    List<SyntaxNode> c = xa == null ? List.of() : xa.namedChildren();
+                    if ("len".equals(f) && c.size() == 1) {
+                        return true;
+                    }
+                    if (("int64".equals(f) || "int".equals(f)) && c.size() == 1) {
+                        x = c.get(0);
+                        continue;
+                    }
+                }
+                return false;
+            }
+            return false;
+        }
+
+        /**
+         * DECISIONS T3-G9: a {@code GenerateKey} method event of a rule without family (key generation on a curve) whose
+         * receiver is a call with a selection that has a family on the same line ({@code ecdh.X25519().GenerateKey(r)})
+         * is reported by that selection alone: the receiver names the algorithm of the key.
+         */
+        private boolean keyOfAlgorithmReceiver(Selected s, Map<SyntaxNode, List<Selected>> byNode) {
+            Event e = s.event();
+            if (e.kind() != Kind.METHOD || s.rule().asset().family() != null) {
+                return false;
+            }
+            SyntaxNode fn = e.node().field("function");
+            SyntaxNode m = fn == null ? null : fn.field("field");
+            if (m == null || !m.text().equals("GenerateKey")) {
+                return false; // NewPrivateKey(b) / NewPublicKey(b) load key material: they stay
+            }
+            SyntaxNode r = fn == null ? null : fn.field("operand");
+            while (r != null && r.is("parenthesized_expression") && !r.namedChildren().isEmpty()) {
+                r = r.namedChildren().get(0);
+            }
+            List<Selected> l = r == null ? null : byNode.get(r);
+            if (l != null) {
+                for (Selected o : l) {
+                    if (o.rule().asset().family() != null && o.event().line() == e.line()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /**
+         * DECISIONS T3-G10 (as Python 8.6.2): a literal inside an expression (call arguments, composite literal) that
+         * has a selection is that expression's data ({@code sha256.Sum256([]byte("RS256"))}); a literal on a line
+         * where a non-literal event selects the same rule adds nothing.
+         */
+        private boolean literalShadowed(Selected s, Map<SyntaxNode, List<Selected>> byNode, List<Selected> all) {
+            for (SyntaxNode p = s.event().node().parent(); p != null
+                    && (EXPRESSION_ANCESTORS.contains(p.type()) || p.is("type_conversion_expression"));
+                    p = p.parent()) {
+                if (byNode.containsKey(p)) {
+                    return true;
+                }
+                if (p.is("call_expression") && messageCall(p)) {
+                    return true; // log and error text
+                }
+            }
+            for (Selected o : all) {
+                if (o.event().kind() != Kind.LITERAL && o.rule() == s.rule() && o.event().line() == s.event().line()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * A call that formats a message (T3-G10): a function of {@code fmt}, {@code log}, {@code log/slog} or
+         * {@code errors}, or a method whose name starts with {@code Print}, {@code Log}, {@code Debug}, {@code Info},
+         * {@code Warn}, {@code Error}, {@code Fatal}, {@code Panic} or {@code Trace}.
+         */
+        private boolean messageCall(SyntaxNode call) {
+            SyntaxNode fn = call.field("function");
+            if (fn == null || !fn.is("selector_expression") || fn.field("field") == null) {
+                return false;
+            }
+            for (String n : names(fn)) {
+                String path = n.substring(0, n.lastIndexOf('.'));
+                if (MESSAGE_PACKAGES.contains(path)) {
+                    return true;
+                }
+            }
+            return MESSAGE_METHOD.matcher(fn.field("field").text()).lookingAt();
+        }
+
         /** SPEC 7.7.2 with the Go expression ancestors (17.8). */
         private boolean nestedDuplicate(Selected s, Map<SyntaxNode, List<Selected>> byNode) {
             String family = s.rule().asset().family();
-            if (family == null) {
+            // DECISIONS T3-G1: a rule without family (CSPRNG, key loading, certificates) is a nested duplicate of
+            // the same rule on an expression ancestor on the same line: rand.Int(rand.Reader, n) is one CSPRNG
+            // finding; the fields of a multi-line tls.Config literal keep their own lines.
+            boolean sameRule = family == null && nestedSameRule;
+            if (family == null && !sameRule) {
                 return false;
             }
             String type = s.rule().asset().type();
@@ -1048,7 +1313,8 @@ public final class GoAnalyzer {
                 List<Selected> l = byNode.get(p);
                 if (l != null) {
                     for (Selected o : l) {
-                        if (type.equals(o.rule().asset().type()) && family.equals(o.rule().asset().family())) {
+                        if (sameRule ? s.rule().id().equals(o.rule().id()) && o.event().line() == s.event().line()
+                                : type.equals(o.rule().asset().type()) && family.equals(o.rule().asset().family())) {
                             return true;
                         }
                     }

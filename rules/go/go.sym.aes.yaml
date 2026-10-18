@@ -15,3 +15,47 @@ asset:
   family: AES
 match:
 - call: crypto/aes.NewCipher
+# DECISIONS T3-G4 (benchmark-informed in the choice of packages: go-jose, cosign, vault, smallstep, node): JOSE algorithm
+# identifiers of go-jose (https://pkg.go.dev/github.com/go-jose/go-jose/v4, v4.1.6; same names in v2/v3) and golang-jwt signing
+# methods / PEM key parsers (https://pkg.go.dev/github.com/golang-jwt/jwt/v5, v5.3.1; same names in v3/v4), names per the IANA
+# JOSE registry (RFC 7518).
+- ref: github.com/go-jose/go-jose/v3.A128KW
+  param:
+    value: '128'
+- ref: github.com/go-jose/go-jose/v3.A192KW
+  param:
+    value: '192'
+- ref: github.com/go-jose/go-jose/v3.A256KW
+  param:
+    value: '256'
+- ref: github.com/go-jose/go-jose/v4.A128KW
+  param:
+    value: '128'
+- ref: github.com/go-jose/go-jose/v4.A192KW
+  param:
+    value: '192'
+- ref: github.com/go-jose/go-jose/v4.A256KW
+  param:
+    value: '256'
+- ref: gopkg.in/square/go-jose.v2.A128KW
+  param:
+    value: '128'
+- ref: gopkg.in/square/go-jose.v2.A192KW
+  param:
+    value: '192'
+- ref: gopkg.in/square/go-jose.v2.A256KW
+  param:
+    value: '256'
+- ref: gopkg.in/go-jose/go-jose.v2.A128KW
+  param:
+    value: '128'
+- ref: gopkg.in/go-jose/go-jose.v2.A192KW
+  param:
+    value: '192'
+- ref: gopkg.in/go-jose/go-jose.v2.A256KW
+  param:
+    value: '256'
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['A128CBC', 'A128CBC-HS256', 'A128CTR', 'A128GCM', 'A128GCMKW', 'A128KW', 'A192CBC', 'A192CBC-HS384', 'A192CTR', 'A192GCM', 'A192GCMKW', 'A192KW', 'A256CBC', 'A256CBC-HS512', 'A256CTR', 'A256GCM', 'A256GCMKW', 'A256KW', 'AEAD_AES_128_GCM', 'AEAD_AES_256_GCM', 'aes128-cbc', 'aes128-ctr', 'aes192-cbc', 'aes192-ctr', 'aes256-cbc', 'aes256-ctr', 'AES-128-GCM', 'AES-128-CBC', 'AES-128-CTR', 'AES-128-CFB', 'AES-128-OFB', 'AES-192-GCM', 'AES-192-CBC', 'AES-192-CTR', 'AES-192-CFB', 'AES-192-OFB', 'AES-256-GCM', 'AES-256-CBC', 'AES-256-CTR', 'AES-256-CFB', 'AES-256-OFB']
+  feature: go-literal-names

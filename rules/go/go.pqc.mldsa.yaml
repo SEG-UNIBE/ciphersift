@@ -100,3 +100,7 @@ match:
 - ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_ML_DSA_87
   param:
     value: ML-DSA-87
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87', 'ssh-mldsa-44', 'ssh-mldsa-65', 'ssh-mldsa-87', 'ssh-mldsa44-ed25519', 'ssh-mldsa87-p384']
+  feature: go-literal-names

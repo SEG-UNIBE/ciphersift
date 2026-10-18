@@ -4,9 +4,15 @@
   "title": "CipherSift rule document (format version 1)",
   "description": "One YAML or JSON document per file. Semantics: SPEC.md, section 5 (Rule format). SPDX-License-Identifier: Apache-2.0",
   "oneOf": [
-    {"$ref": "#/$defs/sourceRule"},
-    {"$ref": "#/$defs/dependencyRule"},
-    {"$ref": "#/$defs/constantsDoc"}
+    {
+      "$ref": "#/$defs/sourceRule"
+    },
+    {
+      "$ref": "#/$defs/dependencyRule"
+    },
+    {
+      "$ref": "#/$defs/constantsDoc"
+    }
   ],
   "$defs": {
     "ruleId": {
@@ -18,14 +24,26 @@
       "minLength": 1,
       "description": "A regular expression in the common subset of java.util.regex and Python re (SPEC.md 5.7)."
     },
-    "nonEmptyString": {"type": "string", "minLength": 1},
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
     "stringList": {
       "type": "array",
       "minItems": 1,
-      "items": {"$ref": "#/$defs/nonEmptyString"}
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      }
     },
     "stringOrList": {
-      "oneOf": [{"$ref": "#/$defs/nonEmptyString"}, {"$ref": "#/$defs/stringList"}]
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        {
+          "$ref": "#/$defs/stringList"
+        }
+      ]
     },
     "javaQualifiedName": {
       "type": "string",
@@ -53,245 +71,1410 @@
       "type": "string",
       "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*\\*?$"
     },
-
     "asset": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": {"enum": ["algorithm", "protocol", "certificate", "related-crypto-material", "key-material"]},
-        "subtype": {"$ref": "#/$defs/nonEmptyString"},
-        "primitive": {"enum": ["block-cipher", "stream-cipher", "hash", "mac", "signature", "pke", "kem", "kdf", "key-agree", "ae", "drbg", "xof", "combiner", "other"]},
-        "family": {"$ref": "#/$defs/nonEmptyString"},
-        "variant": {"$ref": "#/$defs/nonEmptyString"},
-        "securityLevel": {"type": "integer", "minimum": 0},
-        "protocol": {"enum": ["tls", "ssh", "ipsec", "ike", "sstp", "wpa", "other"]},
-        "version": {"$ref": "#/$defs/nonEmptyString"}
+        "type": {
+          "enum": [
+            "algorithm",
+            "protocol",
+            "certificate",
+            "related-crypto-material",
+            "key-material"
+          ]
+        },
+        "subtype": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "primitive": {
+          "enum": [
+            "block-cipher",
+            "stream-cipher",
+            "hash",
+            "mac",
+            "signature",
+            "pke",
+            "kem",
+            "kdf",
+            "key-agree",
+            "ae",
+            "drbg",
+            "xof",
+            "combiner",
+            "other"
+          ]
+        },
+        "family": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "variant": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "securityLevel": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "protocol": {
+          "enum": [
+            "tls",
+            "ssh",
+            "ipsec",
+            "ike",
+            "sstp",
+            "wpa",
+            "other"
+          ]
+        },
+        "version": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
       },
       "allOf": [
-        {"if": {"properties": {"type": {"const": "protocol"}}},
-         "then": {"required": ["protocol"]},
-         "else": {"not": {"anyOf": [{"required": ["protocol"]}, {"required": ["version"]}]}}}
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "protocol"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "protocol"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "protocol"
+                  ]
+                },
+                {
+                  "required": [
+                    "version"
+                  ]
+                }
+              ]
+            }
+          }
+        }
       ]
     },
-
     "javaPattern": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "call": {"$ref": "#/$defs/javaQualifiedName"},
-        "new": {"$ref": "#/$defs/javaQualifiedName"},
-        "method": {"$ref": "#/$defs/identifierOrPrefix"},
-        "field": {"$ref": "#/$defs/javaQualifiedName"},
-        "override": {"$ref": "#/$defs/identifierOrPrefix"},
-        "firstString": {"$ref": "#/$defs/regex"},
-        "anyString": {"$ref": "#/$defs/regex"},
-        "stringContains": {"$ref": "#/$defs/stringList"},
-        "argsText": {"$ref": "#/$defs/regex"},
-        "argsTextContains": {"$ref": "#/$defs/stringList"},
-        "constantArg": {"type": "integer", "minimum": 0},
-        "inType": {"$ref": "#/$defs/stringList"},
-        "body": {"$ref": "#/$defs/regex"},
-        "param": {"$ref": "#/$defs/param"},
-        "anyCall": {"const": true, "description": "any method invocation except the excluded names (SPEC 5.5, DECISIONS B-J-SNx)"},
-        "feature": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "the pattern is used only while this feature is on (SPEC 3.1, 5.5)"}
+        "call": {
+          "$ref": "#/$defs/javaQualifiedName"
+        },
+        "new": {
+          "$ref": "#/$defs/javaQualifiedName"
+        },
+        "method": {
+          "$ref": "#/$defs/identifierOrPrefix"
+        },
+        "field": {
+          "$ref": "#/$defs/javaQualifiedName"
+        },
+        "override": {
+          "$ref": "#/$defs/identifierOrPrefix"
+        },
+        "firstString": {
+          "$ref": "#/$defs/regex"
+        },
+        "anyString": {
+          "$ref": "#/$defs/regex"
+        },
+        "stringContains": {
+          "$ref": "#/$defs/stringList"
+        },
+        "argsText": {
+          "$ref": "#/$defs/regex"
+        },
+        "argsTextContains": {
+          "$ref": "#/$defs/stringList"
+        },
+        "constantArg": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inType": {
+          "$ref": "#/$defs/stringList"
+        },
+        "body": {
+          "$ref": "#/$defs/regex"
+        },
+        "param": {
+          "$ref": "#/$defs/param"
+        },
+        "anyCall": {
+          "const": true,
+          "description": "any method invocation except the excluded names (SPEC 5.5, DECISIONS B-J-SNx)"
+        },
+        "feature": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "the pattern is used only while this feature is on (SPEC 3.1, 5.5)"
+        }
       },
       "oneOf": [
-        {"required": ["call"]}, {"required": ["new"]}, {"required": ["method"]},
-        {"required": ["field"]}, {"required": ["override"]}, {"required": ["anyCall"]}
+        {
+          "required": [
+            "call"
+          ]
+        },
+        {
+          "required": [
+            "new"
+          ]
+        },
+        {
+          "required": [
+            "method"
+          ]
+        },
+        {
+          "required": [
+            "field"
+          ]
+        },
+        {
+          "required": [
+            "override"
+          ]
+        },
+        {
+          "required": [
+            "anyCall"
+          ]
+        }
       ],
       "allOf": [
-        {"description": "anyCall needs a string condition (SPEC 5.5)",
-         "if": {"required": ["anyCall"]},
-         "then": {"anyOf": [{"required": ["anyString"]}, {"required": ["firstString"]}, {"required": ["stringContains"]}]}},
-        {"if": {"anyOf": [{"required": ["inType"]}, {"required": ["body"]}]},
-         "then": {"required": ["override"]}},
-        {"if": {"required": ["override"]},
-         "then": {"not": {"anyOf": [
-           {"required": ["firstString"]}, {"required": ["anyString"]}, {"required": ["stringContains"]},
-           {"required": ["argsText"]}, {"required": ["argsTextContains"]}, {"required": ["constantArg"]},
-           {"required": ["param"]}]}}},
-        {"if": {"required": ["field"]},
-         "then": {"not": {"anyOf": [
-           {"required": ["firstString"]}, {"required": ["anyString"]}, {"required": ["stringContains"]},
-           {"required": ["argsText"]}, {"required": ["argsTextContains"]}, {"required": ["constantArg"]},
-           {"required": ["param"]}]}}},
-        {"if": {"required": ["new"]},
-         "then": {"properties": {"new": {"pattern": "[^*]$"}}}}
+        {
+          "description": "anyCall needs a string condition (SPEC 5.5)",
+          "if": {
+            "required": [
+              "anyCall"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "anyString"
+                ]
+              },
+              {
+                "required": [
+                  "firstString"
+                ]
+              },
+              {
+                "required": [
+                  "stringContains"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "inType"
+                ]
+              },
+              {
+                "required": [
+                  "body"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "override"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "override"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "firstString"
+                  ]
+                },
+                {
+                  "required": [
+                    "anyString"
+                  ]
+                },
+                {
+                  "required": [
+                    "stringContains"
+                  ]
+                },
+                {
+                  "required": [
+                    "argsText"
+                  ]
+                },
+                {
+                  "required": [
+                    "argsTextContains"
+                  ]
+                },
+                {
+                  "required": [
+                    "constantArg"
+                  ]
+                },
+                {
+                  "required": [
+                    "param"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "field"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "firstString"
+                  ]
+                },
+                {
+                  "required": [
+                    "anyString"
+                  ]
+                },
+                {
+                  "required": [
+                    "stringContains"
+                  ]
+                },
+                {
+                  "required": [
+                    "argsText"
+                  ]
+                },
+                {
+                  "required": [
+                    "argsTextContains"
+                  ]
+                },
+                {
+                  "required": [
+                    "constantArg"
+                  ]
+                },
+                {
+                  "required": [
+                    "param"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "new"
+            ]
+          },
+          "then": {
+            "properties": {
+              "new": {
+                "pattern": "[^*]$"
+              }
+            }
+          }
+        }
       ]
     },
-
     "pythonPattern": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "call": {"$ref": "#/$defs/pythonDottedName"},
+        "call": {
+          "$ref": "#/$defs/pythonDottedName"
+        },
         "method": {
           "oneOf": [
-            {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
-            {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}}
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              }
+            }
           ]
         },
-        "anyCall": {"const": true},
-        "assign": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
-        "ref": {"$ref": "#/$defs/pythonDottedName"},
-        "firstString": {"$ref": "#/$defs/regex"},
-        "stringContains": {"$ref": "#/$defs/stringList"},
-        "anySymbol": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pythonDottedName"}},
-        "allSymbols": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pythonDottedName"}},
+        "anyCall": {
+          "const": true
+        },
+        "assign": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "ref": {
+          "$ref": "#/$defs/pythonDottedName"
+        },
+        "firstString": {
+          "$ref": "#/$defs/regex"
+        },
+        "stringContains": {
+          "$ref": "#/$defs/stringList"
+        },
+        "anySymbol": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/pythonDottedName"
+          }
+        },
+        "allSymbols": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/pythonDottedName"
+          }
+        },
         "kwargs": {
           "type": "object",
           "minProperties": 1,
-          "propertyNames": {"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
-          "additionalProperties": {"$ref": "#/$defs/regex"}
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/regex"
+          }
         },
         "dictItems": {
           "type": "object",
           "minProperties": 1,
-          "propertyNames": {"minLength": 1},
-          "additionalProperties": {"$ref": "#/$defs/regex"}
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/regex"
+          }
         },
-        "notInside": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}},
-        "value": {"$ref": "#/$defs/regex"},
-        "valueContains": {"$ref": "#/$defs/stringList"},
-        "param": {"$ref": "#/$defs/param"},
-        "reportAt": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}},
-        "noSymbolPrefix": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-        "minArgs": {"type": "integer", "minimum": 1},
-        "noString": {"const": true},
-        "literal": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-        "feature": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
+        "notInside": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "value": {
+          "$ref": "#/$defs/regex"
+        },
+        "valueContains": {
+          "$ref": "#/$defs/stringList"
+        },
+        "param": {
+          "$ref": "#/$defs/param"
+        },
+        "reportAt": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "noSymbolPrefix": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "minArgs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "noString": {
+          "const": true
+        },
+        "literal": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "feature": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
       },
       "allOf": [
-        {"description": "exactly one of call / anyCall / assign / ref / literal; method may stand alone or (not used today) accompany call",
-         "oneOf": [
-           {"required": ["call"], "not": {"anyOf": [{"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
-           {"required": ["method"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
-           {"required": ["anyCall", "kwargs"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["assign"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
-           {"required": ["assign"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
-           {"required": ["ref"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["literal"]}]}},
-           {"required": ["literal"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}]}}
-         ]},
-        {"description": "a literal pattern (DECISIONS B-P-LIT) takes no condition, no reportAt; param only {value}",
-         "if": {"required": ["literal"]},
-         "then": {"not": {"anyOf": [
-           {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
-           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
-           {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]}, {"required": ["noString"]}]},
-           "properties": {"param": {"required": ["value"]}}}},
-        {"if": {"required": ["assign"]},
-         "then": {"not": {"anyOf": [
-           {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
-           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
-           {"required": ["param"]}, {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]},
-           {"required": ["noString"]}]}},
-         "else": {"not": {"anyOf": [{"required": ["value"]}, {"required": ["valueContains"]}]}}},
-        {"description": "a ref pattern (a bare reference has no arguments) takes no condition; its param can only be {self: true}",
-         "if": {"required": ["ref"]},
-         "then": {"not": {"anyOf": [
-           {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
-           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
-           {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]}, {"required": ["noString"]}]},
-           "properties": {"param": {"anyOf": [{"required": ["self"]}, {"required": ["value"]}]}}}}
+        {
+          "description": "exactly one of call / anyCall / assign / ref / literal; method may stand alone or (not used today) accompany call",
+          "oneOf": [
+            {
+              "required": [
+                "call"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "anyCall"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "assign"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "ref"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "literal"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "method"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "call"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "anyCall"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "assign"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "ref"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "literal"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "anyCall",
+                "kwargs"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "call"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "method"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "assign"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "ref"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "literal"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "assign"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "call"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "method"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "anyCall"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "ref"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "literal"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "ref"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "call"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "method"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "anyCall"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "assign"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "literal"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "literal"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "call"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "method"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "anyCall"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "assign"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "ref"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "description": "a literal pattern (DECISIONS B-P-LIT) takes no condition, no reportAt; param only {value}",
+          "if": {
+            "required": [
+              "literal"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "firstString"
+                  ]
+                },
+                {
+                  "required": [
+                    "stringContains"
+                  ]
+                },
+                {
+                  "required": [
+                    "anySymbol"
+                  ]
+                },
+                {
+                  "required": [
+                    "allSymbols"
+                  ]
+                },
+                {
+                  "required": [
+                    "kwargs"
+                  ]
+                },
+                {
+                  "required": [
+                    "dictItems"
+                  ]
+                },
+                {
+                  "required": [
+                    "notInside"
+                  ]
+                },
+                {
+                  "required": [
+                    "reportAt"
+                  ]
+                },
+                {
+                  "required": [
+                    "noSymbolPrefix"
+                  ]
+                },
+                {
+                  "required": [
+                    "minArgs"
+                  ]
+                },
+                {
+                  "required": [
+                    "noString"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "param": {
+                "required": [
+                  "value"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "assign"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "firstString"
+                  ]
+                },
+                {
+                  "required": [
+                    "stringContains"
+                  ]
+                },
+                {
+                  "required": [
+                    "anySymbol"
+                  ]
+                },
+                {
+                  "required": [
+                    "allSymbols"
+                  ]
+                },
+                {
+                  "required": [
+                    "kwargs"
+                  ]
+                },
+                {
+                  "required": [
+                    "dictItems"
+                  ]
+                },
+                {
+                  "required": [
+                    "notInside"
+                  ]
+                },
+                {
+                  "required": [
+                    "param"
+                  ]
+                },
+                {
+                  "required": [
+                    "reportAt"
+                  ]
+                },
+                {
+                  "required": [
+                    "noSymbolPrefix"
+                  ]
+                },
+                {
+                  "required": [
+                    "minArgs"
+                  ]
+                },
+                {
+                  "required": [
+                    "noString"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "value"
+                  ]
+                },
+                {
+                  "required": [
+                    "valueContains"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "a ref pattern (a bare reference has no arguments) takes no condition; its param can only be {self: true}",
+          "if": {
+            "required": [
+              "ref"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "firstString"
+                  ]
+                },
+                {
+                  "required": [
+                    "stringContains"
+                  ]
+                },
+                {
+                  "required": [
+                    "anySymbol"
+                  ]
+                },
+                {
+                  "required": [
+                    "allSymbols"
+                  ]
+                },
+                {
+                  "required": [
+                    "kwargs"
+                  ]
+                },
+                {
+                  "required": [
+                    "dictItems"
+                  ]
+                },
+                {
+                  "required": [
+                    "notInside"
+                  ]
+                },
+                {
+                  "required": [
+                    "reportAt"
+                  ]
+                },
+                {
+                  "required": [
+                    "noSymbolPrefix"
+                  ]
+                },
+                {
+                  "required": [
+                    "minArgs"
+                  ]
+                },
+                {
+                  "required": [
+                    "noString"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "param": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "self"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "value"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       ]
     },
-
     "goPattern": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "call": {"$ref": "#/$defs/goQualifiedName"},
-        "ref": {"$ref": "#/$defs/goQualifiedName"},
-        "composite": {"$ref": "#/$defs/goExactName"},
-        "method": {"$ref": "#/$defs/goMethodName"},
-        "assign": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
-        "anySymbol": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/goExactName"}},
-        "value": {"$ref": "#/$defs/regex"},
-        "valueContains": {"$ref": "#/$defs/stringList"},
-        "param": {"$ref": "#/$defs/param"}
+        "call": {
+          "$ref": "#/$defs/goQualifiedName"
+        },
+        "ref": {
+          "$ref": "#/$defs/goQualifiedName"
+        },
+        "composite": {
+          "$ref": "#/$defs/goExactName"
+        },
+        "method": {
+          "$ref": "#/$defs/goMethodName"
+        },
+        "assign": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "anySymbol": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/goExactName"
+          }
+        },
+        "value": {
+          "$ref": "#/$defs/regex"
+        },
+        "valueContains": {
+          "$ref": "#/$defs/stringList"
+        },
+        "param": {
+          "$ref": "#/$defs/param"
+        },
+        "literal": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "feature": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
       },
       "oneOf": [
-        {"required": ["call"]}, {"required": ["ref"]}, {"required": ["composite"]}, {"required": ["assign"]},
-        {"required": ["method"]}
+        {
+          "required": [
+            "call"
+          ]
+        },
+        {
+          "required": [
+            "ref"
+          ]
+        },
+        {
+          "required": [
+            "composite"
+          ]
+        },
+        {
+          "required": [
+            "assign"
+          ]
+        },
+        {
+          "required": [
+            "method"
+          ]
+        },
+        {
+          "required": [
+            "literal"
+          ]
+        }
       ],
       "allOf": [
-        {"description": "anySymbol only on call and composite patterns (SPEC 17.3)",
-         "if": {"required": ["anySymbol"]}, "then": {"anyOf": [{"required": ["call"]}, {"required": ["composite"]}]}},
-        {"description": "value / valueContains only on assign patterns; assign takes no param",
-         "if": {"required": ["assign"]},
-         "then": {"not": {"anyOf": [{"required": ["anySymbol"]}, {"required": ["param"]}]}},
-         "else": {"not": {"anyOf": [{"required": ["value"]}, {"required": ["valueContains"]}]}}},
-        {"description": "param: {index} only on call patterns; no keyword in Go",
-         "if": {"required": ["param"]},
-         "then": {"properties": {"param": {"not": {"required": ["keyword"]}}}}},
-        {"if": {"anyOf": [{"required": ["ref"]}, {"required": ["composite"]}]},
-         "then": {"properties": {"param": {"not": {"required": ["index"]}}}}},
-        {"description": "a method pattern takes no anySymbol and no param: {self} (DECISIONS B-G-B1a)",
-         "if": {"required": ["method"]},
-         "then": {"not": {"required": ["anySymbol"]}, "properties": {"param": {"not": {"required": ["self"]}}}}}
+        {
+          "description": "anySymbol only on call and composite patterns (SPEC 17.3)",
+          "if": {
+            "required": [
+              "anySymbol"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "call"
+                ]
+              },
+              {
+                "required": [
+                  "composite"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "description": "value / valueContains only on assign patterns; assign takes no param",
+          "if": {
+            "required": [
+              "assign"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "anySymbol"
+                  ]
+                },
+                {
+                  "required": [
+                    "param"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "value"
+                  ]
+                },
+                {
+                  "required": [
+                    "valueContains"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "param: {index} only on call patterns; no keyword in Go",
+          "if": {
+            "required": [
+              "param"
+            ]
+          },
+          "then": {
+            "properties": {
+              "param": {
+                "not": {
+                  "required": [
+                    "keyword"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "ref"
+                ]
+              },
+              {
+                "required": [
+                  "composite"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "param": {
+                "not": {
+                  "required": [
+                    "index"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "a method pattern takes no anySymbol and no param: {self} (DECISIONS B-G-B1a)",
+          "if": {
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "anySymbol"
+              ]
+            },
+            "properties": {
+              "param": {
+                "not": {
+                  "required": [
+                    "self"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "a literal pattern takes no anySymbol and no param (DECISIONS T3-G10)",
+          "if": {
+            "required": [
+              "literal"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "anySymbol"
+                  ]
+                },
+                {
+                  "required": [
+                    "param"
+                  ]
+                }
+              ]
+            }
+          }
+        }
       ]
     },
-
     "param": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "self": {"const": true},
-        "keyword": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
-        "index": {"type": "integer", "minimum": 0},
-        "value": {"$ref": "#/$defs/nonEmptyString"}
+        "self": {
+          "const": true
+        },
+        "keyword": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
       },
       "allOf": [
-        {"if": {"required": ["self"]},
-         "then": {"not": {"anyOf": [{"required": ["keyword"]}, {"required": ["index"]}, {"required": ["value"]}]}}},
-        {"if": {"required": ["value"]},
-         "then": {"not": {"anyOf": [{"required": ["keyword"]}, {"required": ["index"]}, {"required": ["self"]}]}}}
+        {
+          "if": {
+            "required": [
+              "self"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "keyword"
+                  ]
+                },
+                {
+                  "required": [
+                    "index"
+                  ]
+                },
+                {
+                  "required": [
+                    "value"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "value"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "keyword"
+                  ]
+                },
+                {
+                  "required": [
+                    "index"
+                  ]
+                },
+                {
+                  "required": [
+                    "self"
+                  ]
+                }
+              ]
+            }
+          }
+        }
       ]
     },
-
     "sourceRule": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "language", "name", "asset", "match"],
+      "required": [
+        "id",
+        "kind",
+        "language",
+        "name",
+        "asset",
+        "match"
+      ],
       "properties": {
-        "id": {"$ref": "#/$defs/ruleId"},
-        "kind": {"const": "source"},
-        "language": {"enum": ["java", "python", "go"]},
-        "name": {"$ref": "#/$defs/nonEmptyString"},
-        "description": {"type": "string"},
-        "indicator": {"enum": ["weakness"], "description": "The findings are indicators of a possible weakness, not cryptographic assets (SPEC 5.3, 11.3.4)."},
-        "asset": {"$ref": "#/$defs/asset"},
-        "match": {"type": "array", "minItems": 1}
+        "id": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "kind": {
+          "const": "source"
+        },
+        "language": {
+          "enum": [
+            "java",
+            "python",
+            "go"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "type": "string"
+        },
+        "indicator": {
+          "enum": [
+            "weakness"
+          ],
+          "description": "The findings are indicators of a possible weakness, not cryptographic assets (SPEC 5.3, 11.3.4)."
+        },
+        "asset": {
+          "$ref": "#/$defs/asset"
+        },
+        "match": {
+          "type": "array",
+          "minItems": 1
+        }
       },
       "allOf": [
-        {"if": {"properties": {"language": {"const": "java"}}},
-         "then": {"properties": {"id": {"pattern": "^java\\."}, "match": {"items": {"$ref": "#/$defs/javaPattern"}}}}},
-        {"if": {"properties": {"language": {"const": "python"}}},
-         "then": {"properties": {"id": {"pattern": "^python\\."}, "match": {"items": {"$ref": "#/$defs/pythonPattern"}}}}},
-        {"if": {"properties": {"language": {"const": "go"}}},
-         "then": {"properties": {"id": {"pattern": "^go\\."}, "match": {"items": {"$ref": "#/$defs/goPattern"}}}}}
+        {
+          "if": {
+            "properties": {
+              "language": {
+                "const": "java"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^java\\."
+              },
+              "match": {
+                "items": {
+                  "$ref": "#/$defs/javaPattern"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "language": {
+                "const": "python"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^python\\."
+              },
+              "match": {
+                "items": {
+                  "$ref": "#/$defs/pythonPattern"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "language": {
+                "const": "go"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^go\\."
+              },
+              "match": {
+                "items": {
+                  "$ref": "#/$defs/goPattern"
+                }
+              }
+            }
+          }
+        }
       ]
     },
-
     "dependencyRule": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "ecosystem", "name", "asset", "packages"],
+      "required": [
+        "id",
+        "kind",
+        "ecosystem",
+        "name",
+        "asset",
+        "packages"
+      ],
       "properties": {
-        "id": {"$ref": "#/$defs/ruleId"},
-        "kind": {"const": "dependency"},
-        "ecosystem": {"enum": ["maven", "pypi", "golang"]},
-        "name": {"$ref": "#/$defs/nonEmptyString"},
-        "description": {"type": "string"},
+        "id": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "kind": {
+          "const": "dependency"
+        },
+        "ecosystem": {
+          "enum": [
+            "maven",
+            "pypi",
+            "golang"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "type": "string"
+        },
         "asset": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["type"],
-          "properties": {"type": {"const": "library"}}
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "library"
+            }
+          }
         },
         "packages": {
           "type": "array",
@@ -299,43 +1482,138 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["package"],
+            "required": [
+              "package"
+            ],
             "properties": {
-              "package": {"$ref": "#/$defs/nonEmptyString"},
-              "note": {"type": "string"},
-              "usedIf": {"$ref": "#/$defs/nonEmptyString"}
+              "package": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "note": {
+                "type": "string"
+              },
+              "usedIf": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
             }
           }
         }
       },
       "allOf": [
-        {"if": {"properties": {"ecosystem": {"const": "maven"}}},
-         "then": {"properties": {"id": {"pattern": "^dep\\."}, "packages": {"items": {"properties": {"package": {"pattern": "^[A-Za-z0-9_.*-]+:[A-Za-z0-9_.*-]+$"}}}}}}},
-        {"if": {"properties": {"ecosystem": {"const": "pypi"}}},
-         "then": {"properties": {"id": {"pattern": "^dep\\."}, "packages": {"items": {"properties": {"package": {"pattern": "^[a-z0-9*]([a-z0-9*-]*[a-z0-9*])?$"}}}}}}},
-        {"if": {"properties": {"ecosystem": {"const": "golang"}}},
-         "then": {"properties": {"id": {"pattern": "^dep\\."}, "packages": {"items": {"properties": {"package": {"pattern": "^[A-Za-z0-9_.~+*-]+(/[A-Za-z0-9_.~+*-]+)*$"}}}}}}}
+        {
+          "if": {
+            "properties": {
+              "ecosystem": {
+                "const": "maven"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^dep\\."
+              },
+              "packages": {
+                "items": {
+                  "properties": {
+                    "package": {
+                      "pattern": "^[A-Za-z0-9_.*-]+:[A-Za-z0-9_.*-]+$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ecosystem": {
+                "const": "pypi"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^dep\\."
+              },
+              "packages": {
+                "items": {
+                  "properties": {
+                    "package": {
+                      "pattern": "^[a-z0-9*]([a-z0-9*-]*[a-z0-9*])?$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ecosystem": {
+                "const": "golang"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^dep\\."
+              },
+              "packages": {
+                "items": {
+                  "properties": {
+                    "package": {
+                      "pattern": "^[A-Za-z0-9_.~+*-]+(/[A-Za-z0-9_.~+*-]+)*$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
     },
-
     "constantsDoc": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "language", "constants"],
+      "required": [
+        "id",
+        "kind",
+        "language",
+        "constants"
+      ],
       "properties": {
-        "id": {"$ref": "#/$defs/ruleId"},
-        "kind": {"const": "constants"},
-        "language": {"const": "java"},
-        "description": {"type": "string"},
+        "id": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "kind": {
+          "const": "constants"
+        },
+        "language": {
+          "const": "java"
+        },
+        "description": {
+          "type": "string"
+        },
         "constants": {
           "type": "object",
           "minProperties": 1,
-          "propertyNames": {"pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"},
+          "propertyNames": {
+            "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"
+          },
           "additionalProperties": {
             "type": "object",
             "minProperties": 1,
-            "propertyNames": {"pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"},
-            "additionalProperties": {"type": "string"}
+            "propertyNames": {
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       }

@@ -24,3 +24,7 @@ match:
 - ref: crypto/x509.DSA
 - ref: crypto/x509.DSAWithSHA1
 - ref: crypto/x509.DSAWithSHA256
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['pgp-sign-dss', 'spki-sign-dss', 'ssh-dss', 'x509v3-ssh-dss']
+  feature: go-literal-names

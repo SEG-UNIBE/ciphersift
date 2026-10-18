@@ -15,3 +15,23 @@ asset:
 match:
 - call: crypto/pbkdf2.Key
 - call: golang.org/x/crypto/pbkdf2.Key
+# DECISIONS T3-G4 (benchmark-informed in the choice of packages: go-jose, cosign, vault, smallstep, node): JOSE algorithm
+# identifiers of go-jose (https://pkg.go.dev/github.com/go-jose/go-jose/v4, v4.1.6; same names in v2/v3) and golang-jwt signing
+# methods / PEM key parsers (https://pkg.go.dev/github.com/golang-jwt/jwt/v5, v5.3.1; same names in v3/v4), names per the IANA
+# JOSE registry (RFC 7518).
+- ref: github.com/go-jose/go-jose/v3.PBES2_HS256_A128KW
+- ref: github.com/go-jose/go-jose/v3.PBES2_HS384_A192KW
+- ref: github.com/go-jose/go-jose/v3.PBES2_HS512_A256KW
+- ref: github.com/go-jose/go-jose/v4.PBES2_HS256_A128KW
+- ref: github.com/go-jose/go-jose/v4.PBES2_HS384_A192KW
+- ref: github.com/go-jose/go-jose/v4.PBES2_HS512_A256KW
+- ref: gopkg.in/square/go-jose.v2.PBES2_HS256_A128KW
+- ref: gopkg.in/square/go-jose.v2.PBES2_HS384_A192KW
+- ref: gopkg.in/square/go-jose.v2.PBES2_HS512_A256KW
+- ref: gopkg.in/go-jose/go-jose.v2.PBES2_HS256_A128KW
+- ref: gopkg.in/go-jose/go-jose.v2.PBES2_HS384_A192KW
+- ref: gopkg.in/go-jose/go-jose.v2.PBES2_HS512_A256KW
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['PBES2-HS256+A128KW', 'PBES2-HS384+A192KW', 'PBES2-HS512+A256KW']
+  feature: go-literal-names

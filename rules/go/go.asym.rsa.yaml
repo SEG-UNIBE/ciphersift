@@ -63,3 +63,22 @@ match:
   param:
     value: '2048'
 # (the v1 module github.com/go-piv/piv-go/piv, v1.11.0, has no AlgorithmRSA3072 / AlgorithmRSA4096)
+# DECISIONS T3-G4: golang-jwt PEM key parsers whose name fixes the algorithm (https://pkg.go.dev/github.com/golang-jwt/jwt/v5).
+- call: github.com/golang-jwt/jwt.ParseRSAPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt.ParseRSAPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseRSAPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseRSAPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseRSAPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseRSAPublicKeyFromPEM
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateRSAKeyPair
+  param:
+    index: 0
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalRsaPrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalRsaPublicKey
+- ref: github.com/libp2p/go-libp2p/core/crypto.RSA
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['PS256', 'PS384', 'PS512', 'RS1', 'RS256', 'RS384', 'RS512', 'RSA-OAEP', 'RSA-OAEP-256', 'RSA-OAEP-384', 'RSA-OAEP-512', 'RSA1_5', 'pgp-sign-rsa', 'rsa-sha2-256', 'rsa-sha2-512', 'rsa1024-sha1', 'rsa2048-sha256', 'spki-sign-rsa', 'ssh-rsa', 'x509v3-rsa2048-sha256', 'x509v3-ssh-rsa']
+  feature: go-literal-names

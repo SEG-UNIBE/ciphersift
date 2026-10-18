@@ -57,3 +57,9 @@ match:
 # member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
 - ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.HashAlgorithm_SHA3_256
 - ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.HashAlgorithm_SHA3_384
+# DECISIONS T3-G2 (benchmark-informed in the choice of package: node, chain33): go-ethereum crypto and accounts/keystore,
+# written from https://pkg.go.dev/github.com/ethereum/go-ethereum/crypto and .../accounts/keystore (v1.17.8, fetched 2026-10-18).
+- call: github.com/ethereum/go-ethereum/crypto.Keccak256
+- call: github.com/ethereum/go-ethereum/crypto.Keccak256Hash
+- call: github.com/ethereum/go-ethereum/crypto.NewKeccakState
+- call: github.com/ethereum/go-ethereum/crypto.HashData

@@ -22,3 +22,7 @@ match:
 - call: github.com/cloudflare/circl/sign/ed448.Verify
 - call: github.com/cloudflare/circl/sign/ed448.VerifyAny
 - call: github.com/cloudflare/circl/sign/ed448.VerifyPh
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['Ed448', 'ssh-ed448']
+  feature: go-literal-names

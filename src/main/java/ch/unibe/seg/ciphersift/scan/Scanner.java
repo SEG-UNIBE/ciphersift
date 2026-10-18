@@ -138,7 +138,7 @@ public final class Scanner {
         boolean filter = !Boolean.getBoolean(NO_PREFILTER);
         this.javaFilter = filter ? AnchorPrefilter.java(options.rules().javaRules(), options.features()) : AnchorPrefilter.ALL;
         this.pythonFilter = filter ? AnchorPrefilter.python(options.rules().pythonRules(), options.features()) : AnchorPrefilter.ALL;
-        this.goFilter = filter ? AnchorPrefilter.go(options.rules().goRules()) : AnchorPrefilter.ALL;
+        this.goFilter = filter ? AnchorPrefilter.go(options.rules().goRules(), options.features()) : AnchorPrefilter.ALL;
         for (DependencyRule r : options.rules().dependencyRules().values()) {
             FileClass lang = languageOf(r.ecosystem());
             if (lang != null && !r.usedIfTexts().isEmpty()) {

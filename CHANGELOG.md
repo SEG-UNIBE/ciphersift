@@ -7,6 +7,20 @@
 
 Development steps of the unreleased 1.0.0, newest first.
 
+### Round t3 merged (Java, Python, Go tuning and reviews)
+
+* Conformance: 114 cases, 1806 findings (1648 + 35 Java + 45 Python + 78 Go).
+
+### Java tuning, round t3 (DECISIONS T3-J-INH … T3-J-CONST, R3-J-*; benchmark-informed)
+
+* **Constants**: inherited constants (`java-inherited-constants`), classes of other source roots
+  (`java-cross-module-constants`), `super(…)` / `this(…)` as `anyCall` events (`java-constructor-calls`);
+  `getBytes(charset)` needs a constant receiver to be a constant key.
+* **Wrappers**: Java constructors as wrapper definitions, `new C(…)` as call sites (`java-constructor-wrappers`).
+* **Dependencies**: Gradle catalog accessors (`gradle-catalog-accessors`); test-scoped Maven / Gradle dependencies
+  as test occurrences (`maven-test-scope`).
+* **Rules**: `CertificateFactory` methods, JSR 105 / OpenSAML signature APIs, ed25519-java, OpenSAML / jose4j constants.
+
 ### Python tuning, round t3 (DECISIONS P3-RET … P3-PL; benchmark-informed)
 
 * **Value positions**: returned values and literal table look-ups (`python-return-values`), parameter default
@@ -17,6 +31,19 @@ Development steps of the unreleased 1.0.0, newest first.
   `wrap_socket`, `starttls`); IANA TLS cipher suites as literals; passlib `pbkdf2_hmac`; `dep.pypi` lists
   `tgcrypto-pyrofork` and `unicrypto`.
 * Conformance: 100 cases, 1693 findings (1648 + 44 in seven new cases + 1 in `python/fork-fixtures`).
+
+### Go tuning, round t3 (DECISIONS T3-G1–T3-G10; benchmark-informed)
+
+* Nested same-rule duplicates on one line dropped (`rand.Int(rand.Reader, n)` is one CSPRNG finding).
+* Third-party APIs: go-ethereum `crypto` / `accounts/keystore`, go-jose / golang-jwt identifiers, btcec/v2
+  secp256k1, libp2p `core/crypto` keys; default import name convention for `go-x` / `x-go` segments (`jose`).
+* `literal` anchor for Go: IANA SSH / JOSE / TLS-group / TLS-suite and OpenSSL cipher names as string literals.
+* Wrappers: key loading next to another key does not block a thin wrapper; open variants (several params of one
+  rule) are propagated under the rule's name.
+* Precision: compared property reads of identifier calls (`X().ID() == …`) and `GenerateKey` on a named curve
+  receiver give no extra finding; CSPRNG index draws optionally dropped (`go-random-index`, off).
+* Review: import names of non-identifier segments as `goimports` assumes them; literal names in name tables
+  (keyed by a constant or number, `String()` results) dropped; Go prefilter on quoted names.
 
 ### Boosters, round t2 (DECISIONS B0–B-P-B5; benchmark-informed)
 

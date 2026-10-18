@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-104 cases, 1728 expected findings. A conforming implementation produces exactly the expected
+114 cases, 1806 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -29,7 +29,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/array-comments` | 1 | 7 | comments inside byte-array initialisers are ignored by the constant-bytes check (DECISIONS O3): inline, via a constant field, line comments across lines; a non-literal element still prevents it |
 | `java/syntax-error` | 1 | 2 | findings before and after a syntax error |
 | `java/deep-nesting` | 1 | 2 | 4 000-operand concatenation: no crash, depth limit → fallback |
-| `python/fork-fixtures` | 14 | 143 | (with `--transitive-deps`, `--feature python-unresolved=off`, `--feature python-literal-names=off`) the BF-CBOM Python fork's own fixtures (with `--weakness-indicators`): stdlib, pyca/cryptography (incl. operation attribution and curve objects), PyCryptodome/Cryptodome, libraries, negatives, broken/Python 2/binary-ish files, requirements/pyproject/Pipfile.lock |
+| `python/fork-fixtures` | 14 | 144 | (with `--transitive-deps`, `--feature python-unresolved=off`, `--feature python-literal-names=off`) the BF-CBOM Python fork's own fixtures (with `--weakness-indicators`): stdlib, pyca/cryptography (incl. operation attribution and curve objects), PyCryptodome/Cryptodome, libraries, negatives, broken/Python 2/binary-ish files, requirements/pyproject/Pipfile.lock |
 | `python/name-resolution` | 3 | 11 | `import as`, dotted imports, `from … import … as`, relative imports, star imports, `try`/`except` alternatives, function and module aliases, bound calls, prefix vs. non-prefix names |
 | `python/constants` | 1 | 7 | (with `--feature python-unresolved=off`) module and local constants, implicit concatenation, f-strings and bytes (not strings), parameter shadowing (D2), keyword strings, flow-insensitivity |
 | `python/arguments` | 1 | 14 | `anyCall` + `kwargs`, `param` by keyword/index/constant/symbol/self, list strings in keywords, attribute assignments |
@@ -122,6 +122,16 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/constructor-wrappers` | 1 | 2 | a constructor with a body finding as wrapper definition, `new C()` as its call site; an overload of another arity without crypto, a class without crypto and an anonymous subclass give nothing (DECISIONS T3-J-CTOR) |
 | `deps/gradle-catalog-accessors` | 3 | 9 | `libs.a.b` and camel-case accessors, a bundle, a non-crypto library and a version accessor through `gradle/libs.versions.toml`; `testImplementation` and `<scope>test</scope>` as test occurrences, a key declared with and without test scope, `attestationImplementation` is no test configuration (DECISIONS T3-J-CAT, T3-J-TSCOPE, review3 R3-J-TS1) |
 | `java/api-t3` | 1 | 9 | `CertificateFactory.generateCertificate` / `generateCRL` on a variable, JSR 105 `XMLSignatureFactory.getInstance`, OpenSAML `Signer.signObject` and `KeyStoreCredentialResolver`, OpenSAML and jose4j constants (not jose4j `NONE`), ed25519-java `EdDSAEngine` and `EdDSANamedCurveTable.getByName` (DECISIONS T3-J-CF, T3-J-XSIG, T3-J-CONST, T3-J-I2P) |
+| `go/nested-same-rule` | 1 | 11 | a finding of a rule without family nested on the same line in an event of the same rule is dropped (`rand.Int(rand.Reader, n)`, `VerifyOptions{Roots: NewCertPool()}`); other lines and other rules keep theirs (DECISIONS T3-G1) |
+| `go/api-ethereum` | 1 | 11 | go-ethereum `crypto` (Keccak, secp256k1 signatures and keys) and `accounts/keystore` (scrypt key files, `KeyStore.SignHash` on a typed receiver); nothing for address derivation, size constants or `Accounts()` (DECISIONS T3-G2) |
+| `go/thin-key-material` | 3 | 9 | Go thin wrappers whose key loading sits next to an SSH host-key registration or a SHA-256 key id carry that operation; key loading alone stays a key-loading wrapper (DECISIONS T3-G3) |
+| `go/api-jose` | 2 | 9 | go-jose and golang-jwt algorithm identifiers and PEM key parsers; default local name `jose` for `go-jose/v4` and `go-jose.v2`; nothing in comparisons, `case` values, `DIRECT`, `DEFLATE`, `SigningMethodNone` (DECISIONS T3-G4) |
+| `go/api-secp256k1-libp2p` | 1 | 9 | btcec/v2 secp256k1 keys, ECDSA and ECDH; libp2p key functions and key-type constants; nothing for signature parsing, `IsCompressedPubKey`, `ConfigEncodeKey` (DECISIONS T3-G5) |
+| `go/random-index` | 1 | 3 | (with `--feature go-random-index=on`) `rand.Int` over `big.NewInt(len(x))` / `int64(len(x))` is dropped with its `rand.Reader`; other bounds stay (DECISIONS T3-G6) |
+| `go/generic-variants` | 3 | 5 | a curve selector with two params of one rule is propagated under the rule's name; a wrapper of one curve keeps its name and param (DECISIONS T3-G7) |
+| `go/compared-calls` | 1 | 3 | `hpke.MLKEM768P256().ID()` and `elliptic.P384().Params().Name` in comparisons give nothing; `case elliptic.P256():` and uncompared calls stay (DECISIONS T3-G8) |
+| `go/fold-receiver-keys` | 1 | 9 | `ecdh.X25519().GenerateKey(r)` is one X25519 finding; `NewPrivateKey` and receivers in variables keep their key findings (DECISIONS T3-G9; `go/compared-calls` loses its `GenerateKey` key finding, 1 expectation) |
+| `go/literal-names` | 1 | 9 | IANA / OpenSSL names as Go string literals in value positions (call arguments, struct fields, slices); nothing for map keys, comparisons, `case` values, data of a call with a hit, `fmt.Println` text or another spelling (DECISIONS T3-G10) |
 
 ## Format of expected.json
 

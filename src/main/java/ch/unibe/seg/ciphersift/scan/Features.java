@@ -57,6 +57,27 @@ public final class Features {
     /** Calls into a project Go package whose name names a family carry its findings of that family (B3L, SPEC 18.8). */
     public static final String GO_PACKAGE_NAMES = "go-package-names";
 
+    /** Go: a finding of a rule without family nested in a call with a finding of the same rule is dropped (T3-G1, SPEC 17.8). */
+    public static final String GO_NESTED_SAME_RULE = "go-nested-same-rule";
+
+    /** Go thin wrappers: key loading next to another key does not count for the thin test (T3-G3, SPEC 18.5). */
+    public static final String GO_THIN_KEY_MATERIAL = "go-thin-key-material";
+
+    /** Go: rand.Int(r, big.NewInt(len(x))) draws a random index, not secret material: not reported (T3-G6). */
+    public static final String GO_RANDOM_INDEX = "go-random-index";
+
+    /** Go propagation: evidence with several variants of its family is reported under the rule's name (T3-G7). */
+    public static final String GO_GENERIC_VARIANTS = "go-generic-variants";
+
+    /** Go: argument-less identifier calls (elliptic.P256()) compared or in a case value are test positions (T3-G8). */
+    public static final String GO_COMPARED_CALLS = "go-compared-calls";
+
+    /** Go: a family-less key method on a receiver call with a family on the same line folds into it (T3-G9). */
+    public static final String GO_FOLD_RECEIVER_KEYS = "go-fold-receiver-keys";
+
+    /** Go {@code literal} patterns: IANA / OpenSSL algorithm names as string literals (T3-G10). */
+    public static final String GO_LITERAL_NAMES = "go-literal-names";
+
     /** Java {@code anyCall} patterns: registry algorithm names as arguments of any call (SNx, SPEC 5.5). */
     public static final String JAVA_ANY_CALL = "java-any-call";
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
@@ -133,6 +154,13 @@ public final class Features {
         known(MAVEN_TEST_SCOPE, true);
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
+        known(GO_NESTED_SAME_RULE, true);
+        known(GO_LITERAL_NAMES, true);
+        known(GO_FOLD_RECEIVER_KEYS, true);
+        known(GO_COMPARED_CALLS, true);
+        known(GO_GENERIC_VARIANTS, true);
+        known(GO_RANDOM_INDEX, false);
+        known(GO_THIN_KEY_MATERIAL, true);
         known(GO_PACKAGE_NAMES, true);
         known(GO_TYPED_METHODS, true);
         known(GO_THIN_WRAPPERS, true);

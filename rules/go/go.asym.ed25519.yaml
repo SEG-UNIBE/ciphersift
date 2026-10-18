@@ -65,3 +65,35 @@ match:
 - call: github.com/sigstore/sigstore/pkg/signature/options.WithED25519ph
 - ref: github.com/go-piv/piv-go/v2/piv.AlgorithmEd25519
 - ref: github.com/go-piv/piv-go/piv.AlgorithmEd25519
+# DECISIONS T3-G4 (benchmark-informed in the choice of packages: go-jose, cosign, vault, smallstep, node): JOSE algorithm
+# identifiers of go-jose (https://pkg.go.dev/github.com/go-jose/go-jose/v4, v4.1.6; same names in v2/v3) and golang-jwt signing
+# methods / PEM key parsers (https://pkg.go.dev/github.com/golang-jwt/jwt/v5, v5.3.1; same names in v3/v4), names per the IANA
+# JOSE registry (RFC 7518).
+- ref: github.com/go-jose/go-jose/v3.EdDSA
+- ref: github.com/go-jose/go-jose/v3.ED25519
+- ref: github.com/go-jose/go-jose/v4.EdDSA
+- ref: github.com/go-jose/go-jose/v4.ED25519
+- ref: gopkg.in/square/go-jose.v2.EdDSA
+- ref: gopkg.in/square/go-jose.v2.ED25519
+- ref: gopkg.in/go-jose/go-jose.v2.EdDSA
+- ref: gopkg.in/go-jose/go-jose.v2.ED25519
+- ref: github.com/golang-jwt/jwt.SigningMethodEdDSA
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodEdDSA
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodEdDSA
+# DECISIONS T3-G4: golang-jwt PEM key parsers whose name fixes the algorithm (https://pkg.go.dev/github.com/golang-jwt/jwt/v5).
+- call: github.com/golang-jwt/jwt.ParseEdPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt.ParseEdPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseEdPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseEdPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseEdPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseEdPublicKeyFromPEM
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateEd25519Key
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalEd25519PrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalEd25519PublicKey
+- ref: github.com/libp2p/go-libp2p/core/crypto.Ed25519
+# DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
+# (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
+- literal: ['Ed25519', 'EdDSA', 'ssh-ed25519', 'ssh-mldsa44-ed25519']
+  feature: go-literal-names
