@@ -1,0 +1,11 @@
+{"case": "python/tls-t3", "findings": [
+  {"file": "t.py", "line": 9, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "t.py", "line": 9, "rule": "python.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "t.py", "line": 10, "rule": "python.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "t.py", "line": 12, "rule": "python.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "t.py", "line": 13, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "t.py", "line": 13, "rule": "python.prot.tls.v1_2", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.2", "param": null, "name": null},
+  {"file": "t.py", "line": 14, "rule": "python.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "t.py", "line": 15, "rule": "python.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
+  {"file": "t.py", "line": 18, "rule": "python.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null}
+]}

@@ -185,3 +185,14 @@ row names the decision it feeds.
 | Java SE 21 API `javax.crypto.spec.SecretKeySpec` (https://docs.oracle.com/en/java/javase/21/docs/api/java.base/javax/crypto/spec/SecretKeySpec.html: the algorithm is the last constructor argument, returned by `getAlgorithm()`) | `SecretKeySpec.getAlgorithm()` (B-J-JP5) |
 | pyca/cryptography documentation of the asymmetric key interfaces (https://cryptography.io/en/latest/hazmat/primitives/asymmetric/: `rsa.RSAPrivateKey`, `ec.EllipticCurvePublicKey`, `dsa.…`, `dh.…`) | `isinstance` key-type anchors (B-P-ISI) |
 | asn1crypto documentation, "Universal Types" (https://github.com/wbond/asn1crypto/blob/master/docs/universal_types.md: `_fields`, `_child_spec`, `_oid_specs`) | schema attributes that are no value positions (B-P-B2) |
+
+## Python tuning, round t3 (2026-10-18)
+
+Same clean-room process as round t2 (no Crypsy / Cryben material, nothing under `work/lit-gt/`, `work/cryptoorchestra/`
+or the held-out projects of `work/eval2/`, no other scanner's rules, queries or sources). Inputs: this repository, the
+15 Python DEV projects' code (DEV-REPOS A, B, E; for miss analysis and judging) and the public documents below.
+
+| Input (version / date) | Used for |
+|---|---|
+| Python 3 documentation, `ssl` (https://docs.python.org/3/library/ssl.html: `_create_unverified_context`, `SSLContext.wrap_socket`, `SSLContext.wrap_bio`), `smtplib.SMTP.starttls` (https://docs.python.org/3/library/smtplib.html), `imaplib.IMAP4.starttls`, `nntplib.NNTP.starttls`, read 2026-10-18 | P3-TLS |
+| ldap3 documentation, "SSL and TLS" (https://ldap3.readthedocs.io/en/latest/ssltls.html: `Tls` object with `validate`, `version`, `ciphers`; `Server(use_ssl=True)`; `start_tls`), "Server object" (https://ldap3.readthedocs.io/en/latest/server.html), "Connection" (https://ldap3.readthedocs.io/en/latest/connection.html), read 2026-10-18 | P3-TLS |

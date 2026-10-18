@@ -36,3 +36,8 @@ match:
 - anyCall: true
   kwargs:
     ssl_version: PROTOCOL_SSLv2$
+# DECISIONS P3-TLS: the version of an ldap3 Tls object (https://ldap3.readthedocs.io/en/latest/ssltls.html)
+- call: ldap3.Tls
+  anySymbol:
+  - ssl.PROTOCOL_SSLv2
+  - OpenSSL.SSL.SSLv2_METHOD

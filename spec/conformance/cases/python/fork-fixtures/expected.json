@@ -141,5 +141,6 @@
   {"file": "stdlib/rand_tls.py", "line": 24, "rule": "python.prot.tls.v1_0", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "1.0", "param": null, "name": null},
   {"file": "stdlib/rand_tls.py", "line": 25, "rule": "python.prot.ssl.v3", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": "3.0", "param": null, "name": null},
   {"file": "stdlib/rand_tls.py", "line": 26, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "stdlib/rand_tls.py", "line": 26, "rule": "python.prot.tls.context", "type": "protocol", "subtype": null, "primitive": null, "family": null, "variant": null, "protocol": "tls", "version": null, "param": null, "name": null},
   {"file": "stdlib/rand_tls.py", "line": 27, "rule": "python.cert.validation.disabled", "type": "related-crypto-material", "subtype": "cert-validation-disabled", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null}
 ]}

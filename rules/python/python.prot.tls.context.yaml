@@ -7,7 +7,9 @@ language: python
 name: TLS context usage in Python
 description: >-
   Detects TLS context/socket creation via the ssl module, pyOpenSSL and stdlib TLS clients (HTTPSConnection,
-  SMTP_SSL, IMAP4_SSL, POP3_SSL, FTP_TLS).
+  SMTP_SSL, IMAP4_SSL, POP3_SSL, FTP_TLS); ssl._create_unverified_context; the SSLContext methods wrap_socket /
+  wrap_bio and the STARTTLS upgrades starttls (smtplib, imaplib, nntplib) / start_tls (ldap3); ldap3 Tls objects
+  and Server(use_ssl=True) (DECISIONS P3-TLS).
 asset:
   type: protocol
   protocol: tls
@@ -23,3 +25,17 @@ match:
 - call: poplib.POP3_SSL
 - call: ftplib.FTP_TLS
 - call: asyncio.start_tls
+# DECISIONS P3-TLS: Python ssl documentation (https://docs.python.org/3/library/ssl.html: _create_unverified_context,
+# SSLContext.wrap_socket, SSLContext.wrap_bio), smtplib / imaplib / nntplib starttls
+# (https://docs.python.org/3/library/smtplib.html#smtplib.SMTP.starttls), ldap3 (https://ldap3.readthedocs.io/en/latest/ssltls.html:
+# Tls object, Server use_ssl, Connection.start_tls)
+- call: ssl._create_unverified_context
+- method:
+  - wrap_socket
+  - wrap_bio
+  - starttls
+  - start_tls
+- call: ldap3.Tls
+- call: ldap3.Server
+  kwargs:
+    use_ssl: ^True$

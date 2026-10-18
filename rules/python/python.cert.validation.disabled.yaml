@@ -93,3 +93,7 @@ match:
   - refresh_token
   kwargs:
     ssl: ^False$
+# DECISIONS P3-TLS: an ldap3 Tls object that does not validate (https://ldap3.readthedocs.io/en/latest/ssltls.html: validate)
+- call: ldap3.Tls
+  kwargs:
+    validate: CERT_NONE
