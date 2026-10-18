@@ -50,3 +50,7 @@ match:
 - method: crypto/x509.CertPool.AddCert
 - method: crypto/x509.CertPool.AppendCertsFromPEM
 - method: crypto/x509.RevocationList.CheckSignatureFrom
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- call: github.com/go-piv/piv-go/v2/piv.Verify
+- call: github.com/go-piv/piv-go/piv.Verify

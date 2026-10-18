@@ -33,3 +33,7 @@ match:
 - call: github.com/cloudflare/circl/dh/x25519.KeyGen
 - call: github.com/cloudflare/circl/dh/x25519.Shared
 - ref: github.com/flynn/noise.DH25519
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmX25519
+- ref: github.com/go-piv/piv-go/piv.AlgorithmX25519

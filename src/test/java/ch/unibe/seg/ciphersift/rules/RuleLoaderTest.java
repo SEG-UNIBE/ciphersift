@@ -35,7 +35,7 @@ class RuleLoaderTest {
         RuleSet r = RuleLoader.loadBundled();
         assertEquals(103, r.javaRules().size());
         assertEquals(87, r.pythonRules().size());
-        assertEquals(69, r.goRules().size()); // DECISIONS T11: + go.asym.ed448, go.asym.x448
+        assertEquals(70, r.goRules().size()); // DECISIONS T11: + go.asym.ed448, go.asym.x448; B-G-B2: + go.pqc.slhdsa
         assertNotNull(r.dependencyRule("golang"));
         assertTrue(r.dependencyRule("golang").matches("github.com/golang-jwt/jwt/v5"));
         assertFalse(r.dependencyRule("golang").matches("golang.org/x/crypto/ssh"), "a pattern covers the whole key");

@@ -53,3 +53,7 @@ match:
 - call: crypto/hpke.SHAKE256
 - call: filippo.io/hpke.SHAKE128
 - call: filippo.io/hpke.SHAKE256
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.HashAlgorithm_SHA3_256
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.HashAlgorithm_SHA3_384

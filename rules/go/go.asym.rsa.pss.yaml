@@ -25,3 +25,10 @@ match:
 - ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.SignatureAlgorithmPS256
 - ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.SignatureAlgorithmPS384
 - ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.SignatureAlgorithmPS512
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKCS1_RSA_PSS
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_RSA_PSS
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256

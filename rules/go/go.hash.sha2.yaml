@@ -44,3 +44,8 @@ match:
 - call: github.com/google/go-containerregistry/pkg/v1.SHA256
 - ref: github.com/flynn/noise.HashSHA256
 - ref: github.com/flynn/noise.HashSHA512
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.HashAlgorithm_SHA2_256
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.HashAlgorithm_SHA2_384
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.HashAlgorithm_SHA2_512

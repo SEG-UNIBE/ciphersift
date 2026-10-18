@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift from the pkg.go.dev documentation of github.com/cloudflare/circl/sign/slhdsa (v1.6.4,
+# FIPS 205 parameter-set identifiers); see spec/PROVENANCE.md and DECISIONS B-G-B2.
+id: go.pqc.slhdsa
+kind: source
+language: go
+name: SLH-DSA usage in Go
+description: >-
+  Detects the CIRCL SLH-DSA (FIPS 205) parameter-set identifiers and key generation (parameter set as parameter).
+asset:
+  type: algorithm
+  primitive: signature
+  family: SLH-DSA
+match:
+- call: github.com/cloudflare/circl/sign/slhdsa.GenerateKey
+  param:
+    index: 1
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHA2_128s
+  param:
+    value: SLH-DSA-SHA2-128s
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHA2_128f
+  param:
+    value: SLH-DSA-SHA2-128f
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHA2_192s
+  param:
+    value: SLH-DSA-SHA2-192s
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHA2_192f
+  param:
+    value: SLH-DSA-SHA2-192f
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHA2_256s
+  param:
+    value: SLH-DSA-SHA2-256s
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHA2_256f
+  param:
+    value: SLH-DSA-SHA2-256f
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHAKE_128s
+  param:
+    value: SLH-DSA-SHAKE-128s
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHAKE_128f
+  param:
+    value: SLH-DSA-SHAKE-128f
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHAKE_192s
+  param:
+    value: SLH-DSA-SHAKE-192s
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHAKE_192f
+  param:
+    value: SLH-DSA-SHAKE-192f
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHAKE_256s
+  param:
+    value: SLH-DSA-SHAKE-256s
+- ref: github.com/cloudflare/circl/sign/slhdsa.SHAKE_256f
+  param:
+    value: SLH-DSA-SHAKE-256f

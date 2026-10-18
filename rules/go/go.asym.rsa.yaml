@@ -41,3 +41,30 @@ match:
 - method: crypto/rsa.PrivateKey.Precompute
 - method: crypto/rsa.PrivateKey.Validate
 - method: crypto/rsa.PrivateKey.Public
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- method: github.com/sigstore/sigstore/pkg/signature.AlgorithmDetails.GetRSAKeySize
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmRSA1024
+  param:
+    value: '1024'
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmRSA2048
+  param:
+    value: '2048'
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmRSA3072
+  param:
+    value: '3072'
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmRSA4096
+  param:
+    value: '4096'
+- ref: github.com/go-piv/piv-go/piv.AlgorithmRSA1024
+  param:
+    value: '1024'
+- ref: github.com/go-piv/piv-go/piv.AlgorithmRSA2048
+  param:
+    value: '2048'
+- ref: github.com/go-piv/piv-go/piv.AlgorithmRSA3072
+  param:
+    value: '3072'
+- ref: github.com/go-piv/piv-go/piv.AlgorithmRSA4096
+  param:
+    value: '4096'

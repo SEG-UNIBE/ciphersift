@@ -49,3 +49,23 @@ match:
 - method: crypto/ecdsa.PrivateKey.Public
 - method: crypto/ecdsa.PrivateKey.ECDH
 - method: crypto/ecdsa.PublicKey.ECDH
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256
+  param:
+    value: P-256
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ECDSA_P256_HMAC_SHA_256
+  param:
+    value: P-256
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384
+  param:
+    value: P-384
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_256
+  param:
+    value: P-384
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512
+  param:
+    value: P-521
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_256
+  param:
+    value: P-521

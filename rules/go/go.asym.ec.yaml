@@ -40,3 +40,18 @@ match:
 - method: crypto/elliptic.Curve.Add
 - method: crypto/elliptic.Curve.Double
 - method: crypto/elliptic.Curve.IsOnCurve
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- method: github.com/sigstore/sigstore/pkg/signature.AlgorithmDetails.GetECDSACurve
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmEC256
+  param:
+    value: P-256
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmEC384
+  param:
+    value: P-384
+- ref: github.com/go-piv/piv-go/piv.AlgorithmEC256
+  param:
+    value: P-256
+- ref: github.com/go-piv/piv-go/piv.AlgorithmEC384
+  param:
+    value: P-384

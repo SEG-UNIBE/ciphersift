@@ -58,3 +58,10 @@ match:
 - method: golang.org/x/crypto/ed25519.PrivateKey.Sign
 - method: golang.org/x/crypto/ed25519.PrivateKey.Public
 - method: golang.org/x/crypto/ed25519.PrivateKey.Seed
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ED25519
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ED25519_PH
+- call: github.com/sigstore/sigstore/pkg/signature/options.WithED25519ph
+- ref: github.com/go-piv/piv-go/v2/piv.AlgorithmEd25519
+- ref: github.com/go-piv/piv-go/piv.AlgorithmEd25519

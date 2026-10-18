@@ -364,7 +364,7 @@ under `/rules/`. It contains:
 |---|---|
 | `rules/java/` | 103 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
 | `rules/python/` | 87 source rules (`python.*`) |
-| `rules/go/` | 67 source rules (`go.*`, section 17) |
+| `rules/go/` | 70 source rules (`go.*`, section 17) |
 | `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml`, `dep.golang.yaml` |
 
 Three bundled rules are weakness indicators (`indicator: weakness`, 5.3): `java.rand.prng.insecure`,
@@ -2771,7 +2771,7 @@ the file, such a call is a **method event**; `method` patterns (17.3) match it. 
 
 ### 17.11 Go coverage of the bundled rules *(DECISIONS G14, G15)*
 
-`rules/go/` (69 source rules) covers the Go standard library `crypto/...` packages
+`rules/go/` (70 source rules; `go.pqc.slhdsa` added by DECISIONS B-G-B2) covers the Go standard library `crypto/...` packages
 (`aes`, `cipher` modes, `des`, `rc4`, `rsa`, `dsa`, `ecdsa`, `ecdh`, `elliptic`, `ed25519`,
 `hmac`, `md5`, `sha1`, `sha256`, `sha512`, `sha3`, `hkdf`, `pbkdf2`, `mlkem`, `rand`, `tls`,
 `x509`, the `crypto.Hash` constants; Go 1.25 `ecdsa.ParseRawPrivateKey` /
@@ -2804,9 +2804,14 @@ selected libraries, written from their pkg.go.dev documentation and filed under 
 | `github.com/flynn/noise` (values) | `CipherAESGCM` / `CipherChaChaPoly` / `DH25519` / `HashSHA256`, `HashSHA512` / `HashBLAKE2b`, `HashBLAKE2s` | `go.sym.aes.gcm` / `go.sym.chacha20poly1305` / `go.asym.x25519` / `go.hash.sha2` / `go.hash.blake2` |
 | `github.com/miekg/pkcs11` | `CKM_ECDSA*` | `go.asym.ecdsa` |
 | `…/keyvault/azkeys` | `EncryptionAlgorithmRSA15` / `RSAOAEP`, `RSAOAEP256` / `SignatureAlgorithmRS*` / `PS*` / `KeyTypeRSA`, `KeyTypeRSAHSM` | `go.asym.rsa.pkcs1v15.encrypt` / `go.asym.rsa.oaep` / `go.asym.rsa.pkcs1v15.sign` / `go.asym.rsa.pss` / `go.asym.rsa` |
+| `github.com/sigstore/protobuf-specs/gen/pb-go/common/v1` (values; *DECISIONS B-G-B2*) | `PublicKeyDetails_PKIX_ECDSA_*` (curve as param) / `…RSA_PKCS1V5`, `…RSA_PKCS1V15_*` / `…RSA_PSS*` / `…PKIX_ED25519[_PH]` / `…ML_DSA_44/65/87` / `HashAlgorithm_SHA2_*` / `HashAlgorithm_SHA3_*` | `go.asym.ecdsa` / `go.asym.rsa.pkcs1v15.sign` / `go.asym.rsa.pss` / `go.asym.ed25519` / `go.pqc.mldsa` / `go.hash.sha2` / `go.hash.sha3` |
+| `github.com/sigstore/sigstore/pkg/signature[/options]` (B-G-B2) | `options.WithED25519ph` / methods `AlgorithmDetails.GetECDSACurve` / `GetRSAKeySize` (17.12) | `go.asym.ed25519` / `go.asym.ec` / `go.asym.rsa` |
+| `github.com/go-piv/piv-go[/v2]/piv` (B-G-B2) | `AlgorithmEC256`, `AlgorithmEC384` (curve) / `AlgorithmRSA1024…4096` (bits) / `AlgorithmEd25519` / `AlgorithmX25519` / `Verify` (attestation certificate chain) | `go.asym.ec` / `go.asym.rsa` / `go.asym.ed25519` / `go.asym.x25519` / `go.cert.x509` |
+| `github.com/cloudflare/circl/sign/slhdsa` (B-G-B2) | the twelve FIPS 205 parameter-set identifiers `SHA2_128s` … `SHAKE_256f` (param `SLH-DSA-…`), `GenerateKey` (param from argument 1) | `go.pqc.slhdsa` (new rule) |
 
 The `go-containerregistry` package is named `v1`; it is recognised only when imported with that
-explicit name (17.4 skips a `vN` segment). Methods of these libraries' types (`identity.Unwrap`,
+explicit name (17.4 skips a `vN` segment); the same holds for protobuf-specs' `common/v1` package (any
+explicit import name works). Methods of these libraries' types (`identity.Unwrap`,
 `scheme.Sign`) are not anchors (receiver types are not inferred).
 
 **Key construction** *(DECISIONS F4)*: as the Java `*KeySpec` constructors and the Python

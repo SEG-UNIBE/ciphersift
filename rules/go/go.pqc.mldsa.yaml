@@ -89,3 +89,14 @@ match:
 - call: github.com/cloudflare/circl/sign/mldsa/mldsa87.Verify
   param:
     value: ML-DSA-87
+# DECISIONS B-G-B2 (benchmark-informed in the choice of packages: cosign): curated third-party Go APIs whose
+# member names state the algorithm, written from their pkg.go.dev documentation (spec/PROVENANCE.md).
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_ML_DSA_44
+  param:
+    value: ML-DSA-44
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_ML_DSA_65
+  param:
+    value: ML-DSA-65
+- ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_ML_DSA_87
+  param:
+    value: ML-DSA-87
