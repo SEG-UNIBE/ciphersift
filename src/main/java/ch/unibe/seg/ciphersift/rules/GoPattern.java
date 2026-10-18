@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 /** One Go pattern (SPEC 17.3), compiled. */
 public final class GoPattern {
     /** Pattern anchors. */
-    public enum Anchor { CALL, REF, COMPOSITE, ASSIGN, METHOD }
+    public enum Anchor { CALL, REF, COMPOSITE, ASSIGN, METHOD, LITERAL }
 
     public final SourceRule rule;
     public final int position;
@@ -32,10 +32,23 @@ public final class GoPattern {
     public final boolean paramSelf;
     public final String paramValue;
     public final int specificity;
+    /** {@code literal} anchor: exact string values (DECISIONS T3-G10), or null. */
+    public final List<String> literal;
+    /** The feature that gates this pattern (SPEC 3.1), or null. */
+    public final String feature;
 
     GoPattern(SourceRule rule, int position, Anchor anchor, String name, boolean prefix, String path,
             List<String> anySymbol, Pattern value, List<String> valueContains, Integer paramIndex, boolean paramSelf,
             String paramValue) {
+        this(rule, position, anchor, name, prefix, path, anySymbol, value, valueContains, paramIndex, paramSelf,
+                paramValue, null, null);
+    }
+
+    GoPattern(SourceRule rule, int position, Anchor anchor, String name, boolean prefix, String path,
+            List<String> anySymbol, Pattern value, List<String> valueContains, Integer paramIndex, boolean paramSelf,
+            String paramValue, List<String> literal, String feature) {
+        this.literal = literal;
+        this.feature = feature;
         this.rule = rule;
         this.position = position;
         this.anchor = anchor;

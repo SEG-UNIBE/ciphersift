@@ -216,6 +216,9 @@ final class AnchorPrefilter {
                 List<List<String>> clauses = new ArrayList<>();
                 if (p.anchor == GoPattern.Anchor.ASSIGN) {
                     clauses.add(List.of(p.name));
+                } else if (p.anchor == GoPattern.Anchor.LITERAL) {
+                    // DECISIONS T3-G10: the file contains one of the names (they hold no escapes)
+                    clauses.add(List.copyOf(p.literal));
                 } else {
                     clauses.add(List.of(p.path));
                     if (!p.member().isEmpty()) {

@@ -37,6 +37,9 @@ public final class GoAnalyzer {
     private static final Set<String> EXPRESSION_ANCESTORS = Set.of("argument_list", "call_expression",
             "parenthesized_expression", "unary_expression", "composite_literal", "literal_value", "literal_element",
             "keyed_element");
+    /** Message-formatting packages and method names (DECISIONS T3-G10). */
+    private static final Set<String> MESSAGE_PACKAGES = Set.of("fmt", "log", "log/slog", "errors");
+    private static final Pattern MESSAGE_METHOD = Pattern.compile("(Print|Log|Debug|Info|Warn|Error|Fatal|Panic|Trace)");
     private static final Set<String> COMPARISONS = Set.of("==", "!=", "<", "<=", ">", ">=");
     private static final Set<String> NO_SYMBOLS = Set.of("func_literal", "interpreted_string_literal",
             "raw_string_literal", "int_literal", "float_literal", "imaginary_literal", "rune_literal", "comment");
@@ -55,6 +58,8 @@ public final class GoAnalyzer {
     private final boolean comparedCalls;
     /** Key generation on a receiver call that names the algorithm folds into it (T3-G9, {@code go-fold-receiver-keys}). */
     private final boolean foldReceiverKeys;
+    /** Settings of the scan, for pattern-level {@code feature} gates (DECISIONS T3-G10). */
+    private final Features features;
 
     public GoAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -67,6 +72,7 @@ public final class GoAnalyzer {
         this.randomIndex = features.on(Features.GO_RANDOM_INDEX);
         this.comparedCalls = features.on(Features.GO_COMPARED_CALLS);
         this.foldReceiverKeys = features.on(Features.GO_FOLD_RECEIVER_KEYS);
+        this.features = features;
     }
 
     /** Analyses one parsed Go file. */
@@ -187,7 +193,7 @@ public final class GoAnalyzer {
 
     // ====================================================================== per file
 
-    private enum Kind { CALL, REF, COMPOSITE, ASSIGN, METHOD }
+    private enum Kind { CALL, REF, COMPOSITE, ASSIGN, METHOD, LITERAL }
 
     /**
      * An event (SPEC 17.5). {@code names}: the qualified names (call, ref, composite); {@code field} and
@@ -251,6 +257,9 @@ public final class GoAnalyzer {
             }
             List<SourceFinding> out = new ArrayList<>();
             for (Selected s : selected) {
+                if (s.event().kind() == Kind.LITERAL && literalShadowed(s, byNode, selected)) {
+                    continue;
+                }
                 if (nestedDuplicate(s, byNode) || randomIndex && randomIndexDraw(s)
                         || foldReceiverKeys && keyOfAlgorithmReceiver(s, byNode)) {
                     continue;
@@ -824,6 +833,15 @@ public final class GoAnalyzer {
                             }
                         }
                     }
+                    case "interpreted_string_literal", "raw_string_literal" -> {
+                        // DECISIONS T3-G10: algorithm names as string literals in value positions
+                        if (!index.literals.isEmpty() && isReferencePosition(n)) {
+                            Val v = value(n, 0);
+                            if (v != null && v.string() && index.literals.containsKey(v.text())) {
+                                out.add(new Event(Kind.LITERAL, n, List.of(v.text()), null, null, null, null, n.line()));
+                            }
+                        }
+                    }
                     case "keyed_element" -> {
                         SyntaxNode key = n.field("key");
                         SyntaxNode value = n.field("value");
@@ -1014,6 +1032,13 @@ public final class GoAnalyzer {
                         addAll(found, index.method.get(n), n);
                     }
                 }
+                case LITERAL -> {
+                    for (GoPattern p : index.literals.getOrDefault(e.names().get(0), List.of())) {
+                        if (p.feature == null || features.on(p.feature)) {
+                            found.putIfAbsent(p, e.names().get(0));
+                        }
+                    }
+                }
                 default -> throw new IllegalStateException();
             }
             List<Candidate> l = new ArrayList<>(found.size());
@@ -1184,6 +1209,49 @@ public final class GoAnalyzer {
                 }
             }
             return false;
+        }
+
+        /**
+         * DECISIONS T3-G10 (as Python 8.6.2): a literal inside an expression (call arguments, composite literal) that
+         * has a selection is that expression's data ({@code sha256.Sum256([]byte("RS256"))}); a literal on a line
+         * where a non-literal event selects the same rule adds nothing.
+         */
+        private boolean literalShadowed(Selected s, Map<SyntaxNode, List<Selected>> byNode, List<Selected> all) {
+            for (SyntaxNode p = s.event().node().parent(); p != null
+                    && (EXPRESSION_ANCESTORS.contains(p.type()) || p.is("type_conversion_expression"));
+                    p = p.parent()) {
+                if (byNode.containsKey(p)) {
+                    return true;
+                }
+                if (p.is("call_expression") && messageCall(p)) {
+                    return true; // log and error text
+                }
+            }
+            for (Selected o : all) {
+                if (o.event().kind() != Kind.LITERAL && o.rule() == s.rule() && o.event().line() == s.event().line()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * A call that formats a message (T3-G10): a function of {@code fmt}, {@code log}, {@code log/slog} or
+         * {@code errors}, or a method whose name starts with {@code Print}, {@code Log}, {@code Debug}, {@code Info},
+         * {@code Warn}, {@code Error}, {@code Fatal}, {@code Panic} or {@code Trace}.
+         */
+        private boolean messageCall(SyntaxNode call) {
+            SyntaxNode fn = call.field("function");
+            if (fn == null || !fn.is("selector_expression") || fn.field("field") == null) {
+                return false;
+            }
+            for (String n : names(fn)) {
+                String path = n.substring(0, n.lastIndexOf('.'));
+                if (MESSAGE_PACKAGES.contains(path)) {
+                    return true;
+                }
+            }
+            return MESSAGE_METHOD.matcher(fn.field("field").text()).lookingAt();
         }
 
         /** SPEC 7.7.2 with the Go expression ancestors (17.8). */

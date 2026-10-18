@@ -75,6 +75,9 @@ public final class Features {
     /** Go: a family-less key method on a receiver call with a family on the same line folds into it (T3-G9). */
     public static final String GO_FOLD_RECEIVER_KEYS = "go-fold-receiver-keys";
 
+    /** Go {@code literal} patterns: IANA / OpenSSL algorithm names as string literals (T3-G10). */
+    public static final String GO_LITERAL_NAMES = "go-literal-names";
+
     /** Java {@code anyCall} patterns: registry algorithm names as arguments of any call (SNx, SPEC 5.5). */
     public static final String JAVA_ANY_CALL = "java-any-call";
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
@@ -123,6 +126,7 @@ public final class Features {
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
         known(GO_NESTED_SAME_RULE, true);
+        known(GO_LITERAL_NAMES, true);
         known(GO_FOLD_RECEIVER_KEYS, true);
         known(GO_COMPARED_CALLS, true);
         known(GO_GENERIC_VARIANTS, true);

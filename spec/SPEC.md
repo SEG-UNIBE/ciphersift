@@ -205,6 +205,7 @@ individually; the table lists every id and its default.
 | `go-generic-variants` | on | a Go propagated finding whose evidence definition (or package, 18.8) has findings of one rule with different params is reported under the rule's name without param (18.7) | 18.7, 18.8 |
 | `go-compared-calls` | on | a Go argument-less identifier call whose property (`.ID()`, `.Params().Name`) is compared or a `case` value is a test position (17.5) | 17.5 |
 | `go-fold-receiver-keys` | on | a Go `GenerateKey` method finding without family whose receiver call has a finding with a family on the same line is dropped (17.8) | 17.8 |
+| `go-literal-names` | on | Go `literal` patterns: IANA SSH / JOSE / TLS-group / TLS cipher-suite and OpenSSL cipher names as string literals (17.3, 17.5) | 17.3, 17.5 |
 | `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
@@ -2645,6 +2646,7 @@ one anchor:
 | `composite` | `path.Type` (no `*`) | A composite-literal event (17.5): `tls.Config{…}`, `&rsa.PSSOptions{…}`, `new(tls.Config)`. |
 | `assign` | a field name | A field-assignment event (17.5): the keyed element `InsecureSkipVerify: true` of any composite literal, or the assignment `cfg.InsecureSkipVerify = true`. |
 | `method` | `path.Type.Method` (split at the last two `.`; no `*`) | A method event (17.12): a call `r.Method(…)` whose receiver `r` has the known type `path.Type` *(DECISIONS B-G-B1a)*. Takes no `anySymbol` and no `param: {self}`; `param: {index}` and `{value}` work as for `call`. |
+| `literal` | a list of exact strings, optional `feature` | A literal event (17.5): a string literal in value position whose value equals a listed string *(DECISIONS T3-G10, feature `go-literal-names`)*. Takes no `anySymbol` and no `param`. |
 
 Conditions:
 
@@ -2713,6 +2715,14 @@ One pre-order walk enumerates the events of the file (import declarations are no
 | composite | `composite_literal` whose `type` is a `qualified_type` or `type_identifier` with names; and a call of the identifier `new` (not a declared name) whose single argument is a `qualified_type`, or a qualified selector, with names | the type's names | start row + 1 | the node text |
 | reference | a qualified selector, or an unqualified identifier with names, that is not the `function` of a `call_expression`, not the type argument of a `new` composite event, not the expression of the `key` of a `keyed_element` (a struct field name or a map key), and not in a *test position* | its names | row of the `field` + 1 for a selector, else start row + 1 | the node text |
 | assign | a `keyed_element` whose `key` is a `literal_element` holding a single `identifier` (the field name); an `assignment_statement` with operator `=` for each position *i* whose left element is a `selector_expression` (field name = its `field`), when left and right have the same number of elements (value = right element *i*) | – | start row + 1 | the node text |
+| literal | an `interpreted_string_literal` or `raw_string_literal` (value 17.6) in reference position (not a map key or struct key, not in a test position) whose value a `literal` pattern lists | the string | start row + 1 | the string |
+
+
+A literal finding is dropped when an expression ancestor (the 17.8 ancestors and `type_conversion_expression`) has a
+selection — the literal is that call's or literal's data (`sha256.Sum256([]byte("RS512"))`) — or is a call that
+formats a message (functions of `fmt`, `log`, `log/slog`, `errors`; methods named `Print…`, `Log…`, `Debug…`,
+`Info…`, `Warn…`, `Error…`, `Fatal…`, `Panic…`, `Trace…`), and when a non-literal event selects the same rule on
+its line *(DECISIONS T3-G10)*.
 
 **Test positions** *(DECISIONS G6)*: walking up from the reference through
 `parenthesized_expression` and `unary_expression`, the walk reaches the `left` or `right` of a
@@ -2954,7 +2964,8 @@ and the `tls.MLDSA*` signature schemes *(DECISIONS F4–F6)*) and `golang.org/x/
 `math/rand/v2` as a weakness indicator. Not covered: `golang.org/x/crypto/openpgp` (deprecated;
 no fitting CycloneDX asset), third-party APIs (JWT, JOSE, age, circl — their modules are reported
 through `go.mod`; the exception is `filippo.io/hpke`, whose API is that of `crypto/hpke`), method calls on values whose type is not known (`key.Sign(…)`, `aead.Seal(…)`;
-receiver types are not inferred), and algorithm names in strings (`ssh.Config{Ciphers: […]}`).
+receiver types are not inferred), and algorithm names in strings (`ssh.Config{Ciphers: […]}`) other than the
+exact registry names of the `literal` patterns (DECISIONS T3-G10).
 
 **Third-party APIs** *(DECISIONS T11, benchmark-informed)*: package functions and values of
 selected libraries, written from their pkg.go.dev documentation and filed under the existing rules

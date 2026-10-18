@@ -730,6 +730,10 @@ public final class RuleLoader {
             } else if (p.has("method")) {
                 anchor = GoPattern.Anchor.METHOD;
                 key = "method";
+            } else if (p.has("literal")) {
+                patterns.add(new GoPattern(rule, i, GoPattern.Anchor.LITERAL, null, false, null, null, null, null,
+                        null, false, null, strings(p.get("literal"), false), feature(file, ptr, p, problems)));
+                continue;
             } else {
                 anchor = GoPattern.Anchor.ASSIGN;
                 key = "assign";

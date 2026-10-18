@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-102 cases, 1717 expected findings. A conforming implementation produces exactly the expected
+103 cases, 1724 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -120,6 +120,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/generic-variants` | 3 | 5 | a curve selector with two params of one rule is propagated under the rule's name; a wrapper of one curve keeps its name and param (DECISIONS T3-G7) |
 | `go/compared-calls` | 1 | 3 | `hpke.MLKEM768P256().ID()` and `elliptic.P384().Params().Name` in comparisons give nothing; `case elliptic.P256():` and uncompared calls stay (DECISIONS T3-G8) |
 | `go/fold-receiver-keys` | 1 | 9 | `ecdh.X25519().GenerateKey(r)` is one X25519 finding; `NewPrivateKey` and receivers in variables keep their key findings (DECISIONS T3-G9; `go/compared-calls` loses its `GenerateKey` key finding, 1 expectation) |
+| `go/literal-names` | 1 | 7 | IANA / OpenSSL names as Go string literals in value positions (call arguments, struct fields, slices); nothing for map keys, comparisons, `case` values, data of a call with a hit, `fmt.Println` text or another spelling (DECISIONS T3-G10) |
 
 ## Format of expected.json
 
