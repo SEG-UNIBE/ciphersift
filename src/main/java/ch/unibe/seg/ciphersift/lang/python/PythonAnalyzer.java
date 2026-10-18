@@ -53,6 +53,10 @@ public final class PythonAnalyzer {
     private final PythonRuleIndex index;
     /** DECISIONS B-P-RX. */
     private final boolean reexports;
+    /** DECISIONS B-P-ISI. */
+    private final boolean isinstanceKeys;
+    /** A key class name (SPEC 8.6.1, DECISIONS B-P-ISI). */
+    private static final Pattern KEY_CLASS = Pattern.compile("(Private|Public)Key|Key$|SigningKey|VerifyKey");
 
     public PythonAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -61,6 +65,7 @@ public final class PythonAnalyzer {
     public PythonAnalyzer(RuleSet rules, Features features) {
         this.index = new PythonRuleIndex(rules.pythonRules(), features);
         this.reexports = features.on(Features.PYTHON_REEXPORTS);
+        this.isinstanceKeys = features.on(Features.PYTHON_ISINSTANCE_KEYS);
     }
 
     /**
@@ -930,6 +935,10 @@ public final class PythonAnalyzer {
             if (names.isEmpty()) {
                 return;
             }
+            if (isinstanceKeys && names.get(0).equals("isinstance")) {
+                isinstanceKeys(call, s);
+                return;
+            }
             String m = methodName(call);
             List<Candidate> cands = new ArrayList<>();
             Set<PythonPattern> seen = new HashSet<>();
@@ -1048,6 +1057,59 @@ public final class PythonAnalyzer {
                 }
             }
             return false;
+        }
+
+        /**
+         * {@code isinstance(x, K)} (SPEC 8.6.1, DECISIONS B-P-ISI): if the class references of {@code K} (a name
+         * or a tuple of names) that name key classes match reference patterns whose rules have exactly one family,
+         * those references are reported (a key-type dispatch names its algorithm).
+         */
+        private void isinstanceKeys(SyntaxNode call, Scope s) {
+            Args a = new Args(call, s);
+            if (a.positional.size() != 2) {
+                return;
+            }
+            SyntaxNode k = a.positional.get(1);
+            List<SyntaxNode> refs = new ArrayList<>();
+            if (k.is("tuple")) {
+                for (SyntaxNode c : k.namedChildren()) {
+                    if (!c.is("comment")) {
+                        refs.add(c);
+                    }
+                }
+            } else {
+                refs.add(k);
+            }
+            List<Map.Entry<SyntaxNode, Hit>> hits = new ArrayList<>();
+            Set<String> families = new HashSet<>();
+            for (SyntaxNode r : refs) {
+                if (!r.is("identifier") && !r.is("attribute")) {
+                    continue;
+                }
+                Set<SourceRule> seenRules = new HashSet<>();
+                for (String n : resolveDotted(r, s)) {
+                    String last = n.substring(n.lastIndexOf('.') + 1);
+                    if (!KEY_CLASS.matcher(last).find()) {
+                        continue;
+                    }
+                    List<PythonPattern> ps = index.byRef.get(n);
+                    if (ps == null) {
+                        ps = reexported(n, false);
+                    }
+                    for (PythonPattern p : ps) {
+                        if (seenRules.add(p.rule)) {
+                            hits.add(Map.entry(r, new Hit(p.rule, n, p)));
+                            families.add(String.valueOf(p.rule.asset().family()));
+                        }
+                    }
+                }
+            }
+            if (families.size() != 1 || families.contains("null")) {
+                return;
+            }
+            for (Map.Entry<SyntaxNode, Hit> h : hits) {
+                emitReference(h.getValue(), h.getKey());
+            }
         }
 
         // ------------------------------------------------------------------ 8.6.1 bare references

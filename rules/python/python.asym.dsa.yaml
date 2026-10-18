@@ -89,3 +89,9 @@ match:
   firstString: (DSA|SHA1withDSA|SHA224withDSA|SHA256withDSA|SHA384withDSA|SHA512withDSA|SHA3-224withDSA|SHA3-256withDSA|SHA3-384withDSA|SHA3-512withDSA)$
 - call: pyasn1.type.univ.ObjectIdentifier
   firstString: (DSA|SHA1withDSA|SHA224withDSA|SHA256withDSA|SHA384withDSA|SHA512withDSA|SHA3-224withDSA|SHA3-256withDSA|SHA3-384withDSA|SHA3-512withDSA)$
+# DECISIONS B-P-ISI: pyca's key interfaces (https://cryptography.io/en/latest/hazmat/primitives/asymmetric/),
+# used in isinstance key dispatch and key-type tables
+- call: cryptography.hazmat.primitives.asymmetric.dsa.DSAPrivateKey
+  feature: python-isinstance-keys
+- call: cryptography.hazmat.primitives.asymmetric.dsa.DSAPublicKey
+  feature: python-isinstance-keys

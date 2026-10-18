@@ -192,6 +192,7 @@ individually; the table lists every id and its default.
 | `python-unresolved` | on | the Python fallbacks `python.hash.unresolved`, `python.cipher.unresolved` (8.6) | 8.6 |
 | `python-hash-wrappers` | on | Python wrapper names with `hash` / `digest` carry `python.hash.unresolved` (18.6) | 18.6 |
 | `wrapper-evidence-by-name` | on | W7 evidence prefers the body finding whose rule id names a token of the wrapper's name (18.5) | 18.5 |
+| `python-isinstance-keys` | on | key classes of one family in `isinstance` (8.6.1) | 8.6.1 |
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
@@ -1523,6 +1524,16 @@ prevent it.
   test context: `comparison_operator`, `except_clause`, `subscript`, `type`, `generic_type`,
   `union_type`, `constrained_type`, `member_type`, `splat_type`, `type_alias_statement`,
   `type_parameter`.
+
+**Key-type tests** *(DECISIONS B-P-ISI, feature `python-isinstance-keys`; relaxes E1)*: in a call
+`isinstance(x, K)` with two positional arguments, the identifier and attribute references of `K` (a name or the
+elements of a tuple) whose resolved name ends in a key-class name (`PrivateKey`, `PublicKey`, `…Key`,
+`SigningKey`, `VerifyKey`) are matched against the reference patterns (exactly, or as re-exports, 8.6 step 4);
+if all their hits belong to rules of exactly one family, each hit is reported at its reference (one per rule
+and line, as always): `isinstance(key, rsa.RSAPrivateKey)` dispatches on RSA. With hits of two families
+(`(rsa.RSAPublicKey, ec.EllipticCurvePublicKey)`) nothing is reported. The bundled rules gain pyca's key
+interfaces `rsa.RSAPrivateKey`/`RSAPublicKey`, `ec.EllipticCurvePrivateKey`/`PublicKey`, `dsa.DSA…Key`,
+`dh.DH…Key` as `call` patterns (value positions) under the same feature.
 
 A `call` pattern fires only in a value position. A `ref` pattern fires in any *expression
 position*: the same walk in which `binary_operator`, `unary_operator`, `boolean_operator`,

@@ -37,3 +37,9 @@ match:
   firstString: (DH)$
 - call: pyasn1.type.univ.ObjectIdentifier
   firstString: (DH)$
+# DECISIONS B-P-ISI: pyca's key interfaces (https://cryptography.io/en/latest/hazmat/primitives/asymmetric/),
+# used in isinstance key dispatch and key-type tables
+- call: cryptography.hazmat.primitives.asymmetric.dh.DHPrivateKey
+  feature: python-isinstance-keys
+- call: cryptography.hazmat.primitives.asymmetric.dh.DHPublicKey
+  feature: python-isinstance-keys
