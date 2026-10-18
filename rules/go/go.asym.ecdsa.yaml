@@ -69,3 +69,29 @@ match:
 - ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_256
   param:
     value: P-521
+# DECISIONS T3-G2 (benchmark-informed in the choice of package: node, chain33): go-ethereum crypto and accounts/keystore,
+# written from https://pkg.go.dev/github.com/ethereum/go-ethereum/crypto and .../accounts/keystore (v1.17.8, fetched 2026-10-18).
+- call: github.com/ethereum/go-ethereum/crypto.Sign
+  param:
+    value: secp256k1
+- call: github.com/ethereum/go-ethereum/crypto.VerifySignature
+  param:
+    value: secp256k1
+- call: github.com/ethereum/go-ethereum/crypto.Ecrecover
+  param:
+    value: secp256k1
+- call: github.com/ethereum/go-ethereum/crypto.SigToPub
+  param:
+    value: secp256k1
+- method: github.com/ethereum/go-ethereum/accounts/keystore.KeyStore.SignHash
+  param:
+    value: secp256k1
+- method: github.com/ethereum/go-ethereum/accounts/keystore.KeyStore.SignHashWithPassphrase
+  param:
+    value: secp256k1
+- method: github.com/ethereum/go-ethereum/accounts/keystore.KeyStore.SignTx
+  param:
+    value: secp256k1
+- method: github.com/ethereum/go-ethereum/accounts/keystore.KeyStore.SignTxWithPassphrase
+  param:
+    value: secp256k1

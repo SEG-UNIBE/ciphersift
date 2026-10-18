@@ -55,3 +55,11 @@ match:
 - ref: github.com/go-piv/piv-go/piv.AlgorithmEC384
   param:
     value: P-384
+# DECISIONS T3-G2 (benchmark-informed in the choice of package: node, chain33): go-ethereum crypto and accounts/keystore,
+# written from https://pkg.go.dev/github.com/ethereum/go-ethereum/crypto and .../accounts/keystore (v1.17.8, fetched 2026-10-18).
+- call: github.com/ethereum/go-ethereum/crypto.GenerateKey
+  param:
+    value: secp256k1
+- call: github.com/ethereum/go-ethereum/crypto.S256
+  param:
+    value: secp256k1

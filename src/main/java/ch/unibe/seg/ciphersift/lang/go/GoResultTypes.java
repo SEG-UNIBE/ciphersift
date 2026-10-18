@@ -69,6 +69,9 @@ final class GoResultTypes {
         r("crypto/x509.ParsePKCS1PrivateKey", "crypto/rsa.PrivateKey");
         r("crypto/x509.ParsePKCS1PublicKey", "crypto/rsa.PublicKey");
         r("crypto/x509.ParseECPrivateKey", "crypto/ecdsa.PrivateKey");
+        // go-ethereum accounts/keystore (https://pkg.go.dev/github.com/ethereum/go-ethereum/accounts/keystore, DECISIONS T3-G2)
+        r("github.com/ethereum/go-ethereum/accounts/keystore.NewKeyStore",
+                "github.com/ethereum/go-ethereum/accounts/keystore.KeyStore");
         // golang.org/x/crypto/ssh (https://pkg.go.dev/golang.org/x/crypto/ssh)
         String ssh = "golang.org/x/crypto/ssh";
         for (String f : List.of("NewSignerFromKey", "NewSignerFromSigner", "ParsePrivateKey",
