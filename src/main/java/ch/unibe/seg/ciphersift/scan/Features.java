@@ -89,8 +89,12 @@ public final class Features {
     /** Python: a key object in the receiver of an operation of the same family folds into it (B3, SPEC 8.6). */
     public static final String PYTHON_FOLD_RECEIVERS = "python-fold-receivers";
 
+    /** Python: returned values and table look-ups {@code {..}[k]} are value positions (P3-RET, SPEC 8.6.1). */
+    public static final String PYTHON_RETURN_VALUES = "python-return-values";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_RETURN_VALUES, true);
         known(SKIP_PYTHON_LOCK_FILES, false);
         known(PYTHON_ASN1_SCHEMAS, true);
         known(PYTHON_FOLD_RECEIVERS, true);

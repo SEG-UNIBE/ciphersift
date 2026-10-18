@@ -198,6 +198,7 @@ individually; the table lists every id and its default.
 | `python-asn1-schemas` | on | asn1crypto schema attributes are not value positions (8.6.1) | 8.6.1 |
 | `python-fold-receivers` | on | a hit in the receiver of a call with a hit of the same type and family is dropped (8.6) | 8.6 |
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
+| `python-return-values` | on | returned values and table look-ups `{…}[k]` are Python value positions (8.6.1) | 8.6.1 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
@@ -1531,6 +1532,11 @@ prevent it.
   `isinstance`, `issubclass`, `cast`, `TypeVar` or `NewType` (class bases are not positions);
 * `keyword_argument`: a value position iff *x* is its `value` and the keyword argument belongs
   to the `argument_list` of such a call;
+* `return_statement` *(DECISIONS P3-RET, feature `python-return-values`)*: a value position (`return hashlib.sha1`
+  in a function that selects a hash; without the feature only as for any other node below);
+* `subscript` *(DECISIONS P3-RET)*: if *x* is a dictionary, list or tuple display that is the subscript's `value` (a
+  table look-up, `{"sha256": hashes.SHA256}[name]()`) and the feature is on, passed through; otherwise not a
+  position (an index `d[hashes.SHA256]` and type subscripts `Dict[str, …]` stay none);
 * `assignment`: a value position iff *x* is its `right` — except, with the feature `python-asn1-schemas`
   *(DECISIONS B-P-B2)*, when its `left` is the identifier `_fields`, `_child_spec` or `_oid_specs` (an
   asn1crypto schema declaration names types; it uses no algorithm);

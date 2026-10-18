@@ -1,0 +1,9 @@
+{"case": "python/return-values", "findings": [
+  {"file": "r.py", "line": 9, "rule": "python.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.md5"},
+  {"file": "r.py", "line": 10, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"},
+  {"file": "r.py", "line": 14, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "cryptography.hazmat.primitives.hashes.SHA1"},
+  {"file": "r.py", "line": 14, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "cryptography.hazmat.primitives.hashes.SHA512"},
+  {"file": "r.py", "line": 18, "rule": "python.asym.ed25519", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "Ed25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "ssh-ed25519"},
+  {"file": "r.py", "line": 21, "rule": "python.hash.blake2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "BLAKE2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.blake2b"},
+  {"file": "r.py", "line": 21, "rule": "python.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha3_256"}
+]}

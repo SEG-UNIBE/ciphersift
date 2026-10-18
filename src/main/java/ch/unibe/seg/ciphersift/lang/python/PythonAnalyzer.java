@@ -58,6 +58,8 @@ public final class PythonAnalyzer {
     /** DECISIONS B-P-B2, B-P-B3. */
     private final boolean asn1Schemas;
     private final boolean foldReceivers;
+    /** DECISIONS P3-RET. */
+    private final boolean returnValues;
     /** asn1crypto schema attributes (https://github.com/wbond/asn1crypto/blob/master/docs/universal_types.md). */
     private static final Set<String> ASN1_SCHEMA_ATTRIBUTES = Set.of("_fields", "_child_spec", "_oid_specs");
     /** A key class name (SPEC 8.6.1, DECISIONS B-P-ISI). */
@@ -73,6 +75,7 @@ public final class PythonAnalyzer {
         this.isinstanceKeys = features.on(Features.PYTHON_ISINSTANCE_KEYS);
         this.asn1Schemas = features.on(Features.PYTHON_ASN1_SCHEMAS);
         this.foldReceivers = features.on(Features.PYTHON_FOLD_RECEIVERS);
+        this.returnValues = features.on(Features.PYTHON_RETURN_VALUES);
     }
 
     /**
@@ -1274,6 +1277,22 @@ public final class PythonAnalyzer {
                         SyntaxNode c = al == null ? null : al.parent();
                         return al != null && al.is("argument_list") && c != null && c.is("call")
                                 && !TYPE_CALLS.contains(methodName(c));
+                    }
+                    case "return_statement" -> {
+                        if (returnValues) {
+                            return true; // a returned algorithm is selected by the function (DECISIONS P3-RET)
+                        }
+                        return container && !REFERENCE_STOP.contains(p.type());
+                    }
+                    case "subscript" -> {
+                        if (returnValues && container && "value".equals(x.field())
+                                && (x.is("dictionary") || x.is("list") || x.is("tuple"))) {
+                            // a table look-up {"sha256": hashes.SHA256}[name]: the table's values are selected
+                            // (DECISIONS P3-RET); the subscript is the value, walk on
+                            container = true;
+                        } else {
+                            return false;
+                        }
                     }
                     case "assignment" -> {
                         if (asn1Schemas) {

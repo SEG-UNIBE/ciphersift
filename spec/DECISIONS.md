@@ -384,3 +384,11 @@ code (Sonnet): 124 TP, 20 debatable, 4 FP, 1 wrong-detail. Changes:
 * **B-G-B2 go-piv v1.** The v1 module `github.com/go-piv/piv-go/piv` (v1.11.0, proxy.golang.org) has no
   `AlgorithmRSA3072`, `AlgorithmRSA4096` or `AlgorithmX25519`; the three mirrored anchors are removed (no effect
   on any scan).
+
+**Round t3, Python tuning (2026-10-18, branch `tune-python`; scratch `work/ciphersift-t3/python/`).** Tuning on all 15
+Python DEV projects (DEV-REPOS A, B, E): recall on the old tuning GT (seeds 1+2) and the new dev GT v2.1, precision
+from `eval2/score-dev` plus judged new findings. Measurements per change: `work/ciphersift-t3/python/CHANGES.tsv`.
+
+| item | decision | where in SPEC.md |
+|---|---|---|
+| P3-RET returned values and table look-ups | **benchmark-informed** (new dev: privacyidea `get_hashlib` returns `hashlib.md5` … `hashlib.sha512` in an `if`/`elif` chain, fritap `return {"sha256": hashes.SHA256, …}[name]()`; +11 GT entries in 2 projects, none in the old tuning set). A `return` statement is a value position for bare references and literals (8.6.1), and a dictionary, list or tuple display indexed directly is passed through like a container: a function that returns an algorithm or looks it up in a literal table selects it. Index expressions and type subscripts stay none. Feature `python-return-values` (default on). New case `python/return-values`. | 8.6.1 |
