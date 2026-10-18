@@ -99,3 +99,6 @@ match:
   firstString: (BLAKE2B-256|BLAKE2B-512|BLAKE2S-256)$
 - call: pyasn1.type.univ.ObjectIdentifier
   firstString: (BLAKE2B-256|BLAKE2B-512|BLAKE2S-256)$
+# DECISIONS P3-PL: passlib's PBKDF2 function (https://passlib.readthedocs.io/en/stable/lib/passlib.crypto.digest.html: pbkdf2_hmac(digest, secret, salt, rounds, keylen))
+- call: passlib.crypto.digest.pbkdf2_hmac
+  firstString: (?i)^blake2[bs]

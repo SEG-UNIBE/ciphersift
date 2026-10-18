@@ -326,3 +326,6 @@ match:
   firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512|SHAKE128|SHAKE256)$
 - call: pyasn1.type.univ.ObjectIdentifier
   firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512|SHAKE128|SHAKE256)$
+# DECISIONS P3-PL: passlib's PBKDF2 function (https://passlib.readthedocs.io/en/stable/lib/passlib.crypto.digest.html: pbkdf2_hmac(digest, secret, salt, rounds, keylen))
+- call: passlib.crypto.digest.pbkdf2_hmac
+  firstString: (?i)^(sha3[_-](224|256|384|512)|shake[_-]?(128|256))$

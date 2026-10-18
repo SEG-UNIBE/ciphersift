@@ -292,3 +292,6 @@ match:
 # group G5d-tls-suite, IANA TLS Cipher Suites registry, fetched 2026-10-18)
 - literal: ['TLS_AES_128_CCM_8_SHA256', 'TLS_AES_128_CCM_SHA256', 'TLS_AES_128_GCM_SHA256', 'TLS_AES_256_GCM_SHA384', 'TLS_CHACHA20_POLY1305_SHA256']
   feature: python-literal-names
+# DECISIONS P3-PL: passlib's PBKDF2 function (https://passlib.readthedocs.io/en/stable/lib/passlib.crypto.digest.html: pbkdf2_hmac(digest, secret, salt, rounds, keylen))
+- call: passlib.crypto.digest.pbkdf2_hmac
+  firstString: (?i)^sha-?(224|256|384|512)([_/-](224|256))?$

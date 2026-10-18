@@ -104,3 +104,6 @@ match:
 # sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
 - literal: ['hmac-md5', 'hmac-md5-96']
   feature: python-literal-names
+# DECISIONS P3-PL: passlib's PBKDF2 function (https://passlib.readthedocs.io/en/stable/lib/passlib.crypto.digest.html: pbkdf2_hmac(digest, secret, salt, rounds, keylen))
+- call: passlib.crypto.digest.pbkdf2_hmac
+  firstString: (?i)^md5$

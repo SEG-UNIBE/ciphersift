@@ -44,3 +44,5 @@ match:
 # sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
 - literal: ['PBES2-HS256+A128KW', 'PBES2-HS384+A192KW', 'PBES2-HS512+A256KW']
   feature: python-literal-names
+# DECISIONS P3-PL: passlib's PBKDF2 function (https://passlib.readthedocs.io/en/stable/lib/passlib.crypto.digest.html: pbkdf2_hmac(digest, secret, salt, rounds, keylen))
+- call: passlib.crypto.digest.pbkdf2_hmac
