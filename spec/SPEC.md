@@ -190,6 +190,12 @@ individually; the table lists every id and its default.
 | `java-any-call-short` | on | Java `anyCall` patterns with `feature: java-any-call-short` (short JCA names, JOSE names) | 5.5 |
 | `java-constant-getters` | on | constant getters and `SecretKeySpec.getAlgorithm()` in Java string resolution (7.4.1) | 7.4.1 |
 | `java-deferred-locals` | on | Java locals assigned after their declaration (7.4.3, 7.7.1) | 7.4.3 |
+| `java-inherited-constants` | on | Java constants inherited from project supertypes (7.4.3 step 4, 7.4.4, 7.4.5) *(DECISIONS T3-J-INH)* | 7.4 |
+| `java-cross-module-constants` | on | Java classes in other source roots of the scan, by package path (7.4.5) *(DECISIONS T3-J-XMOD)* | 7.4.5 |
+| `java-constructor-calls` | on | `super(…)` / `this(…)` are `call` events for `anyCall` patterns (7.2) *(DECISIONS T3-J-SUPER)* | 7.2 |
+| `java-constructor-wrappers` | on | Java constructors are definitions, `new C(…)` their call sites (18.2–18.4) *(DECISIONS T3-J-CTOR)* | 18 |
+| `gradle-catalog-accessors` | on | Gradle `libs.x.y` accessors resolved through `gradle/libs.versions.toml` (9.6) *(DECISIONS T3-J-CAT)* | 9.6 |
+| `maven-test-scope` | on | Maven `<scope>test</scope>` and Gradle test-configuration dependencies are test occurrences (9.5, 9.6) *(DECISIONS T3-J-TSCOPE)* | 9.5 |
 | `python-unresolved` | on | the Python fallbacks `python.hash.unresolved`, `python.cipher.unresolved` (8.6) | 8.6 |
 | `python-hash-wrappers` | on | Python wrapper names with `hash` / `digest` carry `python.hash.unresolved` (18.6) | 18.6 |
 | `wrapper-evidence-by-name` | on | W7 evidence prefers the body finding whose rule id names a token of the wrapper's name (18.5) | 18.5 |
@@ -616,7 +622,10 @@ string, regardless of imports. The bundled table covers commons-codec
 *(DECISIONS E16)*, the algorithm OIDs of Bouncy Castle's `NISTObjectIdentifiers`, `PKCSObjectIdentifiers`,
 `X9ObjectIdentifiers` and `TeleTrusTObjectIdentifiers` that the OID table (5.11) knows *(DECISIONS
 B-J-JP2)*, and the algorithm URIs of the Java SE XML signature API (JSR 105)
-`javax.xml.crypto.dsig.DigestMethod` and `SignatureMethod` *(DECISIONS B-J-XD2)*.
+`javax.xml.crypto.dsig.DigestMethod` and `SignatureMethod` *(DECISIONS B-J-XD2)*, the `ALGO_ID_*` URIs of OpenSAML's
+`SignatureConstants` and `EncryptionConstants` (4.3) and jose4j's `AlgorithmIdentifiers`,
+`KeyManagementAlgorithmIdentifiers` and `ContentEncryptionAlgorithmIdentifiers` (0.9.6; without `NONE` = `none`
+and `DIRECT` = `dir`) *(DECISIONS T3-J-CONST)*.
 
 ### 5.11 Algorithm OIDs *(DECISIONS E15, decided by owner)*
 
@@ -900,6 +909,10 @@ For each Java file:
 | `new` | `object_creation_expression` with a `type` field | last `.`-segment of the type text *T* | *T* | start row + 1 |
 | `field` | `field_access` with `object` and `field`, **unless** it is the `object` of its parent `method_invocation` | text of `field` | `object` text | start row + 1 |
 | `decl` | `method_declaration` with a `name` field | text of `name` | – | row of the `name` node + 1 (so a leading annotation does not shift the line) |
+| `call` *(DECISIONS T3-J-SUPER)* | `explicit_constructor_invocation` without `object` whose `constructor` is `super` or `this` | `super` / `this` | none, no static candidates | start row + 1 |
+
+The `super(…)` / `this(…)` events exist only with `java-constructor-calls`; no rule anchors these names, so only
+`anyCall` patterns can hold for them (`super(secret, HMAC_SHA_256)` with an inherited constant `"HmacSHA256"`).
 
 Texts used as receivers and type names are the node text with **all whitespace removed**.
 For `new`, generic arguments are removed from *T* as well: repeatedly delete every innermost
@@ -959,6 +972,9 @@ One walk over the whole tree (all depths, including inside `ERROR` nodes) collec
   for a declaration whose `modifiers` contain the word `final`, and for any declaration
   whose parent is an `interface_body`. Fields of all classes of the file share one table
   (keyed by simple field name).
+* **supertypes** *(DECISIONS T3-J-INH)*: for every type declaration of the file, the types of its `superclass`,
+  `super_interfaces` and `extends_interfaces` children (`type_identifier`, `scoped_type_identifier`, `generic_type`;
+  whitespace and generic arguments removed), in walk order without duplicates.
 * **reassigned names**: for every `assignment_expression` (any operator, `=` or compound):
   if `left` is an `identifier`, its text; if `left` is a `field_access`, the text of its
   `field`. Increments (`++`, `--`) do not count.
@@ -1056,7 +1072,13 @@ If the walk reaches the root without stopping:
 2. else, if `N` is a key of `ctx.staticImports` → static field (`staticImports[N]`, `N`)
    (7.4.5);
 3. else, for each class of `ctx.staticWildcards` in order → static field (class, `N`); the
-   first that yields a result.
+   first that yields a result;
+4. else *(DECISIONS T3-J-INH, `java-inherited-constants`)* the **inherited field** `N` of `ctx`: for each supertype *T*
+   of `ctx` (7.3.1) in order whose first segment is not a class of the file and starts with an upper-case letter (or
+   *T* is dotted): the class candidates of *T* as in 7.4.4 step 3 (the single-type import of its first segment; else
+   `package.T`, then `w.T` for each wildcard import; a dotted *T* with a lower-case first segment as written); the
+   first candidate whose declaring file (7.4.5 step 2) exists decides: if it is not `ctx`'s file and not visited yet,
+   field lookup of `N` there, else recursively that file's inherited field `N`; at most 4 levels.
 
 Otherwise unresolved. (Reassignment is file-global and by simple name: a variable that is
 assigned anywhere in the file is not resolved unless it is declared `final`.)
@@ -1067,7 +1089,8 @@ To look up `O.F` (a `field_access` with object `O` and field `F`) in `ctx`, let 
 text of `O` without whitespace and *S* its last `.`-segment:
 
 1. if the constants table (5.10) has *S*.*F* → that string;
-2. if `O` is `this`, or *S* is a local class of `ctx` → field lookup of `F` in `ctx`;
+2. if `O` is `this`, or *S* is a local class of `ctx` → field lookup of `F` in `ctx`, else (`java-inherited-constants`)
+   the inherited field `F` of `ctx` (7.4.3 step 4);
 3. if *S* starts with an upper-case letter:
    * if the first segment *G* of *Q* is a key of `ctx.imports` → static field
      (`imports[G]` + the rest of *Q* after *G*, `F`);
@@ -1097,7 +1120,12 @@ static field (`C`, `F`), evaluated on behalf of context `ctx`:
    is looked for in `a/b/Outer/Inner.java`, then `a/b/Outer.java`). The first candidate that
    is `ctx`'s own file, or an existing regular file (≤ 10 MiB) that can be read and parsed,
    is the declaring file; candidates that do not exist or fail to read are skipped;
-3. field lookup of `F` in the declaring file's context.
+   *(DECISIONS T3-J-XMOD, `java-cross-module-constants`)* If *R* exists but no candidate below it is found,
+   for *i* = *k* down to 2 the Java files of the scan root whose relative path is *s1*/…/*s(i−1)*/*si*`.java` or ends
+   with `/` + that path (a module's source root other than *R*; directories `.git`, `.hg`, `.svn` and symbolic links are
+   not entered): exactly one → it is the declaring file; more than one → no result; none → next *i*;
+3. field lookup of `F` in the declaring file's context; if that yields nothing, *(T3-J-INH)* the inherited field `F`
+   of the declaring file (7.4.3 step 4: `C.F` with `F` declared in a supertype of `C`).
 
 Cross-file lookup reads files regardless of `--exclude`, `--exclude-tests` and their
 classification, as long as they are inside the scan root. Contexts of other files are built
@@ -1146,7 +1174,7 @@ table OID is replaced by its name and remembers the OID (5.11) *(DECISIONS E15)*
 | `array_initializer` | true iff every named child other than a comment (`line_comment`, `block_comment`) has a type that ends with `literal` or is `cast_expression` or `unary_expression` (an empty initialiser is constant; `{1, /* x */ 2}` is constant, DECISIONS O3) |
 | `array_creation_expression` | with an initialiser: `isConst(initialiser)`; without: true iff `viaVar` is false and it has a `dimensions_expr` child (an inline `new byte[16]` is an all-zero constant; through a variable it is usually filled later) |
 | `parenthesized_expression`, `cast_expression` | `isConst` of the last named child |
-| `method_invocation` whose name is a *decoder* | true iff its object's `value` is resolved, or its first argument's `value` is resolved |
+| `method_invocation` whose name is a *decoder* | `getBytes`, `toCharArray` with an object *(DECISIONS T3-J-GB)*: true iff the object's `value` is resolved (`s.getBytes("UTF-8")` names a charset, not data); otherwise true iff its object's `value` is resolved, or its first argument's `value` is resolved |
 | `identifier`, `field_access` | look up; if it yields *(initialiser, ctx′)* → `isConst(initialiser, ctx′, d+1, viaVar = true)` |
 | anything else | false |
 
@@ -1735,8 +1763,10 @@ DOCTYPE as a parse error) *(security)*.
 
   If a `${…}` remains after substitution, or there is no `version` child, the version is
   none. Parent POMs, imported BOMs and profiles' properties are not consulted.
-* `scope`, `optional`, `type`, `classifier` are ignored (test-scoped dependencies are
-  reported).
+* `optional`, `type`, `classifier` are ignored. A dependency with `<scope>test</scope>` is reported as a **test
+  occurrence** (11.4) *(DECISIONS T3-J-TSCOPE, `maven-test-scope`; before: reported like any other)*; with
+  `--exclude-tests` it is dropped. A key declared both with and without test scope in one manifest is not a test
+  occurrence.
 
 ### 9.6 Gradle build scripts
 
@@ -1759,8 +1789,19 @@ Gradle scripts are not evaluated; they are scanned textually:
    (Groovy `group: 'g', name: 'a', version: 'v'`, Kotlin `group = "g", name = "a",
    version = "v"`) is an entry, with the same variable substitution.
 
-Entries are ordered by their start offset in the comment-free text. Catalog accessors
-(`libs.jose4j`) are not resolved in the script; the catalog itself is scanned (9.7).
+5. **Catalog accessors** *(DECISIONS T3-J-CAT, `gradle-catalog-accessors`)*. The catalog of a script is
+   `gradle/libs.versions.toml` of the nearest directory at or above the script's directory, up to the scan root (read
+   regardless of `--exclude`; a symbolic link or an unparsable file is no catalog). Every match of
+   `(?<![A-Za-z0-9_.$])libs\.([A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*)` whose first segment is not `versions` or `plugins` is
+   the catalog library whose alias, with `-` and `_` replaced by `.` (Gradle's alias normalisation), equals the
+   longest prefix of the matched segments; `libs.bundles.n…` gives the libraries of bundle `n`.
+
+**Test configurations** *(T3-J-TSCOPE)*: an entry (string literal, map notation or accessor) is a test occurrence if the
+identifier before it (skipping whitespace and one `(`) contains `test` or `Test` (`testImplementation`,
+`androidTestImplementation`, `testFixturesApi`, …), unless the same key is also declared outside a test configuration.
+
+Entries are ordered by their start offset in the comment-free text. Without `gradle-catalog-accessors`, catalog
+accessors are not resolved in the script; the catalog itself is always scanned (9.7).
 
 ### 9.7 Gradle version catalogs
 
@@ -3032,8 +3073,9 @@ Every source file of the language that is scanned contributes its definitions:
 | Python | `function_definition` (also inside `decorated_definition`) | the module (relative path without `.py`, `/` → `.`, a trailing `.__init__` removed) and, for a method, the enclosing `class_definition` | module-level functions; methods of module-level classes — not nested functions |
 | Go | `function_declaration`, `method_declaration` | the package: (directory of the file, package name of its `package_clause`); for a method also the receiver's type name (pointer and type arguments removed) | always |
 
-Constructors (Java `constructor_declaration`, Python classes and `__init__`, Go composite literals)
-are not definitions. Arity of a Java method: the number of formal parameters; a method with a
+Constructors (Python classes and `__init__`, Go composite literals) are not definitions. A Java
+`constructor_declaration` of a named class is a definition named like its class (display `Outer.C.C`, arity as for
+methods) with `java-constructor-wrappers` *(DECISIONS T3-J-CTOR)*, and not without it. Arity of a Java method: the number of formal parameters; a method with a
 variable-arity parameter accepts any number ≥ arity − 1.
 
 **Files read for the index.** The source files parsed by phase 3 contribute directly. A file that
@@ -3050,6 +3092,7 @@ all files; so the result equals that of indexing every file *(DECISIONS T9)*.
 | Language | Call site | Line | Symbol |
 |---|---|---|---|
 | Java | `method_invocation` without object, with object `this`, or with an `identifier`, `field_access` or `scoped_identifier` object | row of `name` + 1 | object text (whitespace removed) + `.` + name, or the name |
+| Java *(T3-J-CTOR)* | `object_creation_expression` without `class_body` whose type *T* (whitespace and generic arguments removed) ends in a segment starting with an upper-case letter: a call named like that segment with object text *T* (18.4 Java step 2 resolves the class, step 3 finds its constructors) | row of `type` + 1 | `new ` + *T* |
 | Python | `call` whose `function` is an `identifier` or an `attribute` chain of identifiers (`a.b.f`) | row of the last `attribute` identifier + 1, else start row + 1 | the function text without whitespace |
 | Go | `call_expression` whose `function` is an `identifier`, or a `selector_expression` whose operand is an `identifier` or a `selector_expression` of an `identifier` (`x.f.M`) | row of the selector's `field` + 1, else start row + 1 | the function text without whitespace |
 

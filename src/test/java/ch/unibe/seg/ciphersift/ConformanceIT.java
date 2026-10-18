@@ -132,6 +132,6 @@ class ConformanceIT {
                 assertTrue(comp.path("evidence").path("occurrences").size() > 0, c + ": component without occurrences");
             }
         }
-        assertEquals(1648, total, "expected findings in the suite");
+        assertEquals(1680, total, "expected findings in the suite");
     }
 }
