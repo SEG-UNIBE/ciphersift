@@ -142,9 +142,9 @@ class CliIT {
     void rulesValidateAndExport() throws Exception {
         JarRunner.Run v = JarRunner.run("rules", "validate");
         assertEquals(0, v.exit(), v.stderr());
-        assertTrue(v.out().contains("source java: 103"), v.out());
-        assertTrue(v.out().contains("source python: 87"), v.out());
-        assertTrue(v.out().contains("source go: 69"), v.out());
+        assertTrue(v.out().contains("source java: 105"), v.out());
+        assertTrue(v.out().contains("source python: 91"), v.out());
+        assertTrue(v.out().contains("source go: 70"), v.out());
         assertTrue(v.out().contains("dependency golang: 1"), v.out());
         Path exp = tmp.resolve("exported");
         JarRunner.Run e = JarRunner.run("rules", "export", exp.toString());

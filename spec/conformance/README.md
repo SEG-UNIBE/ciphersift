@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-64 cases, 1403 expected findings. A conforming implementation produces exactly the expected
+92 cases, 1626 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
