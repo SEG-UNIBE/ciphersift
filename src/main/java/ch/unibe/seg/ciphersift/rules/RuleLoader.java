@@ -812,6 +812,7 @@ public final class RuleLoader {
                     strings(p.get("reportAt"), false),
                     strings(p.get("noSymbolPrefix"), false),
                     p.has("minArgs") ? p.get("minArgs").asInt() : null,
+                    p.has("noString") && p.get("noString").asBoolean(),
                     strings(p.get("literal"), false),
                     feature(file, ptr, p, problems)));
         }

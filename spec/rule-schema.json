@@ -160,6 +160,7 @@
         "reportAt": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}},
         "noSymbolPrefix": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
         "minArgs": {"type": "integer", "minimum": 1},
+        "noString": {"const": true},
         "literal": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
         "feature": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
       },
@@ -178,20 +179,21 @@
          "then": {"not": {"anyOf": [
            {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
            {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
-           {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]}]},
+           {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]}, {"required": ["noString"]}]},
            "properties": {"param": {"required": ["value"]}}}},
         {"if": {"required": ["assign"]},
          "then": {"not": {"anyOf": [
            {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
            {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
-           {"required": ["param"]}, {"required": ["reportAt"]}]}},
+           {"required": ["param"]}, {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]},
+           {"required": ["noString"]}]}},
          "else": {"not": {"anyOf": [{"required": ["value"]}, {"required": ["valueContains"]}]}}},
         {"description": "a ref pattern (a bare reference has no arguments) takes no condition; its param can only be {self: true}",
          "if": {"required": ["ref"]},
          "then": {"not": {"anyOf": [
            {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
            {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
-           {"required": ["reportAt"]}]},
+           {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]}, {"required": ["noString"]}]},
            "properties": {"param": {"anyOf": [{"required": ["self"]}, {"required": ["value"]}]}}}}
       ]
     },

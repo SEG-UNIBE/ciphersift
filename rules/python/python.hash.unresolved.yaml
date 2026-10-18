@@ -27,4 +27,5 @@ match:
   feature: python-unresolved
 - call: getattr
   anySymbol: [hashlib, cryptography.hazmat.primitives.hashes, Crypto.Hash, Cryptodome.Hash]
+  noString: true
   feature: python-unresolved
