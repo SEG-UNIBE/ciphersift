@@ -373,3 +373,14 @@ code (Sonnet): 124 TP, 20 debatable, 4 FP, 1 wrong-detail. Changes:
 
 **Clean-room review, Python scope (2026-10-18, branch `review-python`).** One correction, no default changed:
 * **B-P-U1 review: `getattr` with a constant name.** Correctness. `getattr(hashlib, "sha256")` is statically resolvable (wrong-detail as a run-time choice) and `getattr(hashlib, "scrypt", None)` / `getattr(hashlib, "algorithms_available")` is feature detection, not a hash use (FP). New Python condition `noString` (the call's string list, 8.5.1, is empty) on the `getattr` pattern of `python.hash.unresolved`; `hashlib.new` keeps its fallback for unknown constant names. No change on the old or new development projects (no such line there). `python/unresolved` gains two "nothing" lines, `python/pqc` two liboqs negatives (Falcon, FrodoKEM). (SPEC 5.6, 8.6)
+
+**Clean-room review, Go scope (2026-10-18, branch `review-go`).** Two corrections, no default changed:
+* **B-G-E guard fix.** The fallback-getter guard removed the findings and calls of conditional returns from the
+  thin test altogether, so it could also *create* a thin wrapper: a definition with a second family in a
+  conditional return (xray-core `CipherMethod.NewAEAD`: `if m.IsChaCha { return chacha20poly1305.New(k) }` …
+  `aes.NewCipher`) became an AES wrapper (7 call sites on a new dev project, all wrong-detail). Now the guard only
+  removes evidence: all families, the guarded ones included, must be exactly one (SPEC 18.5; with R-J2, `prng-secure` is left out next to another key on both sides of this test, and the carried key must be that one family). `go/thin-wrappers`
+  gains a second file (6 expectations); no GT site of the old or new dev projects changes.
+* **B-G-B2 go-piv v1.** The v1 module `github.com/go-piv/piv-go/piv` (v1.11.0, proxy.golang.org) has no
+  `AlgorithmRSA3072`, `AlgorithmRSA4096` or `AlgorithmX25519`; the three mirrored anchors are removed (no effect
+  on any scan).

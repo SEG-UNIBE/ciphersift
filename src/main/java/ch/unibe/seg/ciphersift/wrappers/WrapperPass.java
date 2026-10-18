@@ -420,9 +420,11 @@ public final class WrapperPass {
                         }
                     }
                 }
+                // the guard only removes evidence: a guarded finding of another family still makes two (SPEC 18.5);
+                // a CSPRNG next to another key does not count (R-J2)
                 if (thin && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                     Set<String> ks = thinKeys(n.thinDirect.keySet());
-                    if (ks.size() == 1) {
+                    if (ks.size() == 1 && ks.equals(thinKeys(n.direct.keySet()))) {
                         String k = ks.iterator().next();
                         n.carry.putIfAbsent(k, new Carry(1, 1, n.thinDirect.get(k), List.of(n)));
                     }
@@ -464,15 +466,21 @@ public final class WrapperPass {
                     if (thin && n.carry.isEmpty() && m.isEmpty() && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                         Set<String> keys = new TreeSet<>(Texts.CODE_POINT_ORDER);
                         keys.addAll(n.thinDirect.keySet());
+                        // all families, the guarded ones included: the guard only removes evidence, it never
+                        // turns a definition with two families into a one-family wrapper (SPEC 18.5)
+                        Set<String> all = new TreeSet<>(Texts.CODE_POINT_ORDER);
+                        all.addAll(n.direct.keySet());
                         List<Integer> unguarded = new ArrayList<>();
                         for (int i : e.getValue()) {
+                            Set<String> below = carriedBelow(rs[i].group(), level);
+                            all.addAll(below);
                             if (!guarded(o, e.getKey(), o.calls.get(i).line())) {
                                 unguarded.add(i);
-                                keys.addAll(carriedBelow(rs[i].group(), level));
+                                keys.addAll(below);
                             }
                         }
                         keys = thinKeys(keys);
-                        if (keys.size() == 1) {
+                        if (keys.size() == 1 && keys.equals(thinKeys(all))) {
                             String f = keys.iterator().next();
                             Carry c = bestVia(n, f, unguarded, rs, level);
                             if (c != null) {

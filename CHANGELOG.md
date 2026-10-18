@@ -29,7 +29,7 @@ Every behaviour booster has a feature switch (`--feature ID=on|off`, SPEC 3.1; r
 * **Python**: `python.hash.unresolved` / `python.cipher.unresolved` fallbacks; `hash`/`digest`
   wrapper names; re-exported pyca names; `isinstance` key dispatch; IANA names as literals
   (`literal` anchor); ML-KEM / ML-DSA rules; asn1crypto schemas and receiver folding.
-* Conformance: 92 cases, 1627 findings; changed expectations are listed in DECISIONS (round t2 and its Java review).
+* Conformance: 92 cases, 1633 findings (1624 + 3 of the Java review, + 6 of the Go review fix of the fallback-getter guard); changed expectations are listed in DECISIONS (round t2 and its reviews).
 
 ### Recall extension, tier 1 (DECISIONS T1–T14, SPEC section 18; benchmark-informed)
 

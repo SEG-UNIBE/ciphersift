@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-92 cases, 1627 expected findings. A conforming implementation produces exactly the expected
+92 cases, 1633 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -106,7 +106,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `python/isinstance-keys` | 1 | 2 | `isinstance` with key classes of one family (a class, a tuple of two of one family); two families or a curve class give nothing (DECISIONS B-P-ISI) |
 | `python/literal-names` | 1 | 7 | IANA names as literals in value positions (a tuple, a bytes argument of an unknown call, an assignment); not in comparisons, f-strings, statements, or as the argument of a call with a finding (DECISIONS B-P-LIT) |
 | `python/fold-and-schemas` | 1 | 3 | a secp256k1 key object in the receiver of `ecdsa_verify` folds into the ECDSA finding; an asn1crypto `_fields` schema gives nothing, the same class elsewhere does (DECISIONS B-P-B3, B-P-B2) |
-| `go/thin-wrappers` | 1 | 6 | Go thin wrappers: 3 and 12 lines (an early error return) carry, 14 lines do not; a fallback getter (`if … { return crypto.SHA256 }; return c.DefaultHash`) does not (DECISIONS B-G-E) |
+| `go/thin-wrappers` | 2 | 12 | Go thin wrappers: 3 and 12 lines (an early error return) carry, 14 lines do not; a fallback getter (`if … { return crypto.SHA256 }; return c.DefaultHash`) does not; a definition with a second family in a conditional return (direct or through a call) does not either (DECISIONS B-G-E, review fix) |
 | `go/typed-methods` | 1 | 26 | method anchors on typed receivers: parameters, results by position, type assertions, a single-type type-switch case (not two types), struct fields, one level of embedding (not when the file declares the method), `ecdh` / `mlkem` / `x509` / `ssh` result chains, composite and `new`, a reassigned variable, accessors (DECISIONS B-G-B1a) |
 | `go/api-b2` | 1 | 19 | Sigstore protobuf-specs key and hash values (an aliased `common/v1` import), sigstore `WithED25519ph` and `AlgorithmDetails` methods, go-piv algorithms and `Verify`, CIRCL SLH-DSA parameter sets; LMS and other members give nothing (DECISIONS B-G-B2) |
 | `go/package-names` | 6 | 5 | Go package-name consistency: `aes.NewCipher()` and a method on a variable declared `*aes.Cipher` carry the AES finding of the project package `aes` (via `aes: package aes`); a variable typed only by a call, an excluded member (`EncodedLength`), a package named `ecdsa` without EC findings and a package whose only finding is in a test file give nothing (DECISIONS B-G-B3L) |
