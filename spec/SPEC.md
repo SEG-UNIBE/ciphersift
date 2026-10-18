@@ -192,6 +192,7 @@ individually; the table lists every id and its default.
 | `python-unresolved` | on | the Python fallbacks `python.hash.unresolved`, `python.cipher.unresolved` (8.6) | 8.6 |
 | `python-hash-wrappers` | on | Python wrapper names with `hash` / `digest` carry `python.hash.unresolved` (18.6) | 18.6 |
 | `wrapper-evidence-by-name` | on | W7 evidence prefers the body finding whose rule id names a token of the wrapper's name (18.5) | 18.5 |
+| `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
@@ -1443,6 +1444,13 @@ Calls are processed in pre-order. For a call with call names *names* (8.4.2) and
    *(DECISIONS E13/E17)*;
 3. if at least one `anyCall` pattern requires a keyword (in `kwargs`) that the call has: all
    `anyCall` patterns (rule order, file order); name used: *names*[0].
+
+4. *(DECISIONS B-P-RX, feature `python-reexports`)* if steps 1–3 found nothing: for each name *n* of
+   *names* that has at least three segments and does not start with `cryptography.`, the `call` patterns that
+   may fire on references (8.6.1) and whose value starts with `cryptography.hazmat.primitives.` and ends with
+   the same last two segments as *n* (a pyca class re-exported by another package:
+   `jwt.algorithms.hashes.SHA256`); name used: *n*. Bare references (8.6.1) take the `ref` and `call`
+   patterns of the same kind. The pre-filter (14) requires only those two segments for them.
 
 If there are no candidates, the call is skipped without argument analysis.
 

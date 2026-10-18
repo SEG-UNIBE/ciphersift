@@ -51,6 +51,8 @@ public final class PythonAnalyzer {
     private static final Set<String> TYPE_CALLS = Set.of("isinstance", "issubclass", "cast", "TypeVar", "NewType");
 
     private final PythonRuleIndex index;
+    /** DECISIONS B-P-RX. */
+    private final boolean reexports;
 
     public PythonAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -58,6 +60,33 @@ public final class PythonAnalyzer {
 
     public PythonAnalyzer(RuleSet rules, Features features) {
         this.index = new PythonRuleIndex(rules.pythonRules(), features);
+        this.reexports = features.on(Features.PYTHON_REEXPORTS);
+    }
+
+    /**
+     * Re-exported pyca names (SPEC 8.6, DECISIONS B-P-RX): for a name of at least three segments that does not
+     * start with {@code cryptography.}, the bare pyca patterns whose name ends with the same two segments
+     * ({@code jwt.algorithms.hashes.SHA256} → {@code cryptography.hazmat.primitives.hashes.SHA256}).
+     */
+    private List<PythonPattern> reexported(String name, boolean call) {
+        if (!reexports || name.startsWith("cryptography.")) {
+            return List.of();
+        }
+        String t = PythonRuleIndex.tail(name);
+        List<PythonPattern> ps = t == null ? null : index.byTail.get(t);
+        if (ps == null) {
+            return List.of();
+        }
+        if (!call) {
+            return ps;
+        }
+        List<PythonPattern> out = new ArrayList<>();
+        for (PythonPattern p : ps) {
+            if (p.call != null) {
+                out.add(p);
+            }
+        }
+        return out;
     }
 
     /** Analyses one parsed Python file. */
@@ -926,6 +955,15 @@ public final class PythonAnalyzer {
                     }
                 }
             }
+            if (cands.isEmpty()) {
+                for (String n : names) {
+                    for (PythonPattern p : reexported(n, true)) {
+                        if (seen.add(p)) {
+                            cands.add(new Candidate(p, n));
+                        }
+                    }
+                }
+            }
             Args args = null;
             if (!index.anyCall.isEmpty()) {
                 args = new Args(call, s);
@@ -1033,6 +1071,19 @@ public final class PythonAnalyzer {
                 for (PythonPattern p : ps) {
                     if (seen.add(p)) {
                         cands.add(new Candidate(p, n));
+                    }
+                }
+            }
+            if (cands == null) {
+                for (String n : names) {
+                    for (PythonPattern p : reexported(n, false)) {
+                        if (cands == null) {
+                            cands = new ArrayList<>();
+                            seen = new HashSet<>();
+                        }
+                        if (seen.add(p)) {
+                            cands.add(new Candidate(p, n));
+                        }
                     }
                 }
             }

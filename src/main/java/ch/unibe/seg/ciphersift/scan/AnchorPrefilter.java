@@ -126,6 +126,16 @@ final class AnchorPrefilter {
                     continue;
                 }
                 List<List<String>> clauses = new ArrayList<>();
+                if (features.on(Features.PYTHON_REEXPORTS) && p.matchesReferences()
+                        && p.referenceName().startsWith("cryptography.hazmat.primitives.")) {
+                    // a re-export is matched by the last two segments of the name (DECISIONS B-P-RX)
+                    String n = p.referenceName();
+                    String[] seg = n.split("\\.");
+                    List<List<String>> tail = new ArrayList<>();
+                    tail.add(List.of(seg[seg.length - 2]));
+                    tail.add(List.of(seg[seg.length - 1]));
+                    pats.add(tail);
+                }
                 if (p.literal != null) {
                     // the string value is the raw text of the literal's content (escapes are not interpreted)
                     clauses.add(List.copyOf(p.literal));

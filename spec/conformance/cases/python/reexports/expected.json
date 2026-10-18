@@ -1,0 +1,5 @@
+{"case": "python/reexports", "findings": [
+  {"file": "rx.py", "line": 6, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "jwt.algorithms.hashes.SHA1"},
+  {"file": "rx.py", "line": 7, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "jwt.algorithms.hashes.SHA256"},
+  {"file": "rx.py", "line": 8, "rule": "python.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null}
+]}

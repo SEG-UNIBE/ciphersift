@@ -32,8 +32,22 @@ final class PythonRuleIndex {
      * rules in id order, patterns in file order.
      */
     final Map<String, List<PythonPattern>> byRef = new HashMap<>();
+    /**
+     * Bare pyca patterns ({@code call} / {@code ref} on {@code cryptography.hazmat.primitives.…}, SPEC 8.6.1) by the
+     * last two segments of their name (DECISIONS B-P-RX).
+     */
+    final Map<String, List<PythonPattern>> byTail = new HashMap<>();
     /** {@code literal} patterns by string value (SPEC 5.6, DECISIONS B-P-LIT); rules in id order. */
     final Map<String, List<PythonPattern>> literals = new HashMap<>();
+
+    static final String PYCA = "cryptography.hazmat.primitives.";
+
+    /** The last two segments of a dotted name, or null if it has fewer than three. */
+    static String tail(String dotted) {
+        int b = dotted.lastIndexOf('.');
+        int a = b <= 0 ? -1 : dotted.lastIndexOf('.', b - 1);
+        return a <= 0 ? null : dotted.substring(a + 1);
+    }
 
     PythonRuleIndex(List<SourceRule> rules) {
         this(rules, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
@@ -58,6 +72,9 @@ final class PythonRuleIndex {
                 }
                 if (p.matchesReferences()) {
                     byRef.computeIfAbsent(p.referenceName(), k -> new ArrayList<>()).add(p);
+                    if (p.referenceName().startsWith(PYCA)) {
+                        byTail.computeIfAbsent(tail(p.referenceName()), k -> new ArrayList<>()).add(p);
+                    }
                 }
                 if (p.call != null) {
                     byCall.computeIfAbsent(p.call, k -> new ArrayList<>()).add(p);

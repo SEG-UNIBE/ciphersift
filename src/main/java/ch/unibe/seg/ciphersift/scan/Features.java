@@ -69,8 +69,12 @@ public final class Features {
     /** W7 evidence: prefer a body finding whose rule id names a token of the wrapper's name (B5, SPEC 18.5). */
     public static final String WRAPPER_EVIDENCE_BY_NAME = "wrapper-evidence-by-name";
 
+    /** Python: pyca classes re-exported by other packages, matched by their last two name segments (RX). */
+    public static final String PYTHON_REEXPORTS = "python-reexports";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_REEXPORTS, true);
         known(PYTHON_HASH_WRAPPERS, true);
         known(WRAPPER_EVIDENCE_BY_NAME, true);
         known(PYTHON_UNRESOLVED, true);
