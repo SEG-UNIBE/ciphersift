@@ -29,3 +29,7 @@ match:
   firstString: (ECDH|ECMQV)$
 - call: pyasn1.type.univ.ObjectIdentifier
   firstString: (ECDH|ECMQV)$
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['ECDH-ES', 'ECDH-ES+A128KW', 'ECDH-ES+A192KW', 'ECDH-ES+A256KW', 'ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521']
+  feature: python-literal-names

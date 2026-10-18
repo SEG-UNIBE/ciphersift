@@ -166,8 +166,14 @@ public final class PythonAnalyzer {
             for (Located c : calls) {
                 if (c.node().is("call")) {
                     matchCall(c.node(), c.scope());
-                } else {
+                } else if (!c.node().is("string")) {
                     matchReference(c.node(), c.scope());
+                }
+            }
+            // literals last: a call or reference on the same line names the finding (SPEC 8.6.2)
+            for (Located c : calls) {
+                if (c.node().is("string")) {
+                    matchLiteral(c.node());
                 }
             }
             if (!index.assignRules.isEmpty()) {
@@ -222,6 +228,11 @@ public final class PythonAnalyzer {
                         }
                     }
                     case "call" -> calls.add(new Located(n, s));
+                    case "string" -> {
+                        if (!index.literals.isEmpty() && maybeReference(n)) {
+                            calls.add(new Located(n, s));
+                        }
+                    }
                     case "identifier", "attribute" -> {
                         if (!index.byRef.isEmpty() && maybeReference(n)) {
                             calls.add(new Located(n, s));
@@ -1112,6 +1123,44 @@ public final class PythonAnalyzer {
             }
         }
 
+        /**
+         * A string literal in value position (SPEC 8.6.2, DECISIONS B-P-LIT) whose value (content without
+         * interpolation; the {@code b} prefix allowed) equals a {@code literal} of a pattern.
+         */
+        private void matchLiteral(SyntaxNode str) {
+            if (str.childCount() == 0 || Texts.lower(str.child(0).text()).indexOf('f') >= 0) {
+                return;
+            }
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < str.childCount(); i++) {
+                SyntaxNode c = str.child(i);
+                if (c.is("interpolation")) {
+                    return;
+                }
+                if (c.is("string_content")) {
+                    b.append(c.text());
+                }
+            }
+            List<PythonPattern> ps = index.literals.get(b.toString());
+            if (ps == null || !valuePosition(str, false)) {
+                return;
+            }
+            for (SyntaxNode a = str.parent(); a != null; a = a.parent()) {
+                if (a.is("call") && callsWithHits.contains(a)) {
+                    SyntaxNode args = a.field("arguments");
+                    if (args != null && str.start() >= args.start() && str.end() <= args.end()) {
+                        return; // an argument of a call with a finding: that call's data or configuration
+                    }
+                }
+            }
+            Set<SourceRule> seenRules = new HashSet<>();
+            for (PythonPattern p : ps) {
+                if (seenRules.add(p.rule)) {
+                    emitReference(new Hit(p.rule, b.toString(), p), str);
+                }
+            }
+        }
+
         // ------------------------------------------------------------------ 8.6.1 bare references
 
         private void matchReference(SyntaxNode ref, Scope s) {
@@ -1435,7 +1484,11 @@ public final class PythonAnalyzer {
             return false;
         }
 
+        /** Calls with a hit (SPEC 8.6.2: literals in their arguments are their data). */
+        final Set<SyntaxNode> callsWithHits = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+
         private void emit(Hit h, SyntaxNode call, Args args) {
+            callsWithHits.add(call);
             List<Range> rs = ranges.computeIfAbsent(h.rule(), k -> new ArrayList<>());
             // Calls arrive in pre-order, i.e. with non-decreasing start offsets: a range that ends at or
             // before this call's start cannot contain this or any later call. Dropping those keeps the

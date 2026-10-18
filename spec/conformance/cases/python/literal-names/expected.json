@@ -1,0 +1,9 @@
+{"case": "python/literal-names", "findings": [
+  {"file": "names.py", "line": 4, "rule": "python.asym.dh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "DH", "variant": null, "protocol": null, "version": null, "param": null, "name": "diffie-hellman-group14-sha256"},
+  {"file": "names.py", "line": 4, "rule": "python.asym.x25519", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "Curve25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "curve25519-sha256"},
+  {"file": "names.py", "line": 4, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "curve25519-sha256"},
+  {"file": "names.py", "line": 5, "rule": "python.asym.ed25519", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "Ed25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "ssh-ed25519"},
+  {"file": "names.py", "line": 6, "rule": "python.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES384"},
+  {"file": "names.py", "line": 6, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "ES384"},
+  {"file": "names.py", "line": 9, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "hashlib.sha256"}
+]}

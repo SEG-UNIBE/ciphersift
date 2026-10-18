@@ -58,3 +58,7 @@ match:
   firstString: (ML-KEM-512|ML-KEM-768|ML-KEM-1024)$
   param:
     index: 0
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['MLKEM1024', 'MLKEM512', 'MLKEM512X25519', 'MLKEM768', 'SecP256r1Kyber768Draft00', 'SecP256r1MLKEM512', 'SecP256r1MLKEM768', 'SecP384r1MLKEM1024', 'X25519Kyber768Draft00', 'X25519MLKEM768', 'curveSM2MLKEM768', 'mlkem1024-sha384', 'mlkem1024nistp384-sha384', 'mlkem512-sha256', 'mlkem768-sha256', 'mlkem768nistp256-sha256', 'mlkem768x25519-sha256']
+  feature: python-literal-names

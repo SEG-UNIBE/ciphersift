@@ -52,3 +52,7 @@ match:
   firstString: (ML-DSA-44|ML-DSA-65|ML-DSA-87)$
   param:
     index: 0
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87', 'ssh-mldsa-44', 'ssh-mldsa-65', 'ssh-mldsa-87', 'ssh-mldsa44-ed25519', 'ssh-mldsa87-p384']
+  feature: python-literal-names

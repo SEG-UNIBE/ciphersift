@@ -193,6 +193,7 @@ individually; the table lists every id and its default.
 | `python-hash-wrappers` | on | Python wrapper names with `hash` / `digest` carry `python.hash.unresolved` (18.6) | 18.6 |
 | `wrapper-evidence-by-name` | on | W7 evidence prefers the body finding whose rule id names a token of the wrapper's name (18.5) | 18.5 |
 | `python-isinstance-keys` | on | key classes of one family in `isinstance` (8.6.1) | 8.6.1 |
+| `python-literal-names` | on | Python `literal` patterns: IANA SSH / JOSE / TLS-group names as string literals (8.6.2) | 8.6.2 |
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
@@ -496,6 +497,7 @@ without `call`:
 | `ref` | dotted name | A bare reference (8.6.1) in any expression position whose resolved name equals the value, e.g. an enum member `pkcs11.Mechanism.SHA256_RSA_PKCS` or a class used as a value, `algorithms.AES`. Never a call. *(DECISIONS E1)* |
 | `method` | name or list of names | A call whose method name (8.4.3) is one of the names, whatever the receiver. May also be combined with `call` (then both must hold). |
 | `anyCall` | `true`; requires `kwargs` | Any call (e.g. `verify=False` on any function). |
+| `literal` | list of strings | A string literal in value position whose value is one of them (8.6.2, *DECISIONS B-P-LIT*). Takes no condition; `param` only `{value: s}`. |
 | `assign` | attribute name | An assignment `expr.NAME = value` or augmented assignment `expr.NAME op= value`. |
 
 Conditions:
@@ -1549,6 +1551,19 @@ operation call of 8.7 started at the reference; the line is the row of an `attri
 `attribute` identifier (of the report node, or of the report call's `function`) + 1, otherwise
 the start row + 1; the snippet is the report node's text; param: `{value: s}` → *s*,
 `{self: true}` → as in 8.8, otherwise none.
+
+### 8.6.2 Algorithm names as literals *(DECISIONS B-P-LIT)*
+
+A `literal` pattern (5.6: a list of exact strings; feature `python-literal-names`, 3.1) fires on a `string`
+node in value position (8.6.1, call-pattern rules) whose value — its `string_content` without
+interpolation; unlike 8.5.1 a `b` prefix is allowed, an `f` prefix is not — equals a listed string. Literals
+are matched after all calls and bare references of the file, so a call or reference on the same line
+names the finding (one finding per rule and line, 8.6); a literal inside the arguments of a call that has a
+hit is not matched (that call's data or configuration, `hashlib.sha256(b"ES512")`), nor is one in the recorded
+argument range of the same rule. Name and symbol: the string; line: the string's start row + 1; snippet: the
+string. The bundled rules list the IANA SSH algorithm names, JOSE algorithm and curve names and TLS group
+names (215 names, sources in `PROVENANCE.md`) under the rule of each family they name (a name of several
+families under each: `curve25519-sha256` is X25519 and SHA-2).
 
 ### 8.7 Operation-call attribution (`reportAt`)
 

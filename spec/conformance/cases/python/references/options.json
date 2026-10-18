@@ -1,1 +1,1 @@
-{"args": ["--feature", "python-isinstance-keys=off"]}
+{"args": ["--feature", "python-isinstance-keys=off", "--feature", "python-literal-names=off"]}

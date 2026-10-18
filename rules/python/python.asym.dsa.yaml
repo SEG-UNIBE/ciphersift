@@ -95,3 +95,7 @@ match:
   feature: python-isinstance-keys
 - call: cryptography.hazmat.primitives.asymmetric.dsa.DSAPublicKey
   feature: python-isinstance-keys
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['pgp-sign-dss', 'spki-sign-dss', 'ssh-dss', 'x509v3-ssh-dss']
+  feature: python-literal-names

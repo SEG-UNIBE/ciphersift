@@ -31,3 +31,7 @@ match:
 - ref: pkcs11.mechanisms.Mechanism.AES_KEY_GEN
 - ref: pkcs11.KeyType.AES
 - ref: pkcs11.mechanisms.KeyType.AES
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['A128CBC', 'A128CBC-HS256', 'A128CTR', 'A128GCM', 'A128GCMKW', 'A128KW', 'A192CBC', 'A192CBC-HS384', 'A192CTR', 'A192GCM', 'A192GCMKW', 'A192KW', 'A256CBC', 'A256CBC-HS512', 'A256CTR', 'A256GCM', 'A256GCMKW', 'A256KW', 'AEAD_AES_128_GCM', 'AEAD_AES_256_GCM', 'aes128-cbc', 'aes128-ctr', 'aes192-cbc', 'aes192-ctr', 'aes256-cbc', 'aes256-ctr']
+  feature: python-literal-names

@@ -122,3 +122,7 @@ match:
   firstString: (SHA-1)$
 - call: pyasn1.type.univ.ObjectIdentifier
   firstString: (SHA-1)$
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['HS1', 'RS1', 'diffie-hellman-group-exchange-sha1', 'diffie-hellman-group1-sha1', 'diffie-hellman-group14-sha1', 'hmac-sha1', 'hmac-sha1-96', 'rsa1024-sha1']
+  feature: python-literal-names

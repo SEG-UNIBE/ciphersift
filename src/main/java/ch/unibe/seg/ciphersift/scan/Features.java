@@ -75,8 +75,12 @@ public final class Features {
     /** Python: key classes of one family tested with {@code isinstance} (ISI, SPEC 8.6.1). */
     public static final String PYTHON_ISINSTANCE_KEYS = "python-isinstance-keys";
 
+    /** Python: IANA algorithm names as string literals in value positions (LIT, SPEC 8.6.2). */
+    public static final String PYTHON_LITERAL_NAMES = "python-literal-names";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_LITERAL_NAMES, true);
         known(PYTHON_ISINSTANCE_KEYS, true);
         known(PYTHON_REEXPORTS, true);
         known(PYTHON_HASH_WRAPPERS, true);

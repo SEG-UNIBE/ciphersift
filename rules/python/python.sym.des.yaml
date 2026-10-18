@@ -40,3 +40,7 @@ match:
   firstString: (DES/CBC/NoPadding)$
 - call: pyasn1.type.univ.ObjectIdentifier
   firstString: (DES/CBC/NoPadding)$
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['des-cbc']
+  feature: python-literal-names

@@ -78,3 +78,7 @@ match:
   feature: python-isinstance-keys
 - call: cryptography.hazmat.primitives.asymmetric.rsa.RSAPublicKey
   feature: python-isinstance-keys
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['PS256', 'PS384', 'PS512', 'RS1', 'RS256', 'RS384', 'RS512', 'RSA-OAEP', 'RSA-OAEP-256', 'RSA-OAEP-384', 'RSA-OAEP-512', 'RSA1_5', 'pgp-sign-rsa', 'rsa-sha2-256', 'rsa-sha2-512', 'rsa1024-sha1', 'rsa2048-sha256', 'spki-sign-rsa', 'ssh-rsa', 'x509v3-rsa2048-sha256', 'x509v3-ssh-rsa']
+  feature: python-literal-names

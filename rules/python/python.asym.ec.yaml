@@ -139,3 +139,7 @@ match:
   feature: python-isinstance-keys
 - call: cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey
   feature: python-isinstance-keys
+# DECISIONS B-P-LIT: IANA SSH / JOSE / TLS-group names as exact string literals in value positions; names and
+# sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
+- literal: ['ES256', 'ES256K', 'ES384', 'ES512', 'GC256A', 'GC256B', 'GC256C', 'GC256D', 'GC512A', 'GC512B', 'GC512C', 'P-256', 'P-384', 'P-521', 'SecP256r1Kyber768Draft00', 'SecP256r1MLKEM512', 'SecP256r1MLKEM768', 'SecP384r1MLKEM1024', 'brainpoolP256r1', 'brainpoolP256r1tls13', 'brainpoolP384r1', 'brainpoolP384r1tls13', 'brainpoolP512r1', 'brainpoolP512r1tls13', 'curveSM2', 'curveSM2MLKEM768', 'ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ecmqv-sha2', 'mlkem1024nistp384-sha384', 'mlkem768nistp256-sha256', 'secp160k1', 'secp160r1', 'secp160r2', 'secp192k1', 'secp192r1', 'secp224k1', 'secp224r1', 'secp256k1', 'secp256r1', 'secp384r1', 'secp521r1', 'sect163k1', 'sect163r1', 'sect163r2', 'sect193r1', 'sect193r2', 'sect233k1', 'sect233r1', 'sect239k1', 'sect283k1', 'sect283r1', 'sect409k1', 'sect409r1', 'sect571k1', 'sect571r1', 'x509v3-ecdsa-sha2-nistp256', 'x509v3-ecdsa-sha2-nistp384', 'x509v3-ecdsa-sha2-nistp521']
+  feature: python-literal-names
