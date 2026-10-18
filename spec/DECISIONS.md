@@ -427,3 +427,10 @@ metadata/config labels). Owner rule applied: a CSPRNG call is TP whatever the by
 | T3-J-CTOR | **Kept on.** 19/21 TP in the fresh sample, mostly outside xchange. The debatable ones are shiro `Sha*Hash.fromHexString` (no hashing) and constructors that only register a type id. |
 | T3-J-CF, XSIG, I2P, CONST | **Kept.** Provenance re-checked against the sources jars (jose4j 0.9.6, opensaml-xmlsec-api/-impl and opensaml-security-impl 4.3.0, eddsa 0.3.0): every class and method exists, and all 93 constant values match. 18/20 TP. FP: api-gateway `resolveByKeyIdentifier`, which reaches `generateCertificate` on one branch only. |
 | T3-J-CAT, T3-J-TSCOPE, T3-J-GB | **Kept** (10/12 TP; the debatable ones are a test-only nimbus entry and bcutil-fips). |
+
+The review fixes change no in-scope finding on the 15 DEV projects: `review3-java` gives the same pools as the tuner's
+c8, and two runs are byte-identical apart from serial and timestamp. Strict re-estimate for all 15 (base precision
+plus this review's per-change TP rates for the added findings; TC_TRUSTALL matching): P / R / F1 92.6 / 73.5 / 82.0 →
+91.5 / 83.4 / 87.2. The tuner's estimate is 93.6 / 83.4 / 88.2. Switching any one change off lowers F1 (XMOD −2.5,
+INH −2.1, SUPER −2.2, CTOR −0.6, CAT −0.5), so all stay on. Open item: XMOD lowers strict precision on old-devreg
+(keycloak) from 88.7 to 85.8. The cause is the `anyCall` label-setter matches named above.
