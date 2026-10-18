@@ -7,6 +7,30 @@
 
 Development steps of the unreleased 1.0.0, newest first.
 
+### Boosters, round t2 (DECISIONS B0–B-P-B5; benchmark-informed)
+
+Every behaviour booster has a feature switch (`--feature ID=on|off`, SPEC 3.1; recorded as
+`ciphersift:features`); all are on by default except `transitive-deps`.
+
+* **Dependencies**: `go.mod` `// indirect` requirements and lock files (`go.sum`, `poetry.lock`,
+  `Pipfile.lock`) only with `--transitive-deps`; `Pipfile` is read; Vault API client, Sigstore
+  protobuf-specs and Rekor listed (owner decision); `certifi` removed; `commons-codec` only where its
+  digest package is used (new rule key `usedIf`).
+* **All languages**: registry aliases (V1; fixes `des3` → DES) and certificate/key/protocol aliases
+  (V2) in the wrapper-name tokeniser; wrapper chains of up to 4 definitions; W7 evidence by name
+  token; JCA standard-name gaps; 35 more table OIDs.
+* **Go**: thin wrappers on (12 lines, fallback-getter guard); method anchors on receivers of a known
+  type (`method: path.Type.Method`, result-type table); package-name consistency for project
+  packages; Sigstore protobuf-specs / signature, go-piv and CIRCL SLH-DSA (`go.pqc.slhdsa`).
+* **Java**: `anyCall` anchor with registry names (SNx and short names SA) and JSR 105 constants;
+  constant getters, deferred locals with agreeing values, `SecretKeySpec.getAlgorithm()`; Bouncy
+  Castle OID constants as anchors and values; JDK / Bouncy Castle class lists; JWT constants; key
+  loading rules `java.key.load.*`; thin wrappers of 12 lines; secure random through wrappers.
+* **Python**: `python.hash.unresolved` / `python.cipher.unresolved` fallbacks; `hash`/`digest`
+  wrapper names; re-exported pyca names; `isinstance` key dispatch; IANA names as literals
+  (`literal` anchor); ML-KEM / ML-DSA rules; asn1crypto schemas and receiver folding.
+* Conformance: 92 cases, 1624 findings; changed expectations are listed in DECISIONS (round t2).
+
 ### Recall extension, tier 1 (DECISIONS T1–T14, SPEC section 18; benchmark-informed)
 
 * **Wrapper propagation** (new pass between extraction and normalisation): the call sites of the

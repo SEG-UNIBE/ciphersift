@@ -49,7 +49,7 @@ needs write permission there).
 ```
 ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
                 [--threads N] [--rules DIR] [--weakness-indicators] [--python-thin-wrappers]
-                [--cyclonedx-version V] [--quiet | --verbose]
+                [--transitive-deps] [--feature ID=on|off]... [--cyclonedx-version V] [--quiet | --verbose]
 ciphersift rules validate [--rules DIR]
 ciphersift rules export <dir>
 ciphersift --version
@@ -81,6 +81,8 @@ Extra JVM options can be passed in `CIPHERSIFT_JAVA_OPTS` (e.g. `-Xmx4g`).
 | `--rules DIR` | Use the rules under `DIR` instead of the bundled ones (`rules export` gives you a copy to edit). |
 | `--weakness-indicators` | Also report *weakness indicators* (see below), e.g. non-cryptographic random generators. Off by default; all other findings are exactly those of a default scan. |
 | `--python-thin-wrappers` | Also treat thin Python functions (at most 8 lines, one family, any name) as crypto wrappers whose call sites are reported (see "Wrapper propagation"). Off by default; the metadata records it as `ciphersift:pythonThinWrappers=included`. |
+| `--transitive-deps` | Also report transitive dependencies: `go.mod` requirements marked `// indirect` and the lock files `go.sum`, `poetry.lock`, `Pipfile.lock`. Off by default (direct requirements come from `go.mod`, `pyproject.toml`, `Pipfile`, requirements files, POMs). |
+| `--feature ID=on\|off` | Switch one detection booster of round t2 on or off (repeatable). Ids and defaults: SPEC 3.1; every booster is on by default except `transitive-deps`. Non-default settings are recorded in the metadata (`ciphersift:features`). |
 | `--cyclonedx-version V` | `1.7` (default) or `1.6`. The 1.6 document is the former output format: the same components, bom-refs and properties, without the 1.7 registry fields `algorithmFamily` and `ellipticCurve`. |
 | `--quiet`, `--verbose` | Only errors / also debug messages (one line per skipped file) on standard error. |
 
@@ -209,14 +211,21 @@ constants — and `golang.org/x/crypto` (`chacha20`, `chacha20poly1305`, `poly13
 Go 1.25 raw ECDSA key encodings and key construction (`rsa.PublicKey{…}`, `ed25519.PublicKey(b)`,
 `elliptic.CurveParams{…}`). Functions passed as values count as uses
 (`hmac.New(sha256.New, k)` reports HMAC and SHA-2); TLS constants in comparisons and `switch`
-cases do not. `go.mod` and `go.sum` report the modules of `rules/dependencies/dep.golang.yaml`
-(`golang.org/x/crypto`, `filippo.io/age`, `github.com/cloudflare/circl`, JWT/JOSE libraries, …).
+cases do not. `go.mod` reports the modules of `rules/dependencies/dep.golang.yaml`
+(`golang.org/x/crypto`, `filippo.io/age`, `github.com/cloudflare/circl`, JWT/JOSE libraries, …);
+`// indirect` requirements and `go.sum` only with `--transitive-deps`.
+Method calls on values of a known type are reported too (SPEC 17.12): `priv.Sign(…)` on an
+`*rsa.PrivateKey` parameter, `pool.AddCert(c)` after `x509.NewCertPool()`, `k.ECDH(…)`, typed by
+declarations in the file, type assertions, single-type `case`s, struct fields and a table of
+standard-library constructors. Calls into a project package named after an algorithm
+(`aes.NewCipher()` of the project's own `aes` package) carry that package's finding (SPEC 18.8).
 `vendor/` directories are scanned like any other; pass `--exclude vendor` to skip vendored modules.
 Selected third-party Go APIs have rules too (SPEC 17.11, DECISIONS T11): `filippo.io/age` (and
 `agessh`), sigstore `cryptoutils`, the `crypto/x509` `Marshal*` key encoders,
 go-securesystemslib `encrypted` (scrypt + NaCl secretbox), go-containerregistry `v1.SHA256` (when
 imported as `v1`), CIRCL (`mldsa`, `mlkem`, `ed25519`, `ed448`, `x25519`, `x448`), flynn/noise
-cipher-suite values, miekg/pkcs11 `CKM_ECDSA*` and the azkeys RSA constants.
+cipher-suite values, miekg/pkcs11 `CKM_ECDSA*`, the azkeys RSA constants, Sigstore protobuf-specs
+key/hash values and `AlgorithmDetails`, go-piv algorithms and CIRCL SLH-DSA (round t2).
 
 **Wrapper propagation** (SPEC section 18, DECISIONS T1–T14). Projects often call their own small
 crypto helpers (`Hash.sha3(x)`, `sha256(x)`, `hmacSha512(k, d)`, `newAESGCM(k)`). CipherSift reports
@@ -227,10 +236,12 @@ the line of the API call). A function or method is such a *crypto callable* when
 
 * its **name names a family** that a finding in its body has (`sha256`, `hmac_sha_512`,
   `createSecp256k1KeyPair`, `SignECDSA`; the tokeniser and alias list are in SPEC 18.6), also
-  transitively through other callables, up to a chain of 3 functions (Java, Python, Go); or
-* it is a **thin wrapper**: at most 8 lines, exactly one family in its body (or in the callables it
-  calls), whatever its name. On for Java; off for Python (`--python-thin-wrappers` turns it on) and
-  for Go (no option; DECISIONS T14).
+  transitively through other callables, up to a chain of 4 functions (Java, Python, Go); besides the
+  algorithm names, `cert`, `privkey`/`pubkey`, `tls`/`ssl`/`ssh` and `hash160` name the matching
+  certificate, key and protocol findings, and in Python `hash`/`digest` name the hash fallback; or
+* it is a **thin wrapper**: exactly one family in its body (or in the callables it calls), whatever
+  its name, at most 12 lines (Java, Go) or 8 (Python). On for Java and Go (Go skips a getter that
+  returns an algorithm only as a fallback default); off for Python (`--python-thin-wrappers`).
 
 Calls are resolved from declarations, without type inference: Java `Class.m(…)` (imports, the same
 package, nested classes), static imports and methods of the enclosing classes; Python imports
@@ -239,20 +250,21 @@ Go `pkg.F(…)` for project packages (through `go.mod`, also `vendor/`), the sam
 methods of a receiver, parameter or variable whose type is declared in the function. A call whose
 candidates belong to two different classes, modules or packages is skipped (`--verbose` prints the
 count). Wrappers defined in test files serve only test call sites; calls in test files are marked
-as test occurrences. Cryptographically secure random-number helpers and weakness indicators are
-not propagated. A call on a line that already has a finding of the same family is not reported
+as test occurrences. Weakness indicators are not propagated, nor are cryptographically secure
+random-number helpers outside Java. A call on a line that already has a finding of the same family is not reported
 again. Only the scan root takes part, so scanning a subdirectory can give fewer propagated
 occurrences than scanning the whole project.
 
 **Which libraries are listed.** The lists follow a written policy (SPEC 9.9): packages whose
 documented purpose is cryptographic primitives, a cryptographic protocol or format, key management
 in a KMS or hardware module (AWS KMS, Google Cloud KMS, Azure Key Vault keys, PKCS #11, PIV, TPM),
-or signing / certificates / time-stamping of artefacts (Sigstore). General SDKs, secret stores,
-the HashiCorp Vault API client, transparency logs and data-model packages are not listed.
+or signing / certificates / time-stamping of artefacts (Sigstore). General SDKs, secret stores and
+data-model packages are not listed; by owner decision the HashiCorp Vault API client, Sigstore's
+protobuf-specs and Rekor are (DECISIONS B-G4).
 
-**Debatable library entries.** The dependency lists also contain packages that support
-cryptography without implementing it, e.g. `certifi` (a CA bundle) and `commons-codec`
-(`DigestUtils`, but often used only for Base64). Filter on the package if they are not wanted.
+**Conditional library entries.** `commons-codec` is reported only where a Java file of the project
+names its digest package `org.apache.commons.codec.digest` (`usedIf` in the rule; it is often used
+only for Base64); `certifi` (a CA bundle) is no longer listed.
 
 To turn a CBOM into a flat finding list, read for every occurrence its `location`, `line` and
 `JSON.parse(additionalContext).ruleId`, together with the component's properties;
@@ -298,20 +310,26 @@ match:                          # a rule matches if any pattern matches
 
 **Java anchors**: `call: pkg.Class.method` (receiver resolved through imports; trailing `*`
 makes the method a prefix), `new: pkg.Class` (no `*`), `method: name` (any receiver), `field:
-pkg.Class.FIELD`, `override: name` (method declarations). **Java conditions**: `firstString`,
+pkg.Class.FIELD`, `override: name` (method declarations), `anyCall: true` (any method call
+except comparisons, logging, collection builders and `getInstance`; only where no other pattern
+holds — used for registry algorithm names such as XML-Security URIs and `SHA256withECDSA` passed to
+an unknown API). Any pattern may carry `feature: <id>` (used only while that feature is on).
+**Java conditions**: `firstString`,
 `anyString` (regex at the start of the first / any resolved string argument, case-insensitive),
 `stringContains`, `argsText` (regex over the argument text), `argsTextContains`, `constantArg: i`
 (argument *i* is constant bytes, e.g. a hard-coded key), `inType` and `body` (for `override`),
 `param: {index: i}` (report argument *i* as parameter set; not a filter, so it does not make a
 pattern specific). String arguments are resolved
-through literals, `+`, local and field constants (also in other files of the scan) and a table
-of well-known library constants (`rules/java/_constants.yaml`).
+through literals, `+`, local and field constants (also in other files of the scan), a table
+of well-known library constants (`rules/java/_constants.yaml`: also the JSR 105 algorithm URIs and
+Bouncy Castle OID constants), the file's only no-argument getter `return "…";`, locals assigned
+later with agreeing values, and `new SecretKeySpec(k, alg).getAlgorithm()`.
 
 **Python anchors**: `call: dotted.name` (matches the resolved call name or any name below it:
 `Crypto.Hash.MD5` matches `Crypto.Hash.MD5.new`), `method: name | [names]`, `anyCall: true` (with
 `kwargs`), `assign: attr` (attribute assignment `x.attr = value`). **Python conditions**:
 `firstString`, `stringContains`, `anySymbol`/`allSymbols` (names referenced in the arguments),
-`kwargs: {keyword: regex}`, `dictItems: {key: regex}` (a dictionary argument such as
+`kwargs: {keyword: regex}`, `noSymbolPrefix`, `minArgs`, `dictItems: {key: regex}` (a dictionary argument such as
 `{'algorithm': 'sha256'}`), `notInside: [method names]` (the call is not an argument of such a
 call), `value`/`valueContains` (for `assign`); `param: {keyword, index}`, `{self: true}` or
 `{value: fixed}` and `reportAt: [method names]` (attribute the finding to an enclosing operation call
@@ -320,7 +338,9 @@ as a value without a call — in a table, as a class attribute, as an argument
 (`digest=hashlib.sha256`) — but not in annotations, `isinstance`/`cast`, comparisons or `except`
 clauses; `ref: dotted.name` matches only such uncalled references, also as an operand (enum
 members like `pkcs11.Mechanism.SHA256_RSA_PKCS`, classes like `algorithms.AES`). A rule's top-level
-`indicator: weakness` marks its findings as weakness indicators.
+`indicator: weakness` marks its findings as weakness indicators. `literal: [strings]` matches string
+literals in value positions (IANA SSH / JOSE / TLS-group names); `*.unresolved` Python rules are
+fallbacks reported only when no specific rule of the same type and primitive hits the call.
 
 **Go anchors** (SPEC 17.3) name the API by import path and member, split at the last `.`:
 `call: crypto/aes.NewCipher` (the import's local name, alias or dot import is resolved; a trailing
@@ -347,9 +367,9 @@ quantifiers, `\p{…}`); `spec/tools/regex_parity.py` checks this. Dependency ru
 
 By design (SPEC Appendix B): attribute reads are not anchors (asn1crypto `cert.sha256`
 fingerprints are not reported); Python parameter defaults (`def f(h=hashlib.sha256)`) are not
-references; a Java `final` local assigned after its declaration gives the `*.unresolved`
-fallback, and OIDs held in library constants (`PKCSObjectIdentifiers.rsaEncryption`) or missing from
-the built-in table are not mapped; a member type (`Builder`, `Digest`) counts as the API class only when it is
+references; a Java local assigned different values after its declaration resolves only if all values
+select the same rules, and OIDs held in library constants other than Bouncy Castle's, or missing from
+the built-in table, are not mapped; a member type (`Builder`, `Digest`) counts as the API class only when it is
 qualified (`ConnectionSpec.Builder`) or imported; no data flow beyond constants (values from parameters,
 configuration, `String.format`, `StringBuilder` or ternaries give an `*.unresolved` component in
 Java and nothing in Python); receiver types are not inferred, so `method:` patterns are
@@ -357,8 +377,8 @@ heuristics; unimported Java simple names are assumed to be the API class; reassi
 by simple name per file; Python resolution is flow-insensitive and does not follow attributes,
 return values or other modules; one algorithm per Java signature string (`SHA1withRSA` → RSA);
 dependency versions come from the manifest only (no parent POMs, BOMs, Gradle plugins; ranges give
-no version); Kotlin, Groovy, Scala etc. are not analysed; Go: method calls on values of unknown
-type (`key.Sign(…)`, `aead.Seal(…)`) are not anchors, constants are resolved within the file only,
+no version); Kotlin, Groovy, Scala etc. are not analysed; Go: method calls on values whose type is
+not visible in the file (`key.Sign(…)` on an interface from another file, `aead.Seal(…)`) are not anchors, constants are resolved within the file only,
 algorithm names in strings (`ssh.Config{Ciphers: …}`) and `golang.org/x/crypto/openpgp` are not
 covered, `go.mod` `replace` directives are not applied; wrapper propagation does not follow calls
 on variables of unknown type, inherited methods, interfaces or constructors, and does not fold

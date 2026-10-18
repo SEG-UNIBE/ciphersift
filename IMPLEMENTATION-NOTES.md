@@ -551,3 +551,29 @@ wrappers and the option, weakness indicators, Python imports/re-exports/namespac
 conflicting bindings/classes, Go types/fields/modules, test files and threads, identifier scan,
 folding), DeterminismIT with `--python-thin-wrappers`; five conformance cases.
 
+
+## Boosters, round t2 (2026-10-18, DECISIONS B0–B-P-B5)
+
+* `scan/Features` holds the switch ids and defaults; `Scanner.Options`, `WrapperOptions`, the three
+  analyzers, `DependencyScanner`, the rule indexes and the pre-filters take the switches. Pattern-level
+  `feature` keys (Java, Python) are filtered when the index and the pre-filter are built, so a switched-off
+  pattern costs nothing.
+* Java `anyCall`: candidates of every call event whose name is not excluded; `select` evaluates them only
+  when no other pattern holds. With the feature on, the Java pre-filter accepts every file (the strings
+  may come from constants of other files); measured cost on pdfbox, one thread: 98 k → 44 k LOC/s (8
+  threads 132 k → 83 k), within the owner's 1/4 bound. Restricting the anchor to strings of the file
+  would restore the filter, at the cost of the cross-file constant cases.
+* Java deferred locals: `JavaResolver.deferredLocal` scans the declaring block for plain assignments; the
+  alternatives are evaluated in `JavaAnalyzer.select` by re-running the selection with each value.
+* Go method events: `GoAnalyzer` keeps declared types in its bindings (parameter / `var` type nodes and the
+  result position of multi-value assignments); `GoResultTypes` is the constructor table; struct fields and
+  embedded types of the file are collected in the declaration walk.
+* Wrapper pass: depth and span limits per language and switch; `Node.thinDirect` excludes findings in Go
+  conditional returns (`Outline.goGuards`); `GoPkg` evidence for package names, whose names and directory
+  segments are added to the index names (18.2) so that callers skipped by the pre-filter are parsed.
+* Python: `literal` patterns are indexed by value and matched in a second pass; `callsWithHits` and
+  `callFamilies` implement the argument-data and receiver-fold rules.
+* Generators (outside the repo, `work/ciphersift-t2-impl/gen/`): `gen_anycall.py` (anyCall patterns,
+  `spec/anycall-names.csv`), `gen_lists.py` (JDK/BC2/BCOID/JWT blocks, `spec/java-api-additions.csv`),
+  `gen_oids.py` (OID table rows), `gen_lit.py` (Python literal lists). Re-running a generator replaces its
+  own block.
