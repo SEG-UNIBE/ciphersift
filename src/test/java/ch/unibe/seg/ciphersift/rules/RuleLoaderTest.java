@@ -33,7 +33,7 @@ class RuleLoaderTest {
     @Test
     void bundledRuleSet() throws Exception {
         RuleSet r = RuleLoader.loadBundled();
-        assertEquals(103, r.javaRules().size());
+        assertEquals(105, r.javaRules().size()); // + java.key.load.public, .private (DECISIONS B-J-KL)
         assertEquals(87, r.pythonRules().size());
         assertEquals(70, r.goRules().size()); // DECISIONS T11: + go.asym.ed448, go.asym.x448; B-G-B2: + go.pqc.slhdsa
         assertNotNull(r.dependencyRule("golang"));
@@ -73,7 +73,7 @@ class RuleLoaderTest {
         for (RuleLoader.RuleFile f : RuleLoader.bundledFiles()) {
             tests.add(DynamicTest.dynamicTest(f.path(), () -> RuleLoader.load(List.of(f))));
         }
-        assertEquals(264, tests.size()); // + go.pqc.slhdsa (DECISIONS B-G-B2)
+        assertEquals(266, tests.size()); // + go.pqc.slhdsa (DECISIONS B-G-B2), java.key.load.* (B-J-KL)
         return tests.stream();
     }
 

@@ -1,0 +1,7 @@
+{"case": "java/key-loading", "findings": [
+  {"file": "k/Keys.java", "line": 13, "rule": "java.key.load.public", "type": "related-crypto-material", "subtype": "public-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "k/Keys.java", "line": 17, "rule": "java.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "EC"},
+  {"file": "k/Keys.java", "line": 18, "rule": "java.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "k/Keys.java", "line": 19, "rule": "java.key.load.private", "type": "related-crypto-material", "subtype": "private-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null},
+  {"file": "k/Keys.java", "line": 23, "rule": "java.key.load.public", "type": "related-crypto-material", "subtype": "public-key", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": null}
+]}

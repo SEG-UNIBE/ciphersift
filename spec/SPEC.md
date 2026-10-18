@@ -365,10 +365,14 @@ under `/rules/`. It contains:
 
 | Directory | Documents |
 |---|---|
-| `rules/java/` | 103 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
+| `rules/java/` | 105 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
 | `rules/python/` | 87 source rules (`python.*`) |
 | `rules/go/` | 70 source rules (`go.*`, section 17) |
 | `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml`, `dep.golang.yaml` |
+
+The Java rules `java.key.load.public` and `java.key.load.private` report the decoding of keys whose
+algorithm is not visible statically (`KeyFactory.generatePublic` / `generatePrivate`, X.509 / PKCS #8 key
+specs, Bouncy Castle key factories), mirroring the Python rules of E4 *(DECISIONS B-J-KL)*.
 
 Three bundled rules are weakness indicators (`indicator: weakness`, 5.3): `java.rand.prng.insecure`,
 `python.rand.prng.insecure` and `go.rand.prng.insecure` (non-cryptographic random generators). Their findings appear only
