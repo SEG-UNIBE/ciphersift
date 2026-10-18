@@ -239,4 +239,21 @@ class ManifestsTest {
                 + "[dependency-groups]\ndev = [\"f @ https://x/f.whl\", \"g==2\"]\n";
         assertEquals("a@1 e@null g@2", keys(PythonManifests.pyproject(t)));
     }
+
+    @Test
+    void goModIndirectMarker() {
+        String mod = "require (\n\ta v1 // indirect\n\tb v1 //indirect\n\tc v1 // indirect; for tests\n"
+                + "\td v1 // indirectly needed\n\te v1\n)\nrequire f v2 // indirect\n";
+        assertEquals("a:true b:true c:true d:false e:false f:true", GoManifests.goMod(mod).stream()
+                .map(e -> e.key() + ":" + e.transitive()).collect(Collectors.joining(" ")));
+    }
+
+    @Test
+    void pipfile() throws Exception {
+        String t = "[packages]\npycryptodome = \"==3.20.0\"\nbcrypt = \"*\"\n[dev-packages]\n"
+                + "PyOpenSSL = {version = \">=24\"}\n[requires]\npython_version = \"3.12\"\n";
+        assertEquals("pycryptodome@3.20.0 bcrypt@null pyopenssl@null", PythonManifests.pipfile(t).stream()
+                .map(e -> e.key() + "@" + e.version()).collect(Collectors.joining(" ")));
+        assertEquals(FileClass.PIPFILE, FileClass.of("svc/Pipfile"));
+    }
 }

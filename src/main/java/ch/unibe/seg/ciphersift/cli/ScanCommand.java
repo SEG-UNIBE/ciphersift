@@ -11,6 +11,7 @@ import ch.unibe.seg.ciphersift.cli.ExitCodes.ExitException;
 import ch.unibe.seg.ciphersift.files.Glob;
 import ch.unibe.seg.ciphersift.natives.NativeLoadException;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
+import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.scan.Scanner;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -76,6 +77,14 @@ public final class ScanCommand implements Callable<Integer> {
             description = "Also treat thin Python functions (at most 8 lines, one family) as crypto wrappers whose call sites are reported; off by default (on for Java and Go).")
     boolean pythonThinWrappers;
 
+    @Option(names = "--transitive-deps",
+            description = "Also report transitive dependencies: go.mod requirements marked // indirect and the entries of lock files (go.sum, poetry.lock, Pipfile.lock); off by default.")
+    boolean transitiveDeps;
+
+    @Option(names = "--feature", paramLabel = "ID=on|off",
+            description = "Switch a detection feature on or off (repeatable; see the README for the ids and defaults).")
+    List<String> featureSpecs = new ArrayList<>();
+
     @Option(names = "--cyclonedx-version", paramLabel = "VERSION",
             description = "CycloneDX version of the output: 1.7 (default) or 1.6.")
     String cyclonedxVersion;
@@ -106,6 +115,13 @@ public final class ScanCommand implements Callable<Integer> {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     "--cyclonedx-version must be 1.7 or 1.6, not '" + cyclonedxVersion + "'");
         }
+        Features features;
+        try {
+            features = Features.parse(featureSpecs, transitiveDeps
+                    ? Features.DEFAULTS.with(Features.TRANSITIVE_DEPS, true) : Features.DEFAULTS);
+        } catch (IllegalArgumentException ex) {
+            throw new CommandLine.ParameterException(spec.commandLine(), ex.getMessage());
+        }
         boolean excludeTests = testMode != null && testMode.exclude;
         List<Glob> globs = new ArrayList<>();
         for (String g : excludes) {
@@ -121,7 +137,7 @@ public final class ScanCommand implements Callable<Integer> {
         Scanner.Result result;
         try {
             result = new Scanner(new Scanner.Options(root, globs, excludeTests, n, rules, weaknessIndicators,
-                    ch.unibe.seg.ciphersift.wrappers.WrapperOptions.defaults(pythonThinWrappers))).run();
+                    ch.unibe.seg.ciphersift.wrappers.WrapperOptions.defaults(pythonThinWrappers), features)).run();
         } catch (NativeLoadException ex) {
             throw new ExitException(ExitCodes.INTERNAL, ex.getMessage(), ex);
         } catch (InterruptedException ex) {
@@ -131,7 +147,7 @@ public final class ScanCommand implements Callable<Integer> {
         String rootName = ch.unibe.seg.ciphersift.files.FileNames.name(root);
         CbomWriter.Metadata meta = new CbomWriter.Metadata(CipherSift.version(), rootName, rules.digest(),
                 !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch(), weaknessIndicators, cdx,
-                pythonThinWrappers);
+                pythonThinWrappers, features.describe());
         byte[] doc = CbomWriter.write(meta, result.components());
         write(out, doc);
         double secs = (System.nanoTime() - start) / 1e9;

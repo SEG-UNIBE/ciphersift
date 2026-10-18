@@ -1,1 +1,1 @@
-{"args": ["--weakness-indicators"]}
+{"args": ["--weakness-indicators", "--transitive-deps"]}

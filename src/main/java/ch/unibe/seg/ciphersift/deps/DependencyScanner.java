@@ -9,6 +9,7 @@ import ch.unibe.seg.ciphersift.files.SourceText;
 import ch.unibe.seg.ciphersift.model.DependencyFinding;
 import ch.unibe.seg.ciphersift.rules.DependencyRule;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
+import ch.unibe.seg.ciphersift.scan.Features;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,9 +28,25 @@ public final class DependencyScanner {
     }
 
     private final RuleSet rules;
+    /** Report transitive requirements too: go.mod {@code // indirect} entries and lock files (DECISIONS B-G1, B-G2). */
+    private final boolean transitive;
 
-    public DependencyScanner(RuleSet rules) {
+    public DependencyScanner(RuleSet rules, Features features) {
         this.rules = rules;
+        this.transitive = features.on(Features.TRANSITIVE_DEPS);
+    }
+
+    /** A scanner with the default features. */
+    public DependencyScanner(RuleSet rules) {
+        this(rules, Features.DEFAULTS);
+    }
+
+    /**
+     * Lock files list every resolved package, transitive ones included; by default they are not reported
+     * (SPEC 9.4, 17.10; DECISIONS B-G2).
+     */
+    public static boolean isLockFile(FileClass fc) {
+        return fc == FileClass.GO_SUM || fc == FileClass.POETRY_LOCK || fc == FileClass.PIPFILE_LOCK;
     }
 
     /** Parses a manifest's entries in declaration order. */
@@ -41,6 +58,7 @@ public final class DependencyScanner {
                 case GRADLE_CATALOG -> MavenManifests.versionCatalog(SourceText.decode(bytes));
                 case REQUIREMENTS -> PythonManifests.requirements(SourceText.decode(bytes));
                 case PYPROJECT -> PythonManifests.pyproject(SourceText.decode(bytes));
+                case PIPFILE -> PythonManifests.pipfile(SourceText.decode(bytes));
                 case PIPFILE_LOCK -> PythonManifests.pipfileLock(SourceText.decode(bytes));
                 case POETRY_LOCK -> PythonManifests.poetryLock(SourceText.decode(bytes));
                 case SETUP_CFG -> SetupManifests.setupCfg(SourceText.decode(bytes));
@@ -87,6 +105,9 @@ public final class DependencyScanner {
         }
         List<DependencyFinding> out = new ArrayList<>();
         for (ManifestEntry e : deduplicate(entries)) {
+            if (e.transitive() && !transitive) {
+                continue; // go.mod "// indirect" (SPEC 17.10, DECISIONS B-G1)
+            }
             if (rule.matches(e.key())) {
                 out.add(new DependencyFinding(relativePath, rule, ecosystem, e.key(), e.version(), label,
                         e.snippet(), test));
@@ -98,6 +119,9 @@ public final class DependencyScanner {
     /** Findings of one manifest. */
     public List<DependencyFinding> scan(String relativePath, FileClass fc, byte[] bytes, boolean test)
             throws MalformedManifestException {
+        if (isLockFile(fc) && !transitive) {
+            return List.of(); // DECISIONS B-G2: still a scanned manifest, without findings
+        }
         List<ManifestEntry> entries = entries(fc, bytes);
         return findings(relativePath, fc.ecosystem(), fc.label(), entries, test);
     }

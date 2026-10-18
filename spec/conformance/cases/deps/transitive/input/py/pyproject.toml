@@ -1,0 +1,3 @@
+[project]
+name = "t2"
+dependencies = ["cryptography==43.0.1", "requests"]

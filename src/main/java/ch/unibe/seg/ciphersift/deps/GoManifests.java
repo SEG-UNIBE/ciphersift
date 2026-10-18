@@ -18,7 +18,9 @@ public final class GoManifests {
         for (String raw : text.split("\n", -1)) {
             String line = raw.endsWith("\r") ? raw.substring(0, raw.length() - 1) : raw;
             int c = line.indexOf("//");
+            boolean indirect = false;
             if (c >= 0) {
+                indirect = INDIRECT.matcher(line.substring(c + 2)).lookingAt();
                 line = line.substring(0, c);
             }
             line = line.strip();
@@ -29,7 +31,7 @@ public final class GoManifests {
                 if (line.equals(")")) {
                     block = null;
                 } else if (block.equals("require")) {
-                    entry(line, out);
+                    entry(line, indirect, out);
                 }
                 continue;
             }
@@ -42,14 +44,21 @@ public final class GoManifests {
             if (rest.equals("(")) {
                 block = directive;
             } else if (directive.equals("require")) {
-                entry(rest, out);
+                entry(rest, indirect, out);
             }
         }
         return out;
     }
 
+    /**
+     * The comment of a requirement that Go's module tooling writes for a module that no package of the main
+     * module imports directly: {@code // indirect}, possibly followed by {@code ;} and more text
+     * (https://go.dev/ref/mod#go-mod-file-require).
+     */
+    private static final java.util.regex.Pattern INDIRECT = java.util.regex.Pattern.compile("[ \\t]*indirect[ \\t]*(;|$)");
+
     /** {@code PATH VERSION} (the path optionally quoted). */
-    private static void entry(String s, List<ManifestEntry> out) {
+    private static void entry(String s, boolean indirect, List<ManifestEntry> out) {
         String[] t = s.split("\\s+");
         if (t.length < 2) {
             return;
@@ -59,7 +68,7 @@ public final class GoManifests {
         if (path.isEmpty() || version.isEmpty()) {
             return;
         }
-        out.add(new ManifestEntry(path, version, path + "@" + version));
+        out.add(new ManifestEntry(path, version, path + "@" + version, indirect));
     }
 
     private static String unquote(String s) {

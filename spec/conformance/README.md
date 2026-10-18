@@ -82,6 +82,8 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/wrappers` | 8 | 17 | `pkg.F` through `go.mod` and `vendor/`, same package, receiver / `&T{}` / `var` / struct-field types, build-tag variants as one group, a local variable shadowing a wrapper, an untyped value, test files, thin wrappers off for Go |
 | `go/api-ag` | 1 | 85 | the third-party Go APIs of SPEC 17.11 (age, agessh, sigstore cryptoutils, `x509.Marshal*`, securesystemslib `encrypted`, CIRCL, flynn/noise, go-containerregistry `v1.SHA256`, pkcs11 `CKM_ECDSA*`, azkeys) and non-anchors (types, size constants, other members, a switch case) |
 | `deps/crypto-services` | 3 | 21 | the list policy of SPEC 9.9 in all three ecosystems: cloud KMS key clients, HPKE, Noise, WireGuard, PIV, Sigstore signing and time-stamping are listed; storage, secret stores, general SDKs, the Vault API client, transparency logs and data-model modules are not (DECISIONS F3) |
+| `deps/transitive` | 6 | 6 | default: `go.mod` `// indirect` entries (also `//indirect`, `// indirect; …`, not `// indirectly …`), `go.sum`, `poetry.lock` and `Pipfile.lock` give nothing; `Pipfile` `[packages]` / `[dev-packages]` and `pyproject.toml` do (DECISIONS B-G1, B-G2) |
+| `deps/transitive-included` | 6 | 16 | the same input with `--transitive-deps` |
 
 ## Format of expected.json
 

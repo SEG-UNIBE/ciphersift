@@ -58,8 +58,9 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
   analysis).
 * Dependency discovery in Maven `pom.xml`, Gradle `build.gradle`, `build.gradle.kts` and
   version catalogs (`*.versions.toml`), and Python `requirements*.txt`, `pyproject.toml`,
-  `Pipfile.lock`, `poetry.lock`, `setup.cfg` and the literal requirements of `setup.py`
-  (9.8), and Go `go.mod` and `go.sum` (17.10). Only packages on the crypto-library lists of the
+  `Pipfile`, `Pipfile.lock`, `poetry.lock`, `setup.cfg` and the literal requirements of `setup.py`
+  (9.8), and Go `go.mod` and `go.sum` (17.10); lock files and `// indirect` requirements only with
+  `--transitive-deps` (3.1). Only packages on the crypto-library lists of the
   dependency rules are reported.
 * Output: one CycloneDX 1.7 JSON document (1.6 with `--cyclonedx-version 1.6`).
 
@@ -153,7 +154,7 @@ check itself, so `java -jar` on Java 8–22 gives the same message and exit code
 ```
 ciphersift scan <dir> -o <out.cdx.json> [--exclude GLOB]... [--include-tests | --exclude-tests]
                 [--threads N] [--rules DIR] [--weakness-indicators] [--python-thin-wrappers]
-                [--cyclonedx-version V] [--quiet | --verbose]
+                [--transitive-deps] [--feature ID=on|off]... [--cyclonedx-version V] [--quiet | --verbose]
 ciphersift rules validate [--rules DIR]
 ciphersift rules export <dir>
 ciphersift --version
@@ -171,9 +172,18 @@ ciphersift --help | ciphersift <command> --help
 | `--rules DIR` | Use the rule documents under `DIR` (recursively) **instead of** the bundled rules. To extend the bundled rules, run `rules export`, edit, and pass the directory. |
 | `--weakness-indicators` | Also report the findings of rules with `indicator: weakness` (5.3), e.g. non-cryptographic random generators. **Off by default**: without the option these findings are dropped after extraction, so every other finding is exactly the one of a scan with the option; the document metadata records the option (11.2.1) *(DECISIONS E2, decided by owner)*. |
 | `--python-thin-wrappers` | Also treat thin Python functions (at most 8 lines, one family; section 18.5, W6) as crypto wrappers whose call sites are reported. **Off by default** for Python (on for Java and Go, where it has no option); the metadata records the option (11.2.1) *(DECISIONS T3)*. |
+| `--transitive-deps` | Also report transitive dependencies: `go.mod` requirements marked `// indirect` (17.10) and the entries of the lock files `go.sum`, `poetry.lock` and `Pipfile.lock` (9.4). **Off by default**: these manifests list what the build resolved, not what the project chose; a lock file still counts as a scanned manifest. Same as `--feature transitive-deps=on` *(DECISIONS B-G1, B-G2)*. |
+| `--feature ID=on\|off` | Repeatable. Switches one detection feature (table below) on or off; a later setting of the same id wins; an unknown id or value is a usage error (exit 2). The non-default settings are recorded in the metadata (11.2.1) *(DECISIONS B0)*. |
 | `--cyclonedx-version V` | CycloneDX version of the output: `1.7` (default) or `1.6`. Any other value is a usage error (exit 2). The findings, components, their order and bom-refs are the same for both; 1.7 adds the registry fields of 11.3.1 *(DECISIONS C1)*. |
 | `--quiet` | Only errors on standard error. |
 | `--verbose` | Debug messages on standard error (one line per skipped file and the reason). |
+
+**Feature switches** *(DECISIONS B0)*. The detection boosters of the t2 round (DECISIONS B-…) can be switched
+individually; the table lists every id and its default.
+
+| Id | Default | Behaviour when on | Section |
+|---|---|---|---|
+| `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
 
 `rules validate` loads and validates the bundled rules (or `--rules DIR`), prints one line
 per rule kind and language with the count, and exits 0 or 4. `rules export <dir>` writes
@@ -268,6 +278,7 @@ wins. Comparisons of extensions and names are case-insensitive.
 | Gradle version catalog | name ends with `.versions.toml` |
 | pip requirements | name matches `requirements*.txt`, or extension `.txt` and the parent directory is named `requirements` |
 | pyproject | name `pyproject.toml` |
+| Pipfile | name `Pipfile` (compared case-insensitively, like the other names) *(DECISIONS B-G2)* |
 | Pipfile lock | name `Pipfile.lock` |
 | Poetry lock | name `poetry.lock` |
 | setup.cfg | name `setup.cfg` *(DECISIONS E10)* |
@@ -1477,6 +1488,7 @@ yields no entries.
 | `*.versions.toml` | maven | `gradle-catalog` |
 | `requirements*.txt`, `requirements/*.txt` | pypi | `requirements` |
 | `pyproject.toml` | pypi | `pyproject` |
+| `Pipfile` | pypi | `pipfile` |
 | `Pipfile.lock` | pypi | `pipfile-lock` |
 | `poetry.lock` | pypi | `poetry-lock` |
 | `setup.cfg` | pypi | `setup-cfg` |
@@ -1529,8 +1541,17 @@ table with a `version` string (other forms: no version). The constraint is an ex
 iff, after trimming, it matches `^=?=?\s*(\d[^\s,*]*)$`; the version is group 1 (`"1.5.0"`,
 `"==2.14.2"`). Carets, tildes, ranges and wildcards give no version.
 
-### 9.4 Pipfile.lock and poetry.lock
+### 9.4 Pipfile, Pipfile.lock and poetry.lock
 
+* **Pipfile** (TOML, *DECISIONS B-G2*): the tables `packages`, then `dev-packages`; each key is a name
+  (`python` is skipped) and the value is a version-specifier string or a table with a `version`
+  string, read like a Poetry table (9.3): only an exact pin (`"==3.20.0"`) gives a version
+  (https://pipenv.pypa.io/en/latest/pipfile.html). Other tables (`source`, `requires`) are ignored.
+* **Lock files are transitive** *(DECISIONS B-G2)*: `Pipfile.lock`, `poetry.lock` (and Go's `go.sum`,
+  17.10) list every resolved package, the dependencies of dependencies included. By default they
+  yield no findings (they are still counted as scanned manifests); the project's direct requirements
+  come from `Pipfile`, `pyproject.toml` and `go.mod`. With `--transitive-deps` (3.1) they are read as
+  below.
 * **Pipfile.lock** (JSON): the objects `default`, then `develop`; each key is a name; the
   version is the entry's `version` string with all leading `=` removed (`"==4.9"` → `4.9`);
   no `version` → none.
@@ -1728,6 +1749,8 @@ properties  ciphersift:rulesDigest   "sha256:<hex>" over the rule set (11.6)
             ciphersift:filesSkipped  decimal count of files skipped (too large, binary, unreadable, failed)
             ciphersift:weaknessIndicators  "included", only with --weakness-indicators (3.1)
             ciphersift:pythonThinWrappers  "included", only with --python-thin-wrappers (3.1, 18)
+            ciphersift:features      the feature switches that differ from their defaults (3.1), as
+                                     "id=on|off" joined by "," in code-point order of the ids; only if any
 ```
 
 ### 11.3 Components
@@ -2645,10 +2668,15 @@ matching is case-insensitive, 5.9). Manifest labels `go-mod` and `go-sum`.
 
 * **go.mod**: lines (LF; a trailing CR removed); `//` starts a comment to the end of the line.
   A line `require PATH VERSION`, or each line `PATH VERSION` inside a `require (` … `)` block,
-  is an entry (`PATH` may be quoted with `"…"` or `` `…` ``). All other directives and blocks
+  is an entry. An entry whose comment is `indirect` (after `//`, blanks allowed, then the end of the
+  line or `;` and more text) is **transitive**: since Go 1.17 the go command lists in `go.mod` every
+  module the build needs, and marks with `// indirect` those that no package of the main module imports
+  (https://go.dev/ref/mod#go-mod-file-require). Transitive entries are not reported unless
+  `--transitive-deps` is given (3.1) *(DECISIONS B-G1)*; within one file the last entry of a path
+  decides, its marker included. `PATH` may be quoted with `"…"` or `` `…` ``. All other directives and blocks
   (`module`, `go`, `toolchain`, `replace`, `exclude`, `retract`, `tool`, `godebug`, …) are
   ignored; replacements are not applied.
-* **go.sum**: each line `PATH VERSION HASH` is an entry, except lines whose `VERSION` ends with
+* **go.sum** (a lock file, read only with `--transitive-deps`, *DECISIONS B-G2*): each line `PATH VERSION HASH` is an entry, except lines whose `VERSION` ends with
   `/go.mod` (only the module's `go.mod` was needed by version selection; the module's code is not
   part of the build).
 

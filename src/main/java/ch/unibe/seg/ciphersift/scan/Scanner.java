@@ -53,7 +53,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class Scanner {
     /** Scan options. {@code root} must be the canonical scan root. */
     public record Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules,
-            boolean weaknessIndicators, WrapperOptions wrappers) {
+            boolean weaknessIndicators, WrapperOptions wrappers, Features features) {
+        /** Options with the default feature switches (SPEC 3.1). */
+        public Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules,
+                boolean weaknessIndicators, WrapperOptions wrappers) {
+            this(root, excludes, excludeTests, threads, rules, weaknessIndicators, wrappers, Features.DEFAULTS);
+        }
+
         /** Options with the default wrapper propagation (SPEC 18). */
         public Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules,
                 boolean weaknessIndicators) {
@@ -123,7 +129,7 @@ public final class Scanner {
         this.javaAnalyzer = new JavaAnalyzer(options.rules(), contexts);
         this.pythonAnalyzer = new PythonAnalyzer(options.rules());
         this.goAnalyzer = new GoAnalyzer(options.rules());
-        this.dependencyScanner = new DependencyScanner(options.rules());
+        this.dependencyScanner = new DependencyScanner(options.rules(), options.features());
         boolean filter = !Boolean.getBoolean(NO_PREFILTER);
         this.javaFilter = filter ? AnchorPrefilter.java(options.rules().javaRules()) : AnchorPrefilter.ALL;
         this.pythonFilter = filter ? AnchorPrefilter.python(options.rules().pythonRules()) : AnchorPrefilter.ALL;

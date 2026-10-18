@@ -84,7 +84,7 @@ class FilesTest {
         assertEquals(FileClass.PYPROJECT, FileClass.of("pyproject.toml"));
         assertEquals(FileClass.PIPFILE_LOCK, FileClass.of("svc/Pipfile.lock"));
         assertEquals(FileClass.POETRY_LOCK, FileClass.of("poetry.lock"));
-        assertEquals(FileClass.IGNORED, FileClass.of("Pipfile"));
+        assertEquals(FileClass.PIPFILE, FileClass.of("Pipfile")); // DECISIONS B-G2
         assertEquals("gradle-catalog", FileClass.GRADLE_CATALOG.label());
         assertEquals("pypi", FileClass.POETRY_LOCK.ecosystem());
     }

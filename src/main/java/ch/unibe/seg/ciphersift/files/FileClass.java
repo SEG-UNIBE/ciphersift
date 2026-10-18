@@ -18,6 +18,7 @@ public enum FileClass {
     GRADLE_CATALOG("maven", "gradle-catalog"),
     REQUIREMENTS("pypi", "requirements"),
     PYPROJECT("pypi", "pyproject"),
+    PIPFILE("pypi", "pipfile"),
     PIPFILE_LOCK("pypi", "pipfile-lock"),
     POETRY_LOCK("pypi", "poetry-lock"),
     SETUP_CFG("pypi", "setup-cfg"),
@@ -122,6 +123,9 @@ public enum FileClass {
         }
         if (n.equals("pyproject.toml")) {
             return PYPROJECT;
+        }
+        if (n.equals("pipfile")) {
+            return PIPFILE;
         }
         if (n.equals("pipfile.lock")) {
             return PIPFILE_LOCK;

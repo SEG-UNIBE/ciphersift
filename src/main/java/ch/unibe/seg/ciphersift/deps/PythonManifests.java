@@ -178,6 +178,19 @@ final class PythonManifests {
         }
     }
 
+    /**
+     * {@code Pipfile} (SPEC 9.4, DECISIONS B-G2): the TOML tables {@code [packages]} and {@code [dev-packages]},
+     * name → version specifier string or table with {@code version}; an exact pin ({@code ==X}) gives the
+     * version (https://pipenv.pypa.io/en/latest/pipfile.html).
+     */
+    static List<ManifestEntry> pipfile(String text) throws IOException {
+        JsonNode root = TOML.readTree(text);
+        List<ManifestEntry> out = new ArrayList<>();
+        poetryTable(root.path("packages"), out);
+        poetryTable(root.path("dev-packages"), out);
+        return out;
+    }
+
     /** {@code Pipfile.lock} (SPEC 9.4). */
     static List<ManifestEntry> pipfileLock(String text) throws IOException {
         JsonNode root = JSON.readTree(text);

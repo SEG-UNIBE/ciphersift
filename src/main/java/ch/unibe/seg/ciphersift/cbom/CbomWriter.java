@@ -34,11 +34,19 @@ public final class CbomWriter {
     /** Document-level inputs; {@code cyclonedx} is the output version (SPEC 11.2). */
     public record Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
             long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded,
-            CycloneDxVersion cyclonedx, boolean pythonThinWrappers) {
+            CycloneDxVersion cyclonedx, boolean pythonThinWrappers, String features) {
         public Metadata {
             if (cyclonedx == null) {
                 cyclonedx = CycloneDxVersion.DEFAULT;
             }
+        }
+
+        /** Metadata of a scan with the default feature switches (SPEC 3.1). */
+        public Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
+                long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded,
+                CycloneDxVersion cyclonedx, boolean pythonThinWrappers) {
+            this(toolVersion, rootName, rulesDigest, testsIncluded, filesScanned, filesSkipped, sourceDateEpoch,
+                    weaknessIndicatorsIncluded, cyclonedx, pythonThinWrappers, null);
         }
 
         /** Metadata of a scan without {@code --python-thin-wrappers} (the default, DECISIONS T3). */
@@ -242,6 +250,9 @@ public final class CbomWriter {
         }
         if (m.pythonThinWrappers()) {
             property(g, "ciphersift:pythonThinWrappers", "included");
+        }
+        if (m.features() != null) {
+            property(g, "ciphersift:features", m.features());
         }
         g.writeEndArray();
         g.writeEndObject();

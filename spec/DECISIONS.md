@@ -282,3 +282,21 @@ Python 98 % [94–100], Go 91 % [85–95] (`ciphersift-final`: 98, 100, 94); all
 findings TP (Java 40, Python 26, Go 30). Output outside the new behaviour is byte-identical on all
 22 inputs (only `rulesDigest` / `serialNumber` change); scans are byte-identical across reruns,
 `--threads 1`/`8` and with the pre-filter off. **No existing conformance expectation changed.**
+
+# Boosters, round t2 (2026-10-18)
+
+Requested by the owner (`work/eval2/PLAN.md`): implement all "Recommend" and "Maybe" items of the booster
+assessment (`work/ciphersift-boost-assess/SHORTLIST.md` and its per-agent reports) plus three reversals of
+earlier decisions (KL ↔ E4, JP4 ↔ E17, B4 ↔ F3). Same clean-room rules as before (`PROVENANCE.md`); every
+added API or name list carries its public source in `PROVENANCE.md`, "Boosters, round t2". Items marked
+**benchmark-informed** were chosen or tuned by simulation on the development projects (`ciphersift-eval`,
+`go-eval`, the mid inputs); those projects are therefore no longer an independent test of them (the held-out
+projects of `eval2` are). The owner's rule for defaults: a booster that lowers a language's F1 or strict
+precision by more than 2 pp on the development projects is switched off by default and kept behind
+`--feature` (B0). Ids: `B-` + the assessment's id (`B-G1` = G-P1, …).
+
+| item | decision | where in SPEC.md |
+|---|---|---|
+| B0 feature switches | Each booster that is a behaviour (not only a rule or table entry) gets an id; `--feature ID=on\|off` overrides its default, and the non-default settings are recorded in the metadata (`ciphersift:features`), so that every scan states how it was made. Rule-file additions have no switch (`--rules` replaces the rule set). | 3.1, 11.2.1 |
+| B-G1 go.mod `// indirect` (G-P1) | **benchmark-informed** (go-eval: 21 findings, 10 of the 11 non-TP Go precision items). A `go.mod` requirement marked `// indirect` is a transitive requirement that the go command records for reproducibility (https://go.dev/ref/mod#go-mod-file-require); the project does not import it. Not reported by default; `--transitive-deps` (= `--feature transitive-deps=on`) keeps it. The marker is recognised as in the reference (`indirect`, alone or followed by `;`). No GT site of go-eval is an indirect entry. | 3.1, 17.10 |
+| B-G2 lock files (G-P2) | Same policy for the lock files `go.sum`, `poetry.lock`, `Pipfile.lock`: they list every resolved package (the dependencies of dependencies included), so by default they give no findings; they are still counted as scanned manifests. `--transitive-deps` restores the old behaviour. So that a Pipenv project keeps its direct requirements, `Pipfile` (TOML `[packages]`, `[dev-packages]`, read like Poetry tables) is now a manifest (https://pipenv.pypa.io/en/latest/pipfile.html). Measured effect on the development projects: none (no lock file is scored; go.sum findings were unscored). The cases `deps/golang`, `deps/pypi` and `python/fork-fixtures` now pass `--transitive-deps`, so their expectations are unchanged; new cases `deps/transitive` (default) and `deps/transitive-included` (with the option). | 3.1, 9, 9.4, 17.10 |

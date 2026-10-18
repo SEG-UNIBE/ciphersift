@@ -1,0 +1,18 @@
+{"case": "deps/transitive-included", "findings": [
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "filippo.io/age", "version": "v1.2.1"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "filippo.io/edwards25519", "version": "v1.1.0"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/ProtonMail/go-crypto", "version": "v1.1.0"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/cloudflare/circl", "version": "v1.5.0"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/go-jose/go-jose/v4", "version": "v4.0.4"},
+  {"file": "go.mod", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "golang.org/x/crypto", "version": "v0.31.0"},
+  {"file": "go.sum", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "github.com/cloudflare/circl", "version": "v1.5.0"},
+  {"file": "go.sum", "line": null, "rule": "dep.golang", "type": "library", "ecosystem": "golang", "package": "golang.org/x/crypto", "version": "v0.31.0"},
+  {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "bcrypt", "version": null},
+  {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pycryptodome", "version": "3.20.0"},
+  {"file": "pipenv/Pipfile", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyopenssl", "version": null},
+  {"file": "pipenv/Pipfile.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pycryptodome", "version": "3.20.0"},
+  {"file": "pipenv/Pipfile.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": "1.5.0"},
+  {"file": "py/poetry.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "43.0.1"},
+  {"file": "py/poetry.lock", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": "1.5.0"},
+  {"file": "py/pyproject.toml", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "cryptography", "version": "43.0.1"}
+]}
