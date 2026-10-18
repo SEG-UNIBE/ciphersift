@@ -19,3 +19,6 @@ match:
   firstString: SM4$
 - new: org.bouncycastle.crypto.engines.SM4Engine
 - call: org.bouncycastle.crypto.engines.SM4Engine.newInstance
+# Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15, B-A4) arrive here as the names they map to.
+- new: org.bouncycastle.asn1.ASN1ObjectIdentifier
+  firstString: (SM4/CBC/NoPadding)$

@@ -19,6 +19,9 @@ match:
   firstString: (RC4|ARCFOUR|ARC4)(/.*)?$
 - new: org.bouncycastle.crypto.engines.RC4Engine
 - call: org.bouncycastle.crypto.engines.RC4Engine.newInstance
+# Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15, B-A4) arrive here as the names they map to.
+- new: org.bouncycastle.asn1.ASN1ObjectIdentifier
+  firstString: (RC4)$
 # DECISIONS B-A3 (JCA standard-name gaps): Java SE 25 Standard Algorithm Names
 # (https://docs.oracle.com/en/java/javase/25/docs/specs/security/standard-names.html)
 - call: javax.crypto.SecretKeyFactory.getInstance

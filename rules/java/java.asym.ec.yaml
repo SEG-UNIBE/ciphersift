@@ -74,7 +74,7 @@ match:
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
   firstString: (EC)$
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
-  firstString: (secp192r1|secp224r1|secp256r1|secp384r1|secp521r1|secp256k1|brainpoolP160r1|brainpoolP192r1|brainpoolP224r1|brainpoolP256r1|brainpoolP320r1|brainpoolP384r1|brainpoolP512r1)$
+  firstString: (secp192r1|secp224r1|secp256r1|secp384r1|secp521r1|secp256k1|brainpoolP160r1|brainpoolP192r1|brainpoolP224r1|brainpoolP256r1|brainpoolP320r1|brainpoolP384r1|brainpoolP512r1|sect163k1|sect163r2|sect233k1|sect233r1|sect283k1|sect283r1|sect409k1|sect409r1|sect571k1|sect571r1)$
   param:
     index: 0
 # DECISIONS B-A3 (JCA standard-name gaps): Java SE 25 Standard Algorithm Names

@@ -46,7 +46,7 @@ class OidTableTest {
             seen.add(e.oid());
             assertEquals(e, OidTable.lookup(e.oid()));
         }
-        assertEquals(128, seen.size());
+        assertEquals(163, seen.size());
     }
 
     /** The table in SPEC 5.11 is the documentation of this table: same rows, same order. */

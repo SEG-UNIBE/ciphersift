@@ -47,7 +47,7 @@ match:
 - field: java.security.spec.MGF1ParameterSpec.SHA3_512
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
-  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512)$
+  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512|SHAKE128|SHAKE256)$
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
 - new: org.bouncycastle.asn1.nist.KMACwithSHAKE128_params
 - new: org.bouncycastle.asn1.nist.KMACwithSHAKE256_params

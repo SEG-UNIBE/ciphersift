@@ -41,10 +41,10 @@ match:
 - ref: pkcs11.mechanisms.KeyType.DES3
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - call: cryptography.x509.ObjectIdentifier
-  firstString: (DESede/CBC/NoPadding)$
+  firstString: (DESede/CBC/NoPadding|DESedeWrap)$
 - call: cryptography.x509.oid.ObjectIdentifier
-  firstString: (DESede/CBC/NoPadding)$
+  firstString: (DESede/CBC/NoPadding|DESedeWrap)$
 - call: asn1crypto.core.ObjectIdentifier
-  firstString: (DESede/CBC/NoPadding)$
+  firstString: (DESede/CBC/NoPadding|DESedeWrap)$
 - call: pyasn1.type.univ.ObjectIdentifier
-  firstString: (DESede/CBC/NoPadding)$
+  firstString: (DESede/CBC/NoPadding|DESedeWrap)$

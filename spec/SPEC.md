@@ -773,6 +773,41 @@ case), with no surrounding white space, whose dotted form is listed in the table
 | `2.16.840.1.101.3.4.3.29` | id-slh-dsa-shake-192f | `SLH-DSA-SHAKE-192f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
 | `2.16.840.1.101.3.4.3.30` | id-slh-dsa-shake-256s | `SLH-DSA-SHAKE-256s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
 | `2.16.840.1.101.3.4.3.31` | id-slh-dsa-shake-256f | `SLH-DSA-SHAKE-256f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
+| `2.16.840.1.101.3.4.2.11` | id-shake128 | `SHAKE128` | NIST CSOR | `java.hash.sha3` | `python.hash.sha3` |
+| `2.16.840.1.101.3.4.2.12` | id-shake256 | `SHAKE256` | NIST CSOR | `java.hash.sha3` | `python.hash.sha3` |
+| `1.2.840.113549.1.1.3` | md4WithRSAEncryption | `MD4withRSA` | RFC 3279 | `java.asym.rsa` | `python.asym.rsa.pkcs1v15.sign` |
+| `1.3.14.3.2.29` | sha1WithRSASignature (OIW) | `SHA1withRSA` | RFC 3279 | `java.asym.rsa` | `python.asym.rsa.pkcs1v15.sign` |
+| `1.3.132.1.13` | id-ecMQV | `ECMQV` | RFC 5480 | `java.asym.ecdh` | `python.asym.ecdh` |
+| `1.3.132.0.1` | sect163k1 | `sect163k1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.15` | sect163r2 | `sect163r2` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.26` | sect233k1 | `sect233k1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.27` | sect233r1 | `sect233r1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.16` | sect283k1 | `sect283k1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.17` | sect283r1 | `sect283r1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.36` | sect409k1 | `sect409k1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.37` | sect409r1 | `sect409r1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.38` | sect571k1 | `sect571k1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.132.0.39` | sect571r1 | `sect571r1` | RFC 5480 / SEC 2 | `java.asym.ec`, param | `python.asym.ec`, param |
+| `1.3.36.3.2.1` | ripemd160 | `RIPEMD160` | TeleTrusT (ISO/IEC 10118-3) | `java.hash.rmd160` | `python.hash.ripemd160` |
+| `1.3.6.1.5.5.8.1.1` | hmac-md5 | `HmacMD5` | RFC 3370 | `java.mac.hmac` | `python.mac.hmac` |
+| `1.3.6.1.5.5.8.1.2` | hmac-sha1 | `HmacSHA1` | RFC 3370 | `java.mac.hmac` | `python.mac.hmac` |
+| `1.2.840.113549.3.4` | rc4 | `RC4` | RSA Data Security (PKCS #5 v1.5 era, RFC 8018 lists the arc) | `java.sym.rc4` | `python.sym.rc4` |
+| `1.2.840.113549.1.5.3` | pbeWithMD5AndDES-CBC | `PBEWithMD5AndDES` | RFC 8018 | `java.kdf.pbe` | — |
+| `1.2.840.113549.1.5.10` | pbeWithSHA1AndDES-CBC | `PBEWithSHA1AndDES` | RFC 8018 | `java.kdf.pbe` | — |
+| `1.2.840.113549.1.12.1.3` | pbeWithSHAAnd3-KeyTripleDES-CBC | `PBEWithSHA1AndDESede` | RFC 7292 | `java.kdf.pbe` | — |
+| `1.2.840.113549.1.12.1.6` | pbeWithSHAAnd40BitRC2-CBC | `PBEWithSHA1AndRC2_40` | RFC 7292 | `java.kdf.pbe` | — |
+| `1.2.840.113549.1.9.16.3.18` | id-alg-AEADChaCha20Poly1305 | `ChaCha20-Poly1305` | RFC 8103 | `java.sym.chacha20` | `python.sym.chacha20poly1305` |
+| `1.2.840.113549.1.9.16.3.28` | id-alg-hkdf-with-sha256 | `HKDF-SHA256` | RFC 8619 | `java.kdf.hkdf` | `python.kdf.hkdf` |
+| `1.2.840.113549.1.9.16.3.29` | id-alg-hkdf-with-sha384 | `HKDF-SHA384` | RFC 8619 | `java.kdf.hkdf` | `python.kdf.hkdf` |
+| `1.2.840.113549.1.9.16.3.30` | id-alg-hkdf-with-sha512 | `HKDF-SHA512` | RFC 8619 | `java.kdf.hkdf` | `python.kdf.hkdf` |
+| `1.2.840.113549.1.9.16.3.6` | id-alg-CMS3DESwrap | `DESedeWrap` | RFC 3370 | `java.sym.3des` | `python.sym.3des` |
+| `1.3.6.1.4.1.1722.12.2.1.8` | id-blake2b256 | `BLAKE2B-256` | RFC 7693 | `java.hash.blake2` | `python.hash.blake2` |
+| `1.3.6.1.4.1.1722.12.2.1.16` | id-blake2b512 | `BLAKE2B-512` | RFC 7693 | `java.hash.blake2` | `python.hash.blake2` |
+| `1.3.6.1.4.1.1722.12.2.2.8` | id-blake2s256 | `BLAKE2S-256` | RFC 7693 | `java.hash.blake2` | `python.hash.blake2` |
+| `1.2.156.10197.1.401` | sm3 | `SM3` | GM/T 0006 | — | `python.hash.sm3` |
+| `1.2.156.10197.1.104.2` | sm4-cbc | `SM4/CBC/NoPadding` | GM/T 0006 | `java.sym.sm4` | `python.sym.sm4` |
+| `1.2.392.200011.61.1.1.1.2` | camellia128-cbc | `Camellia/CBC/NoPadding` | RFC 3657 | `java.sym.camellia` | `python.sym.camellia` |
+| `1.3.6.1.4.1.188.7.1.1.2` | idea-cbc | `IDEA/CBC/NoPadding` | RFC 3058 | `java.sym.idea` | `python.sym.idea` |
 
 ---
 

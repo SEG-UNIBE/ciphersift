@@ -33,7 +33,7 @@ match:
   firstString: (PBE|PBES2|PBEWith.*)$
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
-  firstString: (PBES2)$
+  firstString: (PBES2|PBEWithMD5AndDES|PBEWithSHA1AndDES|PBEWithSHA1AndDESede|PBEWithSHA1AndRC2_40)$
 # DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
 - new: javax.crypto.spec.PBEParameterSpec
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv

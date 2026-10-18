@@ -17,6 +17,9 @@ match:
 - call: org.bouncycastle.crypto.generators.HKDFBytesGenerator.newInstance
 - call: com.google.crypto.tink.subtle.Hkdf.computeHkdf
 - call: com.google.crypto.tink.subtle.Hkdf.computeEciesHkdfSymmetricKey
+# Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15, B-A4) arrive here as the names they map to.
+- new: org.bouncycastle.asn1.ASN1ObjectIdentifier
+  firstString: (HKDF-SHA256|HKDF-SHA384|HKDF-SHA512)$
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
 - new: org.bouncycastle.crypto.params.HKDFParameters
 - call: org.bouncycastle.crypto.params.HKDFParameters.newInstance

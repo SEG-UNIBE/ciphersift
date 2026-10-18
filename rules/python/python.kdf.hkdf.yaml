@@ -15,3 +15,12 @@ match:
 - call: cryptography.hazmat.primitives.kdf.hkdf.HKDFExpand
 - call: Crypto.Protocol.KDF.HKDF
 - call: Cryptodome.Protocol.KDF.HKDF
+# Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15, B-A4) arrive here as the names they map to.
+- call: cryptography.x509.ObjectIdentifier
+  firstString: (HKDF-SHA256|HKDF-SHA384|HKDF-SHA512)$
+- call: cryptography.x509.oid.ObjectIdentifier
+  firstString: (HKDF-SHA256|HKDF-SHA384|HKDF-SHA512)$
+- call: asn1crypto.core.ObjectIdentifier
+  firstString: (HKDF-SHA256|HKDF-SHA384|HKDF-SHA512)$
+- call: pyasn1.type.univ.ObjectIdentifier
+  firstString: (HKDF-SHA256|HKDF-SHA384|HKDF-SHA512)$

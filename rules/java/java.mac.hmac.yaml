@@ -39,7 +39,7 @@ match:
 - new: com.nimbusds.jose.crypto.MACVerifier
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - new: org.bouncycastle.asn1.ASN1ObjectIdentifier
-  firstString: (HmacSHA1|HmacSHA224|HmacSHA256|HmacSHA384|HmacSHA512|HmacSHA512/224|HmacSHA512/256|HmacSHA3-224|HmacSHA3-256|HmacSHA3-384|HmacSHA3-512)$
+  firstString: (HmacSHA1|HmacSHA224|HmacSHA256|HmacSHA384|HmacSHA512|HmacSHA512/224|HmacSHA512/256|HmacSHA3-224|HmacSHA3-256|HmacSHA3-384|HmacSHA3-512|HmacMD5)$
 # DECISIONS B-J-XD2: JSR 105 HMAC output length parameters (Java SE javax.xml.crypto.dsig.spec.HMACParameterSpec)
 - new: javax.xml.crypto.dsig.spec.HMACParameterSpec
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv

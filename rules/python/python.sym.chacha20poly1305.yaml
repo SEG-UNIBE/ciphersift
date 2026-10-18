@@ -24,3 +24,12 @@ match:
 - call: nacl.bindings.crypto_aead_xchacha20poly1305_ietf_decrypt
 - call: Crypto.Cipher.ChaCha20_Poly1305.new
 - call: Cryptodome.Cipher.ChaCha20_Poly1305.new
+# Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15, B-A4) arrive here as the names they map to.
+- call: cryptography.x509.ObjectIdentifier
+  firstString: (ChaCha20-Poly1305)$
+- call: cryptography.x509.oid.ObjectIdentifier
+  firstString: (ChaCha20-Poly1305)$
+- call: asn1crypto.core.ObjectIdentifier
+  firstString: (ChaCha20-Poly1305)$
+- call: pyasn1.type.univ.ObjectIdentifier
+  firstString: (ChaCha20-Poly1305)$

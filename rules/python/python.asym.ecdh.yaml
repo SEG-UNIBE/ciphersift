@@ -22,10 +22,10 @@ match:
 - ref: pkcs11.mechanisms.Mechanism.ECDH1_COFACTOR_DERIVE
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - call: cryptography.x509.ObjectIdentifier
-  firstString: (ECDH)$
+  firstString: (ECDH|ECMQV)$
 - call: cryptography.x509.oid.ObjectIdentifier
-  firstString: (ECDH)$
+  firstString: (ECDH|ECMQV)$
 - call: asn1crypto.core.ObjectIdentifier
-  firstString: (ECDH)$
+  firstString: (ECDH|ECMQV)$
 - call: pyasn1.type.univ.ObjectIdentifier
-  firstString: (ECDH)$
+  firstString: (ECDH|ECMQV)$

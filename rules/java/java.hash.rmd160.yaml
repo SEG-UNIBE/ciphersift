@@ -25,6 +25,9 @@ match:
 - new: org.bouncycastle.crypto.digests.RIPEMD160Digest
 - call: org.bouncycastle.crypto.digests.RIPEMD160Digest.newInstance
 - new: org.bouncycastle.jcajce.provider.digest.RIPEMD160.Digest
+# Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15, B-A4) arrive here as the names they map to.
+- new: org.bouncycastle.asn1.ASN1ObjectIdentifier
+  firstString: (RIPEMD160)$
 # DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
 - field: org.bouncycastle.asn1.teletrust.TeleTrusTObjectIdentifiers.ripemd160
 - field: org.bouncycastle.asn1.teletrust.TeleTrusTObjectIdentifiers.ecSignWithRipemd160

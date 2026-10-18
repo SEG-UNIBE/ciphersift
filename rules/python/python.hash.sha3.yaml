@@ -319,10 +319,10 @@ match:
 - ref: signxml.algorithms.DigestAlgorithm.SHA3_512
 # Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15) arrive here as the names they map to.
 - call: cryptography.x509.ObjectIdentifier
-  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512)$
+  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512|SHAKE128|SHAKE256)$
 - call: cryptography.x509.oid.ObjectIdentifier
-  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512)$
+  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512|SHAKE128|SHAKE256)$
 - call: asn1crypto.core.ObjectIdentifier
-  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512)$
+  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512|SHAKE128|SHAKE256)$
 - call: pyasn1.type.univ.ObjectIdentifier
-  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512)$
+  firstString: (SHA3-224|SHA3-256|SHA3-384|SHA3-512|SHAKE128|SHAKE256)$

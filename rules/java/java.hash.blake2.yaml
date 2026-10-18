@@ -38,6 +38,9 @@ match:
 - new: org.bouncycastle.jcajce.provider.digest.Blake2s.Blake2s224
 - new: org.bouncycastle.jcajce.provider.digest.Blake2s.Blake2s256
 - new: org.bouncycastle.jcajce.provider.digest.Blake3.Blake3_256
+# Dotted OIDs of the built-in OID table (SPEC 5.11, DECISIONS E15, B-A4) arrive here as the names they map to.
+- new: org.bouncycastle.asn1.ASN1ObjectIdentifier
+  firstString: (BLAKE2B-256|BLAKE2B-512|BLAKE2S-256)$
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
 - new: org.bouncycastle.crypto.digests.Blake2bpDigest
 - call: org.bouncycastle.crypto.digests.Blake2bpDigest.newInstance
