@@ -185,6 +185,7 @@ individually; the table lists every id and its default.
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
 | `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
+| `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
@@ -3102,6 +3103,31 @@ each as `<path>:<line of the name> <display name>` (Java `Outer.Inner.m`, Python
   `wrapper propagation: <c> callables, <n> occurrences, <a> ambiguous calls skipped`.
 * Determinism (12): the index, the levels and the folding depend only on the file contents; files
   are visited in relative-path order, definitions in (path, line) order.
+
+### 18.8 Go package-name consistency *(DECISIONS B-G-B3L, benchmark-informed)*
+
+Go projects often put an algorithm into a package of its own and name the package after it (`sops/aes`,
+`smallstep/x25519`, `go-crypto/openpgp/ed448`); its callers write `aes.NewCipher()` or `c.Encrypt(…)` on a
+value of the package's type. When Go wrappers (W7) are on and the feature `go-package-names` is on (3.1,
+default):
+
+* A **package-name package** is a directory of the scan root whose non-test Go files (as indexed, 18.2)
+  have exactly one package name *N* (not ending in `_test`) such that *N* names family keys by the
+  tokeniser (18.6, with the V2 aliases if they are on) and the package has a non-test propagatable finding
+  of such a key. Its **evidence** for key *F* is its first such finding of *F* (by path, line, rule id).
+* A **package-name call** is a Go call site (18.3) `x.M(…)` whose resolution is not ambiguous (18.4), whose
+  member `M` does not contain (case-insensitively) `length`, `size`, `encode`, `decode`, `fields`, `find`,
+  `name`, `string`, `params`, `oid` or `info` (sizes, encodings and look-ups name nothing), and where `x`
+  is either the local name of an import (not a parameter or variable of the caller) of a project package
+  (18.4) or a name of the caller with the declared type `p.T` (18.4) where `p` imports such a package,
+  the package being a package-name package other than the caller's own directory.
+* Each package-name call yields, for each evidence key *F* in code-point order, a propagated finding
+  like 18.7 (folding included; after the callables of 18.5, so a callable's chain wins on the same line
+  and key) whose `via` is the single element `<dir>: package <N>` and whose `origin` is the evidence.
+* To index the files that make such calls (18.2), the package names and the last segments of the
+  directories of package-name packages count as callable names.
+* Not covered: the type of a call's result (`c := aes.NewCipher(); c.Encrypt()`), struct fields,
+  external modules (B2p, rejected).
 
 ---
 

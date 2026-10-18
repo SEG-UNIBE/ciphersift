@@ -1,0 +1,7 @@
+{"case": "go/package-names", "findings": [
+  {"file": "aes/cipher.go", "line": 17, "rule": "go.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/aes.NewCipher"},
+  {"file": "aes/cipher.go", "line": 18, "rule": "go.sym.aes.gcm", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": "GCM", "protocol": null, "version": null, "param": null, "name": "crypto/cipher.NewGCM"},
+  {"file": "app/main.go", "line": 10, "rule": "go.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/aes.NewCipher", "via": ["aes: package aes"], "origin": "aes/cipher.go:17"},
+  {"file": "app/main.go", "line": 13, "rule": "go.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/aes.NewCipher", "via": ["aes: package aes"], "origin": "aes/cipher.go:17"},
+  {"file": "sha3/sha3_test.go", "line": 6, "rule": "go.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha3.Sum256", "test": true}
+]}

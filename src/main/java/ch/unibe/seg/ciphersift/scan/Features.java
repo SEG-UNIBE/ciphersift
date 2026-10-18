@@ -48,8 +48,12 @@ public final class Features {
     /** Go method calls on receivers of a known type match {@code method} patterns (B1a, SPEC 17.12). */
     public static final String GO_TYPED_METHODS = "go-typed-methods";
 
+    /** Calls into a project Go package whose name names a family carry its findings of that family (B3L, SPEC 18.8). */
+    public static final String GO_PACKAGE_NAMES = "go-package-names";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(GO_PACKAGE_NAMES, true);
         known(GO_TYPED_METHODS, true);
         known(GO_THIN_WRAPPERS, true);
         known(JAVA_PROPAGATE_RANDOM, true);

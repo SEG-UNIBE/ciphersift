@@ -75,6 +75,13 @@ public final class WrapperPass {
     /** The result of {@link #report}. */
     public record Result(List<SourceFinding> findings, int callables, int ambiguous) {}
 
+    /** A Go package whose name names family keys, with its first non-test finding per such key (SPEC 18.8). */
+    record GoPkg(String dir, String name, TreeMap<String, SourceFinding> evidence) {}
+
+    /** Member names that a package-name call does not count for (SPEC 18.8): sizes, encodings, look-ups, names. */
+    static final java.util.regex.Pattern GO_PKG_EXCLUDED = java.util.regex.Pattern.compile(
+            "length|size|encode|decode|fields|find|name|string|params|oid|info", java.util.regex.Pattern.CASE_INSENSITIVE);
+
     /** A definition in the index, with its body findings and what it carries. */
     static final class Node {
         final Outline o;
@@ -134,6 +141,8 @@ public final class WrapperPass {
     private final Map<String, Map<String, List<Node>>> pyFuncs = new HashMap<>();
     private final Map<String, Map<String, List<Node>>> pyMethods = new HashMap<>();
     // Go index
+    /** Go package-name evidence (SPEC 18.8): package directory → (package name, family key → finding). */
+    private final Map<String, GoPkg> goPkgs = new HashMap<>();
     private final Map<String, Map<String, List<Node>>> goFuncs = new HashMap<>();
     private final Map<String, Map<String, List<Node>>> goMethods = new HashMap<>();
     private final Map<String, Map<String, List<Node>>> goDirFuncs = new HashMap<>();
@@ -208,6 +217,7 @@ public final class WrapperPass {
         goMethods.clear();
         goDirFuncs.clear();
         goDirMethods.clear();
+        goPkgs.clear();
         for (Outline o : all.values()) {
             if (options.on(o.lang)) {
                 outlines.put(o.path, o);
@@ -250,6 +260,9 @@ public final class WrapperPass {
                 }
             }
         }
+        if (options.goNamed() && options.features().on(Features.GO_PACKAGE_NAMES)) {
+            goPackages(byFile);
+        }
         // resolutions (independent of the levels)
         for (Outline o : outlines.values()) {
             Res[] rs = new Res[o.calls.size()];
@@ -259,6 +272,76 @@ public final class WrapperPass {
             resolutions.put(o, rs);
         }
         levels();
+    }
+
+    /**
+     * The Go packages whose name names family keys and that have a non-test finding of such a key (SPEC 18.8):
+     * per directory, the one package name of its non-test files (a directory with two is skipped), the first
+     * finding per key by path, line and rule id.
+     */
+    private void goPackages(Map<String, List<SourceFinding>> byFile) {
+        Map<String, Set<String>> names = new TreeMap<>(Texts.CODE_POINT_ORDER);
+        for (Outline o : outlines.values()) {
+            if (o.lang == Outline.Lang.GO && !o.test && !o.goPackage.isEmpty() && !o.goPackage.endsWith("_test")) {
+                names.computeIfAbsent(o.goDir, k -> new TreeSet<>()).add(o.goPackage);
+            }
+        }
+        boolean v2 = options.features().on(Features.WRAPPER_ALIASES_V2);
+        for (Map.Entry<String, Set<String>> e : names.entrySet()) {
+            if (e.getValue().size() != 1) {
+                continue;
+            }
+            String name = e.getValue().iterator().next();
+            Set<String> fams = NameTokens.families(name, "go", v2);
+            if (fams.isEmpty()) {
+                continue;
+            }
+            TreeMap<String, SourceFinding> ev = new TreeMap<>(Texts.CODE_POINT_ORDER);
+            for (Outline o : outlines.values()) { // path order
+                if (o.lang != Outline.Lang.GO || o.test || !o.goDir.equals(e.getKey()) || !o.goPackage.equals(name)) {
+                    continue;
+                }
+                List<SourceFinding> fs = new ArrayList<>(byFile.getOrDefault(o.path, List.of()));
+                fs.sort(Comparator.comparingInt(SourceFinding::line)
+                        .thenComparing(f -> f.rule().id(), Texts.CODE_POINT_ORDER));
+                for (SourceFinding f : fs) {
+                    String k = familyKey(f.rule());
+                    if (fams.contains(k)) {
+                        ev.putIfAbsent(k, f);
+                    }
+                }
+            }
+            if (!ev.isEmpty()) {
+                goPkgs.put(e.getKey(), new GoPkg(e.getKey(), name, ev));
+            }
+        }
+    }
+
+    /**
+     * The package-name package a Go call reaches (SPEC 18.8): {@code x.F(…)} with {@code x} an import of a
+     * project package, or {@code x.M(…)} with {@code x} of declared type {@code p.T} of such a package; else null.
+     */
+    private GoPkg goPackageOf(Outline o, Outline.Call c, int caller) {
+        if (goPkgs.isEmpty() || c.qualifier().size() != 1 || GO_PKG_EXCLUDED.matcher(c.name()).find()) {
+            return null;
+        }
+        Outline.Def d = caller >= 0 ? o.defs.get(caller) : null;
+        String x = c.qualifier().get(0);
+        Outline.TypeRef t = d == null ? null : d.types().get(x);
+        String path;
+        if (t != null) {
+            if (t == GoOutliner.CONFLICT || t.pkg() == null) {
+                return null;
+            }
+            path = o.goImports.get(t.pkg());
+        } else {
+            if (d != null && d.locals().contains(x)) {
+                return null;
+            }
+            path = o.goImports.get(x);
+        }
+        String dir = path == null ? null : importDir(path, o.goDir);
+        return dir == null || dir.equals(o.goDir) ? null : goPkgs.get(dir);
     }
 
     /** The innermost definition of a file whose span contains the line (SPEC 18.1), or -1. */
@@ -437,6 +520,15 @@ public final class WrapperPass {
      */
     public Map<Outline.Lang, Set<String>> callableNames() {
         Map<Outline.Lang, Set<String>> out = new TreeMap<>();
+        for (GoPkg g : goPkgs.values()) {
+            // a call x.F of a package-name package: its file names the package (import path or local name)
+            Set<String> s = out.computeIfAbsent(Outline.Lang.GO, k -> new TreeSet<>());
+            s.add(g.name());
+            String last = g.dir().substring(g.dir().lastIndexOf('/') + 1);
+            if (!last.isEmpty()) {
+                s.add(last);
+            }
+        }
         for (Outline o : outlines.values()) {
             for (Node n : nodes.get(o)) {
                 if (!n.carry.isEmpty()) {
@@ -519,6 +611,36 @@ public final class WrapperPass {
                     SourceFinding e = rc.evidence();
                     out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippet, e.param(),
                             e.oid(), o.test, via, e.path() + ":" + e.line()));
+                }
+            }
+            // package-name consistency (SPEC 18.8): after the callables, so that a callable's chain wins
+            if (o.lang == Outline.Lang.GO && !goPkgs.isEmpty()) {
+                int[] cs = callers.get(o);
+                for (int i : order) {
+                    if (rs[i].ambiguous()) {
+                        continue;
+                    }
+                    Outline.Call c = o.calls.get(i);
+                    GoPkg g = goPackageOf(o, c, cs[i]);
+                    if (g == null) {
+                        continue;
+                    }
+                    for (Map.Entry<String, SourceFinding> ev : g.evidence().entrySet()) {
+                        String k = o.path + "\u0000" + c.line() + "\u0000" + ev.getKey();
+                        if (directKeys.contains(k) || !seen.add(k)) {
+                            continue;
+                        }
+                        if (!read) {
+                            fileText = text.apply(o.path);
+                            read = true;
+                        }
+                        String snippet = fileText != null && c.end() <= fileText.length()
+                                ? Texts.truncateCodePoints(fileText.substring(c.start(), c.end()), SNIPPET_MAX)
+                                : c.symbol();
+                        SourceFinding e = ev.getValue();
+                        out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippet, e.param(),
+                                e.oid(), o.test, List.of(g.dir() + ": package " + g.name()), e.path() + ":" + e.line()));
+                    }
                 }
             }
         }
