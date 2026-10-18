@@ -203,6 +203,7 @@ individually; the table lists every id and its default.
 | `go-thin-key-material` | on | Go thin wrappers: key loading (`private-key`, `public-key`) next to another key does not count (18.5) | 18.5 |
 | `go-random-index` | off | a Go `rand.Int(r, big.NewInt(len(x)))` (also `int64(len(x))`) draws an index into a collection and is not reported (17.8) | 17.8 |
 | `go-generic-variants` | on | a Go propagated finding whose evidence definition (or package, 18.8) has findings of one rule with different params is reported under the rule's name without param (18.7) | 18.7, 18.8 |
+| `go-compared-calls` | on | a Go argument-less identifier call whose property (`.ID()`, `.Params().Name`) is compared or a `case` value is a test position (17.5) | 17.5 |
 | `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
@@ -2718,6 +2719,11 @@ One pre-order walk enumerates the events of the file (import declarations are no
 `expression_list` that is the `value` of an `expression_case`. Such a reference compares a
 value obtained elsewhere (`if state.Version == tls.VersionTLS10`, `case tls.VersionTLS12:` in a
 version-name table); it does not choose an algorithm.
+The same holds for a **call event** without arguments (an identifier function: `hpke.MLKEM768P256()`) whose value
+reaches such a position through at least one selector or argument-less method call
+(`k.ID() == hpke.MLKEM768P256().ID()`, `c.Params().Name == elliptic.P384().Params().Name`): it reads a property to
+test a value chosen elsewhere *(DECISIONS T3-G8, feature `go-compared-calls`)*. The call itself as a `case` value or
+operand (`case elliptic.P256():`, a key-type dispatch) stays an event.
 
 Snippets are truncated to 500 code points.
 

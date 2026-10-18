@@ -69,6 +69,9 @@ public final class Features {
     /** Go propagation: evidence with several variants of its family is reported under the rule's name (T3-G7). */
     public static final String GO_GENERIC_VARIANTS = "go-generic-variants";
 
+    /** Go: argument-less identifier calls (elliptic.P256()) compared or in a case value are test positions (T3-G8). */
+    public static final String GO_COMPARED_CALLS = "go-compared-calls";
+
     /** Java {@code anyCall} patterns: registry algorithm names as arguments of any call (SNx, SPEC 5.5). */
     public static final String JAVA_ANY_CALL = "java-any-call";
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
@@ -117,6 +120,7 @@ public final class Features {
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
         known(GO_NESTED_SAME_RULE, true);
+        known(GO_COMPARED_CALLS, true);
         known(GO_GENERIC_VARIANTS, true);
         known(GO_RANDOM_INDEX, false);
         known(GO_THIN_KEY_MATERIAL, true);

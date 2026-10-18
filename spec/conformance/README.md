@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-100 cases, 1705 expected findings. A conforming implementation produces exactly the expected
+101 cases, 1709 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -118,6 +118,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/api-secp256k1-libp2p` | 1 | 9 | btcec/v2 secp256k1 keys, ECDSA and ECDH; libp2p key functions and key-type constants; nothing for signature parsing, `IsCompressedPubKey`, `ConfigEncodeKey` (DECISIONS T3-G5) |
 | `go/random-index` | 1 | 3 | (with `--feature go-random-index=on`) `rand.Int` over `big.NewInt(len(x))` / `int64(len(x))` is dropped with its `rand.Reader`; other bounds stay (DECISIONS T3-G6) |
 | `go/generic-variants` | 3 | 5 | a curve selector with two params of one rule is propagated under the rule's name; a wrapper of one curve keeps its name and param (DECISIONS T3-G7) |
+| `go/compared-calls` | 1 | 4 | `hpke.MLKEM768P256().ID()` and `elliptic.P384().Params().Name` in comparisons give nothing; `case elliptic.P256():` and uncompared calls stay (DECISIONS T3-G8) |
 
 ## Format of expected.json
 

@@ -51,6 +51,8 @@ public final class GoAnalyzer {
     private final boolean nestedSameRule;
     /** CSPRNG draws of a random index into a collection are not reported (DECISIONS T3-G6, feature {@code go-random-index}). */
     private final boolean randomIndex;
+    /** Argument-less identifier calls in comparisons are test positions (DECISIONS T3-G8, feature {@code go-compared-calls}). */
+    private final boolean comparedCalls;
 
     public GoAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -61,6 +63,7 @@ public final class GoAnalyzer {
         this.methods = !index.method.isEmpty() && features.on(Features.GO_TYPED_METHODS);
         this.nestedSameRule = features.on(Features.GO_NESTED_SAME_RULE);
         this.randomIndex = features.on(Features.GO_RANDOM_INDEX);
+        this.comparedCalls = features.on(Features.GO_COMPARED_CALLS);
     }
 
     /** Analyses one parsed Go file. */
@@ -883,8 +886,56 @@ public final class GoAnalyzer {
                 }
                 return;
             }
+            if (comparedCalls && comparedIdentifierCall(n, args)) {
+                return;
+            }
             int line = fn.is("selector_expression") ? fn.field("field").line() : n.line();
             out.add(new Event(Kind.CALL, n, names, null, null, args, null, line));
+        }
+
+        /**
+         * DECISIONS T3-G8: a call without arguments (an identifier function such as {@code hpke.MLKEM768P256()})
+         * whose value, through at least one selector or argument-less method call ({@code .ID()},
+         * {@code .Params().Name}), is an operand of a comparison or a {@code case} value is in a test position like a
+         * reference (17.5): it reads a property to test a value chosen elsewhere. {@code case elliptic.P256():}
+         * itself stays an event (a key-type dispatch).
+         */
+        private boolean comparedIdentifierCall(SyntaxNode n, SyntaxNode args) {
+            if (args != null && !expressions(args).isEmpty()) {
+                return false;
+            }
+            SyntaxNode y = n;
+            SyntaxNode p = n.parent();
+            boolean selected = false;
+            while (p != null) {
+                if (p.is("parenthesized_expression")) {
+                    y = p;
+                    p = p.parent();
+                } else if (p.is("selector_expression") && "operand".equals(y.field())) {
+                    selected = true;
+                    y = p;
+                    p = p.parent();
+                    if (p != null && p.is("call_expression") && "function".equals(y.field())) {
+                        SyntaxNode a = p.field("arguments");
+                        if (a != null && !expressions(a).isEmpty()) {
+                            return false;
+                        }
+                        y = p;
+                        p = p.parent();
+                    }
+                } else {
+                    break;
+                }
+            }
+            if (p == null || !selected) {
+                return false;
+            }
+            if (p.is("binary_expression") && ("left".equals(y.field()) || "right".equals(y.field()))) {
+                SyntaxNode op = p.field("operator");
+                return op != null && COMPARISONS.contains(op.text());
+            }
+            return p.is("expression_list") && "value".equals(p.field()) && p.parent() != null
+                    && p.parent().is("expression_case");
         }
 
         /**
