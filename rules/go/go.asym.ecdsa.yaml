@@ -162,3 +162,21 @@ match:
 - ref: github.com/golang-jwt/jwt/v5.SigningMethodES512
   param:
     value: P-521
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/btcsuite/btcd/btcec/v2/ecdsa.Sign
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2/ecdsa.SignCompact
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2/ecdsa.RecoverCompact
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateECDSAKeyPair
+  param:
+    value: P-256
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateECDSAKeyPairWithCurve
+  param:
+    index: 0
+- ref: github.com/libp2p/go-libp2p/core/crypto.ECDSA

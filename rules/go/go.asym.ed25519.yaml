@@ -87,3 +87,9 @@ match:
 - call: github.com/golang-jwt/jwt/v4.ParseEdPublicKeyFromPEM
 - call: github.com/golang-jwt/jwt/v5.ParseEdPrivateKeyFromPEM
 - call: github.com/golang-jwt/jwt/v5.ParseEdPublicKeyFromPEM
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateEd25519Key
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalEd25519PrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalEd25519PublicKey
+- ref: github.com/libp2p/go-libp2p/core/crypto.Ed25519

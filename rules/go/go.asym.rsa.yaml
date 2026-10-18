@@ -70,3 +70,11 @@ match:
 - call: github.com/golang-jwt/jwt/v4.ParseRSAPublicKeyFromPEM
 - call: github.com/golang-jwt/jwt/v5.ParseRSAPrivateKeyFromPEM
 - call: github.com/golang-jwt/jwt/v5.ParseRSAPublicKeyFromPEM
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateRSAKeyPair
+  param:
+    index: 0
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalRsaPrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalRsaPublicKey
+- ref: github.com/libp2p/go-libp2p/core/crypto.RSA

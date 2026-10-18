@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-97 cases, 1688 expected findings. A conforming implementation produces exactly the expected
+98 cases, 1697 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -115,6 +115,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/api-ethereum` | 1 | 11 | go-ethereum `crypto` (Keccak, secp256k1 signatures and keys) and `accounts/keystore` (scrypt key files, `KeyStore.SignHash` on a typed receiver); nothing for address derivation, size constants or `Accounts()` (DECISIONS T3-G2) |
 | `go/thin-key-material` | 3 | 9 | Go thin wrappers whose key loading sits next to an SSH host-key registration or a SHA-256 key id carry that operation; key loading alone stays a key-loading wrapper (DECISIONS T3-G3) |
 | `go/api-jose` | 2 | 9 | go-jose and golang-jwt algorithm identifiers and PEM key parsers; default local name `jose` for `go-jose/v4` and `go-jose.v2`; nothing in comparisons, `case` values, `DIRECT`, `DEFLATE`, `SigningMethodNone` (DECISIONS T3-G4) |
+| `go/api-secp256k1-libp2p` | 1 | 9 | btcec/v2 secp256k1 keys, ECDSA and ECDH; libp2p key functions and key-type constants; nothing for signature parsing, `IsCompressedPubKey`, `ConfigEncodeKey` (DECISIONS T3-G5) |
 
 ## Format of expected.json
 

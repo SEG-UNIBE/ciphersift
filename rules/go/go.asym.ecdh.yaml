@@ -64,3 +64,8 @@ match:
 - ref: gopkg.in/go-jose/go-jose.v2.ECDH_ES_A192KW
 - ref: gopkg.in/go-jose/go-jose.v2.ECDH_ES_A256KW
 - ref: gopkg.in/go-jose/go-jose.v2.ECDH_ES
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/btcsuite/btcd/btcec/v2.GenerateSharedSecret
+  param:
+    value: secp256k1

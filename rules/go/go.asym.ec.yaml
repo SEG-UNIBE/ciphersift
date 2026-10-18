@@ -70,3 +70,41 @@ match:
 - call: github.com/golang-jwt/jwt/v4.ParseECPublicKeyFromPEM
 - call: github.com/golang-jwt/jwt/v5.ParseECPrivateKeyFromPEM
 - call: github.com/golang-jwt/jwt/v5.ParseECPublicKeyFromPEM
+# DECISIONS T3-G5 (benchmark-informed in the choice of packages: chain33): secp256k1 of btcec/v2 (https://pkg.go.dev/github.com/btcsuite/btcd/btcec/v2
+# and .../btcec/v2/ecdsa, v2.5.0) and libp2p key functions (https://pkg.go.dev/github.com/libp2p/go-libp2p/core/crypto, v0.43.0-rc2), fetched 2026-10-18.
+- call: github.com/btcsuite/btcd/btcec/v2.PrivKeyFromBytes
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.PrivKeyFromScalar
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.NewPrivateKey
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.NewPublicKey
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.ParsePubKey
+  param:
+    value: secp256k1
+- call: github.com/btcsuite/btcd/btcec/v2.S256
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.GenerateSecp256k1Key
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalSecp256k1PrivateKey
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalSecp256k1PublicKey
+  param:
+    value: secp256k1
+- ref: github.com/libp2p/go-libp2p/core/crypto.Secp256k1
+  param:
+    value: secp256k1
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalECDSAPrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.UnmarshalECDSAPublicKey
+- call: github.com/libp2p/go-libp2p/core/crypto.MarshalECDSAPrivateKey
+- call: github.com/libp2p/go-libp2p/core/crypto.MarshalECDSAPublicKey
+- call: github.com/libp2p/go-libp2p/core/crypto.ECDSAKeyPairFromKey
+- call: github.com/libp2p/go-libp2p/core/crypto.ECDSAPublicKeyFromPubKey
