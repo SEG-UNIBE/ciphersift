@@ -61,8 +61,12 @@ public final class Features {
     /** Java: locals declared without initialiser and assigned later (JP3, SPEC 7.4.3). */
     public static final String JAVA_DEFERRED_LOCALS = "java-deferred-locals";
 
+    /** Python {@code *.unresolved} fallbacks for algorithms chosen at run time (U1, SPEC 8.6). */
+    public static final String PYTHON_UNRESOLVED = "python-unresolved";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_UNRESOLVED, true);
         known(JAVA_CONSTANT_GETTERS, true);
         known(JAVA_DEFERRED_LOCALS, true);
         known(JAVA_ANY_CALL, true);

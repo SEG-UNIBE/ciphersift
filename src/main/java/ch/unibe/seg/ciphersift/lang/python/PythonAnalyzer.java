@@ -9,6 +9,7 @@ import ch.unibe.seg.ciphersift.model.SourceFinding;
 import ch.unibe.seg.ciphersift.rules.PythonPattern;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
+import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayDeque;
@@ -52,7 +53,11 @@ public final class PythonAnalyzer {
     private final PythonRuleIndex index;
 
     public PythonAnalyzer(RuleSet rules) {
-        this.index = new PythonRuleIndex(rules.pythonRules());
+        this(rules, Features.DEFAULTS);
+    }
+
+    public PythonAnalyzer(RuleSet rules, Features features) {
+        this.index = new PythonRuleIndex(rules.pythonRules(), features);
     }
 
     /** Analyses one parsed Python file. */
@@ -980,8 +985,31 @@ public final class PythonAnalyzer {
                 if (!h.rule().asset().refined() && refinedIdentities.contains(h.rule().asset().identity())) {
                     continue;
                 }
+                if (fallbackSuperseded(h, hits)) {
+                    continue;
+                }
                 emit(h, call, args);
             }
+        }
+
+        /**
+         * A fallback hit (a rule whose id ends in {@code .unresolved}) is not reported if the call has a hit of
+         * another rule with the same asset type and, if the fallback has a primitive, the same primitive (SPEC
+         * 8.6 refinement, DECISIONS B-P-U1; the Python counterpart of Java's 7.7.1).
+         */
+        private boolean fallbackSuperseded(Hit h, List<Hit> hits) {
+            if (!h.rule().id().endsWith(".unresolved")) {
+                return false;
+            }
+            for (Hit o : hits) {
+                if (o != h && !o.rule().id().endsWith(".unresolved")
+                        && o.rule().asset().type().equals(h.rule().asset().type())
+                        && (h.rule().asset().primitive() == null
+                                || h.rule().asset().primitive().equals(o.rule().asset().primitive()))) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         // ------------------------------------------------------------------ 8.6.1 bare references
@@ -1176,6 +1204,18 @@ public final class PythonAnalyzer {
             }
             if (p.notInside != null && operationCall(a.call, p.notInside) != null) {
                 return false;
+            }
+            if (p.minArgs != null && (a.generator != null || a.positional.size() < p.minArgs)) {
+                return false;
+            }
+            if (p.noSymbolPrefix != null) {
+                for (String sym : a.symbols()) {
+                    for (String pre : p.noSymbolPrefix) {
+                        if (sym.startsWith(pre)) {
+                            return false;
+                        }
+                    }
+                }
             }
             if (p.kwargs != null) {
                 for (Map.Entry<String, Pattern> kw : p.kwargs.entrySet()) {

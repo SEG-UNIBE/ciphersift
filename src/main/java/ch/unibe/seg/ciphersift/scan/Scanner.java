@@ -132,12 +132,12 @@ public final class Scanner {
         this.goParser = ThreadLocal.withInitial(() -> newParser(goLanguage));
         JavaContexts contexts = new JavaContexts(options.root(), javaLanguage, javaParser::get);
         this.javaAnalyzer = new JavaAnalyzer(options.rules(), contexts, options.features());
-        this.pythonAnalyzer = new PythonAnalyzer(options.rules());
+        this.pythonAnalyzer = new PythonAnalyzer(options.rules(), options.features());
         this.goAnalyzer = new GoAnalyzer(options.rules(), options.features());
         this.dependencyScanner = new DependencyScanner(options.rules(), options.features());
         boolean filter = !Boolean.getBoolean(NO_PREFILTER);
         this.javaFilter = filter ? AnchorPrefilter.java(options.rules().javaRules(), options.features()) : AnchorPrefilter.ALL;
-        this.pythonFilter = filter ? AnchorPrefilter.python(options.rules().pythonRules()) : AnchorPrefilter.ALL;
+        this.pythonFilter = filter ? AnchorPrefilter.python(options.rules().pythonRules(), options.features()) : AnchorPrefilter.ALL;
         this.goFilter = filter ? AnchorPrefilter.go(options.rules().goRules()) : AnchorPrefilter.ALL;
         for (DependencyRule r : options.rules().dependencyRules().values()) {
             FileClass lang = languageOf(r.ecosystem());

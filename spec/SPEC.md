@@ -189,6 +189,7 @@ individually; the table lists every id and its default.
 | `java-any-call-short` | on | Java `anyCall` patterns with `feature: java-any-call-short` (short JCA names, JOSE names) | 5.5 |
 | `java-constant-getters` | on | constant getters and `SecretKeySpec.getAlgorithm()` in Java string resolution (7.4.1) | 7.4.1 |
 | `java-deferred-locals` | on | Java locals assigned after their declaration (7.4.3, 7.7.1) | 7.4.3 |
+| `python-unresolved` | on | the Python fallbacks `python.hash.unresolved`, `python.cipher.unresolved` (8.6) | 8.6 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
@@ -368,7 +369,7 @@ under `/rules/`. It contains:
 | Directory | Documents |
 |---|---|
 | `rules/java/` | 105 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
-| `rules/python/` | 87 source rules (`python.*`) |
+| `rules/python/` | 89 source rules (`python.*`) |
 | `rules/go/` | 70 source rules (`go.*`, section 17) |
 | `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml`, `dep.golang.yaml` |
 
@@ -504,10 +505,15 @@ Conditions:
 | `kwargs` | map keyword → regex | call, method, anyCall | For every entry, the call has that keyword argument and the regex is found (`find`, case-insensitive) in at least one of its value texts (8.5.3). |
 | `dictItems` | map key → regex | call, method, anyCall | For every entry, some argument (positional, or a keyword value) is a `dictionary` display — or an `identifier` with a binding (8.3) whose right-hand side is one — that has a `pair` whose `key` has the entry's key as string value (8.5.1) and in one of whose `value`'s value texts (8.5.3, in the dictionary's scope) the regex is found (case-insensitive). `algos.DigestAlgorithm({'algorithm': 'sha256'})` *(DECISIONS E3)*. |
 | `notInside` | list of method names | call, method, anyCall | The walk of 8.7 from the call finds no enclosing call whose method name is listed: `padding.PKCS1v15()` not passed (directly or nested) to `sign`, `verify`, `encrypt` or `decrypt` *(DECISIONS E12)*. |
+| `noSymbolPrefix` | list of strings | call, method, anyCall | No symbol of the call's symbol set (8.5.2) starts with a listed string *(DECISIONS B-P-U1)*: `hashes.Hash(alg)` whose argument is not one of pyca's hash classes. |
+| `minArgs` | integer *n* ≥ 1 | call, method, anyCall | The call has at least *n* positional arguments (and no generator argument) *(DECISIONS B-P-U1)*. |
 | `value` | regex | assign | The regex is found (case-insensitive) in at least one value text of the right-hand side (8.5.3). |
 | `valueContains` | list | assign | Some value text contains some listed string (case-insensitive). |
 | `param` | `{keyword: k, index: i}` (either or both), `{self: true}` or `{value: s}` | call, method, anyCall, ref (`self` or `value` only) | *Not a filter.* Names the argument reported as param (8.8); `value` reports the fixed string *s* (a library whose curve is implied, e.g. secp256k1 bindings). |
 | `reportAt` | list of method names | call, method, anyCall | *Not a filter.* Report the finding at the enclosing call to one of these methods (8.7). |
+
+**`feature`** (optional, any anchor): as for Java (5.5), the pattern takes part only while that feature is on
+(3.1) *(DECISIONS B0)*.
 
 `*` prefixes are not supported in Python patterns. A `ref` pattern takes no condition and no
 `reportAt`; its `param` can only be `{self: true}` or `{value: s}` (the schema enforces this).
@@ -1446,6 +1452,14 @@ also checked). A holding pattern gives the hit *(rule, name used, pattern)*.
 subtype); a rule is *refined* if it has a `variant` or a `version`. Drop every hit whose rule
 is not refined if another hit's rule is refined and has the same identity.
 (`Cipher(algorithms.AES(k), modes.GCM(iv))` → AES-GCM, not also AES.)
+
+**Fallbacks** *(DECISIONS B-P-U1)*: a hit of a rule whose id ends in `.unresolved` is dropped if the call
+has a hit of another rule with the same asset type and — when the fallback rule has a primitive — the same
+primitive (the Python counterpart of the Java specificity rule, 7.7.1). The bundled fallbacks are
+`python.hash.unresolved` (`hashlib.new`, `getattr` on a hash module, pyca `hashes.Hash` and `hmac.HMAC`
+and the stdlib `hmac` functions whose hash is not one of the known hash APIs) and
+`python.cipher.unresolved` (pyca `Cipher` without one of pyca's algorithm classes among its symbols),
+both under the feature `python-unresolved` (3.1).
 
 **Emission.** For each remaining hit, in hit order:
 

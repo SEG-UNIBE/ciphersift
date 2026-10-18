@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift (DECISIONS B-P-U1) from the pyca/cryptography documentation of
+# cryptography.hazmat.primitives.ciphers.Cipher (https://cryptography.io/en/latest/hazmat/primitives/symmetric-encryption/).
+id: python.cipher.unresolved
+kind: source
+language: python
+name: Cipher chosen at run time in Python
+description: >-
+  Fallback for pyca/cryptography Cipher objects whose algorithm is not visible statically (a parameter or a value
+  from elsewhere). Not reported when an algorithm class of pyca's ciphers.algorithms is among the call's symbols.
+asset:
+  type: algorithm
+match:
+- call: cryptography.hazmat.primitives.ciphers.Cipher
+  noSymbolPrefix: [cryptography.hazmat.primitives.ciphers.algorithms., cryptography.hazmat.decrepit.ciphers.algorithms.]
+  feature: python-unresolved

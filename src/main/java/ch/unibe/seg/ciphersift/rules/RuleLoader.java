@@ -809,7 +809,11 @@ public final class RuleLoader {
                     param != null && param.has("self") && param.get("self").asBoolean(),
                     param == null ? null : text(param, "value"),
                     param != null,
-                    strings(p.get("reportAt"), false)));
+                    strings(p.get("reportAt"), false),
+                    strings(p.get("noSymbolPrefix"), false),
+                    p.has("minArgs") ? p.get("minArgs").asInt() : null,
+                    strings(p.get("literal"), false),
+                    feature(file, ptr, p, problems)));
         }
         return problems.size() == before ? rule : null;
     }

@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift (DECISIONS B-P-U1) from the Python standard library documentation (hashlib.new, hmac,
+# https://docs.python.org/3/library/hashlib.html, https://docs.python.org/3/library/hmac.html) and the
+# pyca/cryptography documentation (hashes.Hash, hmac.HMAC, https://cryptography.io/en/latest/hazmat/primitives/).
+id: python.hash.unresolved
+kind: source
+language: python
+name: Hash function chosen at run time in Python
+description: >-
+  Fallback for hash and HMAC APIs whose hash algorithm is not visible statically (a parameter, a configuration
+  value, getattr on a hash module). Reported only when no rule of a specific hash function hits the call
+  (SPEC 8.6, fallback rules).
+asset:
+  type: algorithm
+  primitive: hash
+match:
+- call: hashlib.new
+  feature: python-unresolved
+- call: cryptography.hazmat.primitives.hashes.Hash
+  minArgs: 1
+  noSymbolPrefix: [cryptography.hazmat.primitives.hashes.]
+  feature: python-unresolved
+- call: cryptography.hazmat.primitives.hashes.Hash
+  kwargs: {algorithm: .}
+  noSymbolPrefix: [cryptography.hazmat.primitives.hashes.]
+  feature: python-unresolved
+- call: getattr
+  anySymbol: [hashlib, cryptography.hazmat.primitives.hashes, Crypto.Hash, Cryptodome.Hash]
+  feature: python-unresolved
+- call: hmac.new
+  minArgs: 3
+  noSymbolPrefix: [hashlib., cryptography.hazmat.primitives.hashes., Crypto.Hash., Cryptodome.Hash.]
+  feature: python-unresolved
+- call: hmac.new
+  kwargs: {digestmod: .}
+  noSymbolPrefix: [hashlib., cryptography.hazmat.primitives.hashes., Crypto.Hash., Cryptodome.Hash.]
+  feature: python-unresolved
+- call: hmac.HMAC
+  minArgs: 3
+  noSymbolPrefix: [hashlib., cryptography.hazmat.primitives.hashes., Crypto.Hash., Cryptodome.Hash.]
+  feature: python-unresolved
+- call: hmac.HMAC
+  kwargs: {digestmod: .}
+  noSymbolPrefix: [hashlib., cryptography.hazmat.primitives.hashes., Crypto.Hash., Cryptodome.Hash.]
+  feature: python-unresolved
+- call: hmac.digest
+  minArgs: 3
+  noSymbolPrefix: [hashlib., cryptography.hazmat.primitives.hashes., Crypto.Hash., Cryptodome.Hash.]
+  feature: python-unresolved
+- call: cryptography.hazmat.primitives.hmac.HMAC
+  minArgs: 2
+  noSymbolPrefix: [cryptography.hazmat.primitives.hashes.]
+  feature: python-unresolved
+- call: cryptography.hazmat.primitives.hmac.HMAC
+  kwargs: {algorithm: .}
+  noSymbolPrefix: [cryptography.hazmat.primitives.hashes.]
+  feature: python-unresolved

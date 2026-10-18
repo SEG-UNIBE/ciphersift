@@ -114,10 +114,24 @@ final class AnchorPrefilter {
 
     /** The filter for the Python rules. */
     static AnchorPrefilter python(List<SourceRule> rules) {
+        return python(rules, Features.DEFAULTS);
+    }
+
+    /** The filter for the Python rules that are on with these feature switches (SPEC 5.6 {@code feature}). */
+    static AnchorPrefilter python(List<SourceRule> rules, Features features) {
         List<List<List<String>>> pats = new ArrayList<>();
         for (SourceRule r : rules) {
             for (PythonPattern p : r.pythonPatterns()) {
+                if (p.feature != null && !features.on(p.feature)) {
+                    continue;
+                }
                 List<List<String>> clauses = new ArrayList<>();
+                if (p.literal != null) {
+                    // the string value is the raw text of the literal's content (escapes are not interpreted)
+                    clauses.add(List.copyOf(p.literal));
+                    pats.add(clauses);
+                    continue;
+                }
                 if (p.call != null) {
                     for (String part : identifierParts(p.call)) {
                         clauses.add(List.of(part));

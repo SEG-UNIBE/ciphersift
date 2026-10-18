@@ -1,1 +1,1 @@
-{"args": ["--weakness-indicators", "--transitive-deps"]}
+{"args": ["--weakness-indicators", "--transitive-deps", "--feature", "python-unresolved=off"]}

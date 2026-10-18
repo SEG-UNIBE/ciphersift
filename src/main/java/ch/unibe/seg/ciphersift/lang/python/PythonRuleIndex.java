@@ -32,11 +32,30 @@ final class PythonRuleIndex {
      * rules in id order, patterns in file order.
      */
     final Map<String, List<PythonPattern>> byRef = new HashMap<>();
+    /** {@code literal} patterns by string value (SPEC 5.6, DECISIONS B-P-LIT); rules in id order. */
+    final Map<String, List<PythonPattern>> literals = new HashMap<>();
 
     PythonRuleIndex(List<SourceRule> rules) {
+        this(rules, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
+    }
+
+    /** The index of the patterns that are on with these feature switches (SPEC 5.6 {@code feature}). */
+    PythonRuleIndex(List<SourceRule> rules, ch.unibe.seg.ciphersift.scan.Features features) {
         for (SourceRule r : rules) {
             List<PythonPattern> assigns = new ArrayList<>();
             for (PythonPattern p : r.pythonPatterns()) {
+                if (p.feature != null && !features.on(p.feature)) {
+                    continue;
+                }
+                if (p.literal != null) {
+                    for (String v : p.literal) {
+                        List<PythonPattern> l = literals.computeIfAbsent(v, k -> new ArrayList<>());
+                        if (!l.contains(p)) {
+                            l.add(p);
+                        }
+                    }
+                    continue;
+                }
                 if (p.matchesReferences()) {
                     byRef.computeIfAbsent(p.referenceName(), k -> new ArrayList<>()).add(p);
                 }

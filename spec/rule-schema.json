@@ -157,17 +157,29 @@
         "value": {"$ref": "#/$defs/regex"},
         "valueContains": {"$ref": "#/$defs/stringList"},
         "param": {"$ref": "#/$defs/param"},
-        "reportAt": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}}
+        "reportAt": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}},
+        "noSymbolPrefix": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "minArgs": {"type": "integer", "minimum": 1},
+        "literal": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "feature": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
       },
       "allOf": [
-        {"description": "exactly one of call / anyCall / assign / ref; method may stand alone or (not used today) accompany call",
+        {"description": "exactly one of call / anyCall / assign / ref / literal; method may stand alone or (not used today) accompany call",
          "oneOf": [
-           {"required": ["call"], "not": {"anyOf": [{"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}]}},
-           {"required": ["method"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}]}},
-           {"required": ["anyCall", "kwargs"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["assign"]}, {"required": ["ref"]}]}},
-           {"required": ["assign"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["ref"]}]}},
-           {"required": ["ref"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["assign"]}]}}
+           {"required": ["call"], "not": {"anyOf": [{"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
+           {"required": ["method"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
+           {"required": ["anyCall", "kwargs"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["assign"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
+           {"required": ["assign"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["ref"]}, {"required": ["literal"]}]}},
+           {"required": ["ref"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["literal"]}]}},
+           {"required": ["literal"], "not": {"anyOf": [{"required": ["call"]}, {"required": ["method"]}, {"required": ["anyCall"]}, {"required": ["assign"]}, {"required": ["ref"]}]}}
          ]},
+        {"description": "a literal pattern (DECISIONS B-P-LIT) takes no condition, no reportAt; param only {value}",
+         "if": {"required": ["literal"]},
+         "then": {"not": {"anyOf": [
+           {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
+           {"required": ["allSymbols"]}, {"required": ["kwargs"]}, {"required": ["dictItems"]}, {"required": ["notInside"]},
+           {"required": ["reportAt"]}, {"required": ["noSymbolPrefix"]}, {"required": ["minArgs"]}]},
+           "properties": {"param": {"required": ["value"]}}}},
         {"if": {"required": ["assign"]},
          "then": {"not": {"anyOf": [
            {"required": ["firstString"]}, {"required": ["stringContains"]}, {"required": ["anySymbol"]},
