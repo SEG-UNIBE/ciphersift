@@ -1585,7 +1585,8 @@ names the finding (one finding per rule and line, 8.6); a literal inside the arg
 hit is not matched (that call's data or configuration, `hashlib.sha256(b"ES512")`), nor is one in the recorded
 argument range of the same rule. Name and symbol: the string; line: the string's start row + 1; snippet: the
 string. The bundled rules list the IANA SSH algorithm names, JOSE algorithm and curve names and TLS group
-names (215 names, sources in `PROVENANCE.md`) under the rule of each family they name (a name of several
+names (215 names, sources in `PROVENANCE.md`) and the 356 IANA TLS cipher-suite names of `spec/anycall-names.csv`
+*(DECISIONS P3-SUITE)* under the rule of each family they name (a name of several
 families under each: `curve25519-sha256` is X25519 and SHA-2).
 
 ### 8.7 Operation-call attribution (`reportAt`)
