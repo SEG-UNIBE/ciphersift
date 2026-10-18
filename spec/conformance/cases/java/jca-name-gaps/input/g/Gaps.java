@@ -14,7 +14,7 @@ class Gaps {
         MessageDigest.getInstance("SHAKE256-512"); // want: java.hash.sha3 SHAKE256-512
         SecretKeyFactory.getInstance("ARCFOUR"); // want: java.sym.rc4 ARCFOUR
         SecretKeyFactory.getInstance("ChaCha20"); // want: java.sym.chacha20 ChaCha20
-        KEM.getInstance("DHKEM"); // want: java.asym.dh DHKEM
+        KEM.getInstance("DHKEM"); // want: java.asym.ecdh DHKEM
         Cipher.getInstance("ECIES"); // want: java.asym.ec ECIES
     }
 }

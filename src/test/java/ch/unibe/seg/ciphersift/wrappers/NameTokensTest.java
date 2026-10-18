@@ -44,7 +44,7 @@ class NameTokensTest {
         "tripleDes;DES 3DES", "ecDsa;DSA EC", "loadTrustStore;java.cert.keystore", "desede;3DES", "md5A;MD5", "ripemd160;RIPEMD160", "getSHA1;SHA1",
         "aesthetic;", "description;", "ecb;", "decode;", "rsassa;RSA", "rsaes_oaep;RSA", "section;", "ideal;", "hashTwice;", "digest;", "ec;EC",
         "dh_params;DH", "Blake2b;BLAKE2", "md5sum;MD5", "sha1hex;SHA1", "x25519PK;Curve25519", "chacha20poly1305;ChaCha20 Poly1305",
-        "des3Cipher;3DES", "tdesKey;3DES", "signHS256;HMAC", "es256Verify;EC", "a256gcm;AES", "ffdhe2048;DH", "sect233k1;EC",
+        "des3Cipher;3DES", "tdesKey;3DES", "signHS256;HMAC", "es256Verify;EC", "a256gcm;AES", "ffdhe2048;DH", "dhkemEncap;EC", "sect233k1;EC",
         "parseCert;", "pubkey;", "hash160;"})
     void families(String name, String expected) {
         Set<String> want = expected == null ? Set.of() : Set.of(expected.split(" "));

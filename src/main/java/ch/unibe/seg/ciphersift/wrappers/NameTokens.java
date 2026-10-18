@@ -102,9 +102,9 @@ public final class NameTokens {
         // the family the bundled rules use; sources in PROVENANCE.md
         alias("HMAC", "hs256", "hs384", "hs512");
         alias("RSA", "rs256", "rs384", "rs512", "ps256", "ps384", "ps512");
-        alias("EC", "es256", "es384", "es512", "sect", "nistp", "p192", "p224", "ecmqv", "x962");
+        alias("EC", "es256", "es384", "es512", "sect", "nistp", "p192", "p224", "ecmqv", "x962", "dhkem");
         alias("AES", "a128", "a192", "a256");
-        alias("DH", "diffie", "diffiehellman", "ffdhe", "dhe", "dhkem");
+        alias("DH", "diffie", "diffiehellman", "ffdhe", "dhe");
         alias("DSA", "dss");
         alias("3DES", "tdea", "tdes", "des3");
         alias("IDEA", "idea");
