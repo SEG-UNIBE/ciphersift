@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
 """P3-SUITE: IANA TLS cipher-suite names (spec/anycall-names.csv rows of group G5d-tls-suite, each with its IANA URL)
-as Python literal patterns, filed under the Python rule of the Java rule each row names. usage: gen_suites.py <wt>"""
+as Python literal patterns, filed under the Python rule of the Java rule each row names. usage: gen_python_suites.py <repository root>"""
 import csv, sys
 from pathlib import Path
 W = Path(sys.argv[1])
