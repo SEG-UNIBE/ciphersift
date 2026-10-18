@@ -1,0 +1,4 @@
+{"case": "java/any-call-off", "findings": [
+  {"file": "a/AnyCall.java", "line": 27, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "HMACParameterSpec"},
+  {"file": "a/AnyCall.java", "line": 38, "rule": "java.asym.ecdsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA256withECDSA"}
+]}

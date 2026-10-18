@@ -185,6 +185,8 @@ individually; the table lists every id and its default.
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
 | `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
+| `java-any-call` | on | Java `anyCall` patterns with `feature: java-any-call` (registry names as arguments of any call) | 5.5 |
+| `java-any-call-short` | on | Java `anyCall` patterns with `feature: java-any-call-short` (short JCA names, JOSE names) | 5.5 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
@@ -437,7 +439,22 @@ A Java pattern has exactly one anchor:
 | `method` | `name`, optional trailing `*` (prefix) | A method invocation with this name, whatever the receiver (the receiver's type is not known). |
 | `field` | `pkg.Class.FIELD`, optional trailing `*` on the member | A field access `X.FIELD` (static constant, enum constant) whose qualifier denotes the class, and that is not itself the receiver of a method invocation (7.2). |
 | `override` | `name`, optional trailing `*` | A method declaration with this name. |
+| `anyCall` | `true` | A method invocation of any name except the excluded names below, whatever its receiver *(DECISIONS B-J-SNx)*. Requires `firstString`, `anyString` or `stringContains`. An `anyCall` pattern is a **fallback**: it is evaluated for an event only if no other pattern (of any rule) holds for it (7.7.1). |
 
+**Excluded names of `anyCall`** (comparisons and look-ups, logging and printing, collection builders, the JCA
+factories whose own patterns decide, messages and properties): `equals`, `equalsIgnoreCase`, `contains`,
+`containsKey`, `containsValue`, `startsWith`, `endsWith`, `indexOf`, `lastIndexOf`, `matches`, `compareTo`,
+`compareToIgnoreCase`, `regionMatches`, `getInstance`, `debug`, `info`, `warn`, `warning`, `error`, `trace`,
+`fine`, `finer`, `finest`, `log`, `println`, `printf`, `print`, `format`, `append`, `fail`, `getProperty`,
+`getString`, `getMessage`, `isLoggable`, `add`, `addAll`, `of`, `setOf`, `asList`, `stream`, `copyOf`, and every
+name starting with `assert`, `equals`, `contains` or `log`.
+
+**`feature`** (optional, any anchor; a feature id of 3.1): the pattern takes part only while that feature is
+on (3.1); it is ignored by the index (7.5) and by the pre-filter (14) otherwise. An unknown id is a rule
+error *(DECISIONS B0)*. The bundled `anyCall` patterns carry `feature: java-any-call` (registry names of the
+"SNx" list: XML-Security URIs, multi-token JCA standard names, TLS groups and suites, provider service keys
+`Signature.SHA256withRSA`) or `feature: java-any-call-short` (the short JCA names `AES`, `RSA`, `EC`, …, JOSE
+names); the names and their sources are listed in `spec/anycall-names.csv`.
 Conditions (all optional; all present conditions must hold):
 
 | Key | Value | Allowed with | Holds when |
@@ -571,9 +588,10 @@ constants:
 Used by Java string resolution (7.4): a reference `C.F`, where `C`'s simple name (the last
 segment of the qualifier as written) has an entry with field `F`, resolves to the listed
 string, regardless of imports. The bundled table covers commons-codec
-`MessageDigestAlgorithms` and `HmacAlgorithms`, Android `KeyProperties`, and the
+`MessageDigestAlgorithms` and `HmacAlgorithms`, Android `KeyProperties`, the
 `ALGORITHM_NAME` / `DEFAULT_ALGORITHM_NAME` constants of Apache Shiro's hash classes
-*(DECISIONS E16)*.
+*(DECISIONS E16)*, and the algorithm URIs of the Java SE XML signature API (JSR 105)
+`javax.xml.crypto.dsig.DigestMethod` and `SignatureMethod` *(DECISIONS B-J-XD2)*.
 
 ### 5.11 Algorithm OIDs *(DECISIONS E15, decided by owner)*
 
@@ -1079,6 +1097,7 @@ Each pattern of each Java rule is indexed under a key:
 | `method: m` | (`call`, `m`) |
 | `field: C.F` | (`field`, `F`) |
 | `override: m` | (`decl`, `m`) |
+| `anyCall` | every `call` event whose name is not excluded (5.5) |
 
 A key whose name ends with `*` is a prefix key. The candidate patterns of an event of kind
 *k* and name *n* are those under (*k*, *n*) and under every prefix key (*k*, *p*`*`) with *n*
@@ -1097,6 +1116,7 @@ file order.
 * `field: C.F` holds for a `field` event whose name equals `F` (or starts with it) and
   `denotes(receiver, C)`.
 * `override: m` holds for a `decl` event whose name equals `m` (or starts with it).
+* `anyCall` holds for a `call` event whose name is not excluded (5.5).
 
 **Conditions** are evaluated as defined in 5.5, on the event's string list (7.4.6) and
 argument texts. In addition:
@@ -1118,7 +1138,8 @@ argument texts. In addition:
 
 #### 7.7.1 Specificity
 
-For each event and each candidate rule: evaluate the rule's candidate patterns. If none
+For each event and each candidate rule: evaluate the rule's candidate patterns other than `anyCall`
+patterns; only if no such pattern of any rule holds, evaluate the `anyCall` patterns instead (5.5). If none
 holds, the rule does not match. Otherwise the rule's specificity is the highest specificity
 (5.5) among the holding patterns, and its **chosen pattern** is the first holding pattern
 (in file order) with that specificity.
@@ -2251,6 +2272,8 @@ for wrapper propagation (18.2) fails, the file contributes no definitions and no
     call names; `kwargs` keywords and `dictItems` keys occur in the text; a member type
     `a.Outer.Inner` is referred to only with `Outer` in the reference or in an import, 7.3.2.)
     A `setup.py` that declares requirements is always parsed (9.8).
+    An enabled Java `anyCall` pattern (5.5) has no required name — its strings may be constants of
+    other files — so with `java-any-call` on every Java file is parsed *(DECISIONS B-J-SNx)*.
   * *(DECISIONS T9)* Wrapper propagation (18) parses, in addition, only the files that phase 3
     skipped and whose text contains the name of a crypto callable; it keeps per file only the
     definitions and call sites (not the tree), and reads the text of a file again only to cut the

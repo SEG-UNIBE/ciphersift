@@ -54,6 +54,16 @@ class AnchorPrefilterTest {
     }
 
     @Test
+    void javaAnyCallAcceptsEverythingWhileItsFeatureIsOn() throws Exception {
+        List<ch.unibe.seg.ciphersift.rules.SourceRule> r = rules(JAVA + "match:\n- method: setProtocols\n"
+                + "- anyCall: true\n  anyString: 'SHA-256$'\n  feature: java-any-call\n").javaRules();
+        assertTrue(AnchorPrefilter.java(r).mayMatch("class A {}"), "DECISIONS B-J-SNx: no required name");
+        AnchorPrefilter off = AnchorPrefilter.java(r, Features.DEFAULTS.with(Features.JAVA_ANY_CALL, false));
+        assertFalse(off.mayMatch("class A {}"));
+        assertTrue(off.mayMatch("s.setProtocols(p);"));
+    }
+
+    @Test
     void pythonNamesAreRequired() throws Exception {
         AnchorPrefilter f = AnchorPrefilter.python(rules(PY + "match:\n- call: hashlib.md5\n"
                 + "- method: [sign, verify]\n  anySymbol: [cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15]\n"

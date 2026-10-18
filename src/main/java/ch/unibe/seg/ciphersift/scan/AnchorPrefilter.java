@@ -76,9 +76,21 @@ final class AnchorPrefilter {
 
     /** The filter for the Java rules. */
     static AnchorPrefilter java(List<SourceRule> rules) {
+        return java(rules, Features.DEFAULTS);
+    }
+
+    /**
+     * The filter for the Java rules that are on with these feature switches (SPEC 5.5 {@code feature}). An
+     * enabled {@code anyCall} pattern has no required name (its strings may come from other files), so the
+     * filter then accepts every text.
+     */
+    static AnchorPrefilter java(List<SourceRule> rules, Features features) {
         List<List<List<String>>> pats = new ArrayList<>();
         for (SourceRule r : rules) {
             for (JavaPattern p : r.javaPatterns()) {
+                if (p.feature != null && !features.on(p.feature)) {
+                    continue;
+                }
                 List<List<String>> clauses = new ArrayList<>();
                 switch (p.anchor) {
                     case CALL, FIELD -> {

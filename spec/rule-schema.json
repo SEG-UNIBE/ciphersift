@@ -93,13 +93,18 @@
         "constantArg": {"type": "integer", "minimum": 0},
         "inType": {"$ref": "#/$defs/stringList"},
         "body": {"$ref": "#/$defs/regex"},
-        "param": {"$ref": "#/$defs/param"}
+        "param": {"$ref": "#/$defs/param"},
+        "anyCall": {"const": true, "description": "any method invocation except the excluded names (SPEC 5.5, DECISIONS B-J-SNx)"},
+        "feature": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "the pattern is used only while this feature is on (SPEC 3.1, 5.5)"}
       },
       "oneOf": [
         {"required": ["call"]}, {"required": ["new"]}, {"required": ["method"]},
-        {"required": ["field"]}, {"required": ["override"]}
+        {"required": ["field"]}, {"required": ["override"]}, {"required": ["anyCall"]}
       ],
       "allOf": [
+        {"description": "anyCall needs a string condition (SPEC 5.5)",
+         "if": {"required": ["anyCall"]},
+         "then": {"anyOf": [{"required": ["anyString"]}, {"required": ["firstString"]}, {"required": ["stringContains"]}]}},
         {"if": {"anyOf": [{"required": ["inType"]}, {"required": ["body"]}]},
          "then": {"required": ["override"]}},
         {"if": {"required": ["override"]},

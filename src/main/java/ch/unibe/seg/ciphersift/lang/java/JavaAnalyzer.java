@@ -38,8 +38,12 @@ public final class JavaAnalyzer {
     private final JavaContexts contexts;
 
     public JavaAnalyzer(RuleSet rules, JavaContexts contexts) {
+        this(rules, contexts, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
+    }
+
+    public JavaAnalyzer(RuleSet rules, JavaContexts contexts, ch.unibe.seg.ciphersift.scan.Features features) {
         this.rules = rules;
-        this.index = new JavaRuleIndex(rules.javaRules());
+        this.index = new JavaRuleIndex(rules.javaRules(), features);
         this.contexts = contexts;
     }
 
@@ -264,16 +268,11 @@ public final class JavaAnalyzer {
         if (cands.isEmpty()) {
             return List.of();
         }
-        // per rule: best specificity and chosen pattern
-        Map<SourceRule, JavaPattern> chosen = new LinkedHashMap<>();
-        for (JavaPattern p : cands) {
-            JavaPattern best = chosen.get(p.rule);
-            if (best != null && best.specificity >= p.specificity) {
-                continue; // cannot improve: an earlier pattern with at least this specificity already holds
-            }
-            if (holds(p, ev, ctx, resolver)) {
-                chosen.put(p.rule, p);
-            }
+        // per rule: best specificity and chosen pattern; anyCall patterns only where no other pattern holds
+        // (SPEC 5.5: a fallback for names given to an API no rule knows)
+        Map<SourceRule, JavaPattern> chosen = choose(cands, ev, ctx, resolver, false);
+        if (chosen.isEmpty()) {
+            chosen = choose(cands, ev, ctx, resolver, true);
         }
         if (chosen.isEmpty()) {
             return List.of();
@@ -288,6 +287,25 @@ public final class JavaAnalyzer {
             }
         });
         return out;
+    }
+
+    /** The holding patterns per rule (SPEC 7.7.1), among the anyCall patterns or among the others. */
+    private Map<SourceRule, JavaPattern> choose(List<JavaPattern> cands, Event ev, JavaContext ctx,
+            JavaResolver resolver, boolean anyCall) {
+        Map<SourceRule, JavaPattern> chosen = new LinkedHashMap<>();
+        for (JavaPattern p : cands) {
+            if ((p.anchor == JavaPattern.Anchor.ANY_CALL) != anyCall) {
+                continue;
+            }
+            JavaPattern best = chosen.get(p.rule);
+            if (best != null && best.specificity >= p.specificity) {
+                continue; // cannot improve: an earlier pattern with at least this specificity already holds
+            }
+            if (holds(p, ev, ctx, resolver)) {
+                chosen.put(p.rule, p);
+            }
+        }
+        return chosen;
     }
 
     private boolean holds(JavaPattern p, Event ev, JavaContext ctx, JavaResolver resolver) {
@@ -306,6 +324,11 @@ public final class JavaAnalyzer {
             }
             case METHOD -> {
                 if (ev.kind != EventKind.CALL || !p.nameMatches(ev.name)) {
+                    return false;
+                }
+            }
+            case ANY_CALL -> {
+                if (ev.kind != EventKind.CALL || !JavaRuleIndex.anyCallFires(ev.name)) {
                     return false;
                 }
             }
@@ -524,7 +547,7 @@ public final class JavaAnalyzer {
             case CALL -> p.className + "." + ev.name;
             case NEW -> p.className;
             case FIELD -> p.className + "." + ev.name;
-            case METHOD, OVERRIDE -> ev.name;
+            case METHOD, OVERRIDE, ANY_CALL -> ev.name;
         };
         String snippet;
         if (ev.kind == EventKind.DECL) {

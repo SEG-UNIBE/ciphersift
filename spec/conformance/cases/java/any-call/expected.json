@@ -1,0 +1,11 @@
+{"case": "java/any-call", "findings": [
+  {"file": "a/AnyCall.java", "line": 23, "rule": "java.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA3-256"},
+  {"file": "a/AnyCall.java", "line": 24, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "http://www.w3.org/2001/04/xmlenc#sha256"},
+  {"file": "a/AnyCall.java", "line": 25, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "http://www.w3.org/2001/04/xmlenc#sha512"},
+  {"file": "a/AnyCall.java", "line": 26, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "http://www.w3.org/2001/04/xmldsig-more#hmac-sha256"},
+  {"file": "a/AnyCall.java", "line": 27, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "HMACParameterSpec"},
+  {"file": "a/AnyCall.java", "line": 28, "rule": "java.asym.ecdsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "Signature.SHA256withECDSA"},
+  {"file": "a/AnyCall.java", "line": 28, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "Signature.SHA256withECDSA"},
+  {"file": "a/AnyCall.java", "line": 29, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "AES"},
+  {"file": "a/AnyCall.java", "line": 38, "rule": "java.asym.ecdsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA256withECDSA"}
+]}

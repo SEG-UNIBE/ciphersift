@@ -626,6 +626,9 @@ public final class RuleLoader {
             } else if (p.has("field")) {
                 anchor = JavaPattern.Anchor.FIELD;
                 value = p.get("field").asText();
+            } else if (p.has("anyCall")) {
+                anchor = JavaPattern.Anchor.ANY_CALL;
+                value = "";
             } else {
                 anchor = JavaPattern.Anchor.OVERRIDE;
                 value = p.get("override").asText();
@@ -673,7 +676,7 @@ public final class RuleLoader {
             Iterator<String> keys = p.fieldNames();
             while (keys.hasNext()) {
                 String k = keys.next();
-                if (!List.of("call", "new", "method", "field", "override", "param").contains(k)) {
+                if (!List.of("call", "new", "method", "field", "override", "param", "anyCall", "feature").contains(k)) {
                     hasCondition = true;
                 }
             }
@@ -686,9 +689,21 @@ public final class RuleLoader {
                     p.has("constantArg") ? p.get("constantArg").asInt() : null,
                     strings(p.get("inType"), false),
                     regex(file, ptr + "/body", p.get("body"), 0, problems),
-                    paramIndex, hasCondition));
+                    paramIndex, hasCondition, feature(file, ptr, p, problems)));
         }
         return problems.size() == before ? rule : null;
+    }
+
+    /** The {@code feature} of a pattern (SPEC 5.5), which must be a known feature id (3.1); else null. */
+    private static String feature(String file, String ptr, JsonNode p, List<String> problems) {
+        if (!p.has("feature")) {
+            return null;
+        }
+        String f = p.get("feature").asText();
+        if (!ch.unibe.seg.ciphersift.scan.Features.known().containsKey(f)) {
+            problems.add(file + ": " + ptr + "/feature: unknown feature \"" + f + "\"");
+        }
+        return f;
     }
 
     /** Compiles a Go source rule (SPEC 17.3). */

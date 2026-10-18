@@ -65,3 +65,43 @@ constants:
     DEFAULT_ALGORITHM_NAME: argon2id
   BCryptHash:
     DEFAULT_ALGORITHM_NAME: bcrypt2y
+  # JSR 105 XML digital signature algorithm URIs (Java SE javax.xml.crypto.dsig, DECISIONS B-J-XD2):
+  # https://docs.oracle.com/en/java/javase/21/docs/api/java.xml.crypto/javax/xml/crypto/dsig/DigestMethod.html,
+  # https://docs.oracle.com/en/java/javase/21/docs/api/java.xml.crypto/javax/xml/crypto/dsig/SignatureMethod.html
+  DigestMethod:
+    SHA1: 'http://www.w3.org/2000/09/xmldsig#sha1'
+    SHA224: 'http://www.w3.org/2001/04/xmldsig-more#sha224'
+    SHA256: 'http://www.w3.org/2001/04/xmlenc#sha256'
+    SHA384: 'http://www.w3.org/2001/04/xmldsig-more#sha384'
+    SHA512: 'http://www.w3.org/2001/04/xmlenc#sha512'
+    RIPEMD160: 'http://www.w3.org/2001/04/xmlenc#ripemd160'
+    SHA3_224: 'http://www.w3.org/2007/05/xmldsig-more#sha3-224'
+    SHA3_256: 'http://www.w3.org/2007/05/xmldsig-more#sha3-256'
+    SHA3_384: 'http://www.w3.org/2007/05/xmldsig-more#sha3-384'
+    SHA3_512: 'http://www.w3.org/2007/05/xmldsig-more#sha3-512'
+  SignatureMethod:
+    DSA_SHA1: 'http://www.w3.org/2000/09/xmldsig#dsa-sha1'
+    DSA_SHA256: 'http://www.w3.org/2009/xmldsig11#dsa-sha256'
+    RSA_SHA1: 'http://www.w3.org/2000/09/xmldsig#rsa-sha1'
+    RSA_SHA224: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha224'
+    RSA_SHA256: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+    RSA_SHA384: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha384'
+    RSA_SHA512: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha512'
+    SHA1_RSA_MGF1: 'http://www.w3.org/2007/05/xmldsig-more#sha1-rsa-MGF1'
+    SHA224_RSA_MGF1: 'http://www.w3.org/2007/05/xmldsig-more#sha224-rsa-MGF1'
+    SHA256_RSA_MGF1: 'http://www.w3.org/2007/05/xmldsig-more#sha256-rsa-MGF1'
+    SHA384_RSA_MGF1: 'http://www.w3.org/2007/05/xmldsig-more#sha384-rsa-MGF1'
+    SHA512_RSA_MGF1: 'http://www.w3.org/2007/05/xmldsig-more#sha512-rsa-MGF1'
+    ECDSA_SHA1: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha1'
+    ECDSA_SHA224: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha224'
+    ECDSA_SHA256: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256'
+    ECDSA_SHA384: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384'
+    ECDSA_SHA512: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512'
+    HMAC_SHA1: 'http://www.w3.org/2000/09/xmldsig#hmac-sha1'
+    HMAC_SHA224: 'http://www.w3.org/2001/04/xmldsig-more#hmac-sha224'
+    HMAC_SHA256: 'http://www.w3.org/2001/04/xmldsig-more#hmac-sha256'
+    HMAC_SHA384: 'http://www.w3.org/2001/04/xmldsig-more#hmac-sha384'
+    HMAC_SHA512: 'http://www.w3.org/2001/04/xmldsig-more#hmac-sha512'
+    RSA_PSS: 'http://www.w3.org/2007/05/xmldsig-more#rsa-pss'
+    ED25519: 'http://www.w3.org/2021/04/xmldsig-more#eddsa-ed25519'
+    ED448: 'http://www.w3.org/2021/04/xmldsig-more#eddsa-ed448'
