@@ -107,8 +107,6 @@ packages:
   note: HKDF
 - package: truststore
   note: OS trust store for ssl
-- package: certifi
-  note: Mozilla CA bundle
 - package: pyopenssl-psk
   note: TLS-PSK for pyOpenSSL
 - package: ssh2-python

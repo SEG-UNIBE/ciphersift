@@ -5,7 +5,6 @@
   {"file": "cfg/setup.cfg", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyjwt", "version": "2.8.0"},
   {"file": "cfg/setup.cfg", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pynacl", "version": "1.5.0"},
   {"file": "java/pom.xml", "line": null, "rule": "dep.maven", "type": "library", "ecosystem": "maven", "package": "org.apache.shiro.crypto:shiro-hashes-argon2", "version": "3.0.1"},
-  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "certifi", "version": null},
   {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "electrum-ecc", "version": null},
   {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pyaes", "version": "1.6.1"},
   {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "pysha3", "version": "1.0.2"},
