@@ -1,0 +1,5 @@
+{"case": "java/thin-12", "findings": [
+  {"file": "t/Sums.java", "line": 12, "rule": "java.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-1"},
+  {"file": "t/Sums.java", "line": 26, "rule": "java.hash.md5", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "MD5", "variant": null, "protocol": null, "version": null, "param": null, "name": "MD5"},
+  {"file": "t/Sums.java", "line": 40, "rule": "java.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-1", "via": ["t/Sums.java:11 Sums.checksum"], "origin": "t/Sums.java:12"}
+]}

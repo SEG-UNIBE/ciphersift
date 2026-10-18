@@ -34,7 +34,14 @@ public final class WrapperPass {
     private final int maxDepth;
     /** Safety bound on the number of levels; the computation stops earlier when nothing changes. */
     static final int MAX_LEVELS = 1000;
-    static final int MAX_THIN_LINES = 8;
+    /** SPEC 18.5: the span limit of a thin wrapper, by language (DECISIONS T3, B-J-G, B-G-E). */
+    private int thinLines(Outline.Lang l) {
+        return switch (l) {
+            case JAVA -> options.features().on(Features.JAVA_THIN_12) ? 12 : 8;
+            case PYTHON -> 8;
+            case GO -> 8;
+        };
+    }
     static final int MAX_REEXPORT_HOPS = 4;
     static final int SNIPPET_MAX = 500;
 
@@ -255,7 +262,7 @@ public final class WrapperPass {
                         }
                     }
                 }
-                if (thin && n.direct.size() == 1 && n.d.endLine() - n.d.line() + 1 <= MAX_THIN_LINES) {
+                if (thin && n.direct.size() == 1 && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                     Map.Entry<String, SourceFinding> e = n.direct.firstEntry();
                     n.carry.putIfAbsent(e.getKey(), new Carry(1, 1, e.getValue(), List.of(n)));
                 }
@@ -293,7 +300,7 @@ public final class WrapperPass {
                             }
                         }
                     }
-                    if (thin && n.carry.isEmpty() && m.isEmpty() && n.d.endLine() - n.d.line() + 1 <= MAX_THIN_LINES) {
+                    if (thin && n.carry.isEmpty() && m.isEmpty() && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                         Set<String> keys = new TreeSet<>(Texts.CODE_POINT_ORDER);
                         keys.addAll(n.direct.keySet());
                         for (int i : e.getValue()) {

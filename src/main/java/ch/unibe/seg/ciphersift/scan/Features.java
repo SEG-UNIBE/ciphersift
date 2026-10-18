@@ -36,8 +36,12 @@ public final class Features {
     /** Wrapper chains of up to 4 definitions instead of 3 (C, SPEC 18.5). */
     public static final String WRAPPER_DEPTH_4 = "wrapper-depth-4";
 
+    /** Java thin wrappers of up to 12 lines instead of 8 (G, SPEC 18.5). */
+    public static final String JAVA_THIN_12 = "java-thin-12";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(JAVA_THIN_12, true);
         known(WRAPPER_ALIASES_V2, true);
         known(WRAPPER_DEPTH_4, true);
     }

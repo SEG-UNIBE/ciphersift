@@ -184,6 +184,7 @@ individually; the table lists every id and its default.
 | Id | Default | Behaviour when on | Section |
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
+| `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
 | `wrapper-depth-4` | on | wrapper chains of up to 4 definitions (else 3) | 18.5 |
 | `wrapper-aliases-v2` | on | the V2 aliases of 18.6 (certificates, keys, TLS/SSH, `hash160`) name family keys | 18.6 |
 
@@ -2910,11 +2911,12 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
 * **Level 1, W7 (name-consistent)**: a definition carries every family key that is both one of its
   name families and the family key of one of its body findings. Evidence: the first such body
   finding (by line, then rule id).
-* **Level 1, W6 (thin)**, where enabled: a definition whose span has at most 8 lines and whose body
+* **Level 1, W6 (thin)**, where enabled: a definition whose span has at most *L* lines (*L* = 12 for Java,
+  *DECISIONS B-J-G*, 8 with `--feature java-thin-12=off`; 8 for Python; 12 for Go, *DECISIONS B-G-E*) and whose body
   findings have exactly one family key carries that key (whatever its name). Evidence as above.
 * **Level *k* ≥ 2, W7**: a definition that does not yet carry a key *F* carries *F* if *F* is one of
   its name families and a call site of its body resolves to a group carrying *F* below level *k*.
-* **Level *k* ≥ 2, W6**, where enabled: a definition of at most 8 lines that carries nothing yet
+* **Level *k* ≥ 2, W6**, where enabled: a definition of at most *L* lines that carries nothing yet
   carries *F* if the family keys of its body findings together with the keys carried (below level
   *k*) by the groups its call sites resolve to are exactly {*F*} (a thin wrapper of a wrapper; the
   test is made once, at the first level where it holds).
