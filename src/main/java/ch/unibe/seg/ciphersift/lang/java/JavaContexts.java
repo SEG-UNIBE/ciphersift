@@ -58,6 +58,73 @@ public final class JavaContexts {
         return prev != null ? prev : built;
     }
 
+    /** Java files under the scan root by file name (t3 J-XMOD), built on first use. */
+    private volatile java.util.Map<String, java.util.List<Path>> byName;
+
+    /**
+     * The Java files under the scan root whose path ends with {@code suffix} (a relative path {@code a/b/C.java},
+     * matched at a directory boundary), in path order. Directories named {@code .git}, {@code .hg}, {@code .svn}
+     * and symbolic links are not entered (SPEC 4.1).
+     */
+    java.util.List<Path> filesEndingWith(String suffix) {
+        java.util.Map<String, java.util.List<Path>> m = byName;
+        if (m == null) {
+            synchronized (this) {
+                m = byName;
+                if (m == null) {
+                    m = indexByName();
+                    byName = m;
+                }
+            }
+        }
+        int slash = suffix.lastIndexOf('/');
+        java.util.List<Path> l = m.get(slash < 0 ? suffix : suffix.substring(slash + 1));
+        if (l == null) {
+            return java.util.List.of();
+        }
+        java.util.List<Path> out = new java.util.ArrayList<>(1);
+        for (Path p : l) {
+            String rel = scanRoot.relativize(p).toString().replace(java.io.File.separatorChar, '/');
+            if (rel.equals(suffix) || rel.endsWith("/" + suffix)) {
+                out.add(p);
+            }
+        }
+        return out;
+    }
+
+    private java.util.Map<String, java.util.List<Path>> indexByName() {
+        java.util.TreeMap<String, java.util.List<Path>> m = new java.util.TreeMap<>();
+        java.util.ArrayDeque<Path> dirs = new java.util.ArrayDeque<>();
+        dirs.push(scanRoot);
+        while (!dirs.isEmpty()) {
+            Path d = dirs.pop();
+            try (java.nio.file.DirectoryStream<Path> ds = Files.newDirectoryStream(d)) {
+                for (Path c : ds) {
+                    String n = c.getFileName().toString();
+                    BasicFileAttributes a;
+                    try {
+                        a = Files.readAttributes(c, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                    } catch (IOException ex) {
+                        continue;
+                    }
+                    if (a.isDirectory()) {
+                        if (!n.equals(".git") && !n.equals(".hg") && !n.equals(".svn")) {
+                            dirs.push(c);
+                        }
+                    } else if (a.isRegularFile() && n.endsWith(".java")) {
+                        m.computeIfAbsent(n, k -> new java.util.ArrayList<>(1)).add(c.toAbsolutePath().normalize());
+                    }
+                }
+            } catch (IOException | RuntimeException ex) {
+                // unreadable directory: skipped
+            }
+        }
+        for (java.util.List<Path> l : m.values()) {
+            l.sort(null);
+        }
+        return m;
+    }
+
     int size() {
         return cache.size();
     }

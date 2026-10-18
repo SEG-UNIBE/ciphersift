@@ -38,6 +38,9 @@ public final class JavaAnalyzer {
     private final JavaContexts contexts;
     private final boolean getters;
     private final boolean deferred;
+    private final boolean inherited;
+    private final boolean crossModule;
+    private final boolean constructorCalls;
 
     public JavaAnalyzer(RuleSet rules, JavaContexts contexts) {
         this(rules, contexts, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
@@ -49,6 +52,9 @@ public final class JavaAnalyzer {
         this.contexts = contexts;
         this.getters = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CONSTANT_GETTERS);
         this.deferred = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_DEFERRED_LOCALS);
+        this.inherited = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_INHERITED_CONSTANTS);
+        this.crossModule = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CROSS_MODULE_CONSTANTS);
+        this.constructorCalls = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CONSTRUCTOR_CALLS);
     }
 
     /** An event (SPEC 7.2). */
@@ -105,7 +111,7 @@ public final class JavaAnalyzer {
      */
     public List<SourceFinding> analyze(SyntaxNode root, Path file, String relativePath, boolean test) {
         JavaContext ctx = JavaContext.build(file, root);
-        JavaResolver resolver = new JavaResolver(rules, contexts, getters, deferred);
+        JavaResolver resolver = new JavaResolver(rules, contexts, getters, deferred, inherited, crossModule);
         List<Selected> selected = new ArrayList<>();
         IdentityHashMap<SyntaxNode, List<Selected>> byNode = new IdentityHashMap<>();
 
@@ -168,6 +174,19 @@ public final class JavaAnalyzer {
                     }
                 }
                 return new Event(EventKind.CALL, n, name, receiver, statics, n.field("arguments"), n.line());
+            }
+            case "explicit_constructor_invocation": {
+                // super(…) / this(…): a call without receiver named "super" / "this"; only anyCall patterns can
+                // hold for it (no rule names these methods), t3 J-SUPER
+                SyntaxNode ctor = n.field("constructor");
+                if (!constructorCalls || ctor == null || n.field("object") != null) {
+                    return null;
+                }
+                String name = ctor.text();
+                if (!(name.equals("super") || name.equals("this")) || !index.hasCandidates(EventKind.CALL, name)) {
+                    return null;
+                }
+                return new Event(EventKind.CALL, n, name, null, List.of(), n.field("arguments"), n.line());
             }
             case "object_creation_expression": {
                 SyntaxNode type = n.field("type");

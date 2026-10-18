@@ -22,6 +22,8 @@ final class JavaResolver {
     private static final Set<String> DECODERS = Set.of("getBytes", "toCharArray", "decode", "decodeHex",
             "decodeBase64", "parseHexBinary", "parseBase64Binary", "fromHexString", "hexStringToByteArray",
             "hexToBytes", "fromHex");
+    /** Decoders whose data is their receiver; an argument is a charset (t3 J-GB, SPEC 7.4.7). */
+    private static final Set<String> RECEIVER_DECODERS = Set.of("getBytes", "toCharArray");
 
     /**
      * A lookup result: an initialiser in its context, or a constants-table string; or, for a local assigned
@@ -49,15 +51,24 @@ final class JavaResolver {
      */
     private final java.util.Set<Integer> resolvingDeferred = new java.util.HashSet<>();
 
+    /** t3 J-INH: constants inherited from project supertypes; J-XMOD: classes in other source roots. */
+    private final boolean inherited;
+    private final boolean crossModule;
+    /** Supertype levels followed for an inherited constant (t3 J-INH). */
+    static final int MAX_SUPER = 4;
+
     JavaResolver(RuleSet rules, JavaContexts contexts) {
-        this(rules, contexts, true, true);
+        this(rules, contexts, true, true, true, true);
     }
 
-    JavaResolver(RuleSet rules, JavaContexts contexts, boolean getters, boolean deferred) {
+    JavaResolver(RuleSet rules, JavaContexts contexts, boolean getters, boolean deferred, boolean inherited,
+            boolean crossModule) {
         this.rules = rules;
         this.contexts = contexts;
         this.getters = getters;
         this.deferred = deferred;
+        this.inherited = inherited;
+        this.crossModule = crossModule;
     }
 
     // ------------------------------------------------------------------ value (7.4.1)
@@ -197,7 +208,66 @@ final class JavaResolver {
                 return r;
             }
         }
+        return inherited ? inheritedField(name, ctx, 1, new java.util.HashSet<>()) : null;
+    }
+
+    /**
+     * A constant inherited from a supertype of the file's type declarations (t3 J-INH, SPEC 7.4.3 step 4): for each
+     * supertype in order that is not a class of the file, its declaring file (7.4.5) and its field {@code name}, else,
+     * recursively, that file's supertypes (at most {@link #MAX_SUPER} levels; each file once).
+     */
+    private Resolution inheritedField(String name, JavaContext ctx, int depth, java.util.Set<Path> seen) {
+        if (depth > MAX_SUPER || contexts == null) {
+            return null;
+        }
+        for (String s : ctx.supertypes) {
+            int dot = s.indexOf('.');
+            String g = dot < 0 ? s : s.substring(0, dot);
+            if (ctx.localClasses.contains(g) || g.isEmpty() || !Character.isUpperCase(g.charAt(0)) && dot < 0) {
+                continue;
+            }
+            for (String cls : classCandidates(s, ctx)) {
+                JavaContext decl = locate(cls, ctx);
+                if (decl == null) {
+                    continue;
+                }
+                if (decl != ctx && seen.add(decl.file)) {
+                    Resolution r = fieldLookup(name, decl);
+                    if (r == null) {
+                        r = inheritedField(name, decl, depth + 1, seen);
+                    }
+                    if (r != null) {
+                        return r;
+                    }
+                }
+                break;
+            }
+        }
         return null;
+    }
+
+    /** Fully qualified candidates for a type name as written in {@code ctx} (as for 7.4.4 step 3). */
+    private static List<String> classCandidates(String q, JavaContext ctx) {
+        int dot = q.indexOf('.');
+        String g = dot < 0 ? q : q.substring(0, dot);
+        String imported = ctx.imports.get(g);
+        if (imported != null) {
+            return List.of(imported + (dot < 0 ? "" : q.substring(dot)));
+        }
+        if (dot >= 0 && !Character.isUpperCase(g.charAt(0))) {
+            return List.of(q);
+        }
+        List<String> out = new ArrayList<>();
+        if (!ctx.packageName.isEmpty()) {
+            out.add(ctx.packageName + "." + q);
+        }
+        for (String w : ctx.wildcards) {
+            out.add(w + "." + q);
+        }
+        if (ctx.packageName.isEmpty()) {
+            out.add(q);
+        }
+        return out;
     }
 
     /**
@@ -351,7 +421,9 @@ final class JavaResolver {
             return Resolution.constant(c);
         }
         if (f.thisObject() || ctx.localClasses.contains(s)) {
-            return fieldLookup(field, ctx);
+            Resolution r = fieldLookup(field, ctx);
+            // this.F / C.F of a class of the file, F declared in a supertype (t3 J-INH)
+            return r == null && inherited ? inheritedField(field, ctx, 1, new java.util.HashSet<>()) : r;
         }
         if (!s.isEmpty() && Character.isUpperCase(s.charAt(0))) {
             int dot = q.indexOf('.');
@@ -404,35 +476,74 @@ final class JavaResolver {
         if (c != null) {
             return Resolution.constant(c);
         }
-        Path root = sourceRoot(ctx);
-        if (root == null) {
+        JavaContext decl = locate(cls, ctx);
+        if (decl == null) {
             return null;
         }
+        Resolution r = fieldLookup(field, decl);
+        if (r == null && inherited) {
+            // C.F where F is declared in a supertype of C (t3 J-INH)
+            java.util.Set<Path> seen = new java.util.HashSet<>();
+            if (decl.file != null) {
+                seen.add(decl.file);
+            }
+            r = inheritedField(field, decl, 1, seen);
+        }
+        return r;
+    }
+
+    /**
+     * The declaring file of class {@code cls} (SPEC 7.4.5 step 2): below {@code ctx}'s source root; else (t3 J-XMOD)
+     * the only Java file of the scan whose path ends with the class's package path, for the longest such suffix
+     * that names any file (several files: none).
+     */
+    private JavaContext locate(String cls, JavaContext ctx) {
+        Path root = sourceRoot(ctx);
         String[] seg = cls.split("\\.", -1);
         for (String s : seg) {
             if (s.isEmpty() || s.indexOf('/') >= 0 || s.indexOf('\\') >= 0 || s.equals("..")) {
                 return null;
             }
         }
-        for (int i = seg.length; i >= 1; i--) {
-            // names are matched as UTF-8 whatever the locale (DECISIONS O1); a qualifier from broken
-            // source that is no file name makes the candidate absent
-            Path cand = root;
-            for (int k = 0; k < i && cand != null; k++) {
-                cand = FileNames.resolve(cand, k == i - 1 ? seg[k] + ".java" : seg[k]);
+        if (root != null) {
+            for (int i = seg.length; i >= 1; i--) {
+                // names are matched as UTF-8 whatever the locale (DECISIONS O1); a qualifier from broken
+                // source that is no file name makes the candidate absent
+                Path cand = root;
+                for (int k = 0; k < i && cand != null; k++) {
+                    cand = FileNames.resolve(cand, k == i - 1 ? seg[k] + ".java" : seg[k]);
+                }
+                if (cand == null) {
+                    continue;
+                }
+                if (cand.normalize().equals(ctx.file)) {
+                    return ctx;
+                }
+                Optional<JavaContext> other = contexts.get(cand);
+                if (other.isPresent()) {
+                    return other.get();
+                }
             }
-            if (cand == null) {
-                continue;
+        }
+        if (root == null || !crossModule || seg.length < 2) {
+            // a file whose source root lies outside the scan root gets no cross-file result (Appendix A, D5)
+            return null;
+        }
+        for (int i = seg.length; i >= 2; i--) {
+            StringBuilder sb = new StringBuilder();
+            for (int k = 0; k < i; k++) {
+                sb.append(seg[k]).append(k == i - 1 ? ".java" : "/");
             }
-            if (cand.normalize().equals(ctx.file)) {
-                return fieldLookup(field, ctx);
+            List<Path> files = contexts.filesEndingWith(sb.toString());
+            if (files.size() > 1) {
+                return null;
             }
-            if (contexts == null) {
-                continue;
-            }
-            Optional<JavaContext> other = contexts.get(cand);
-            if (other.isPresent()) {
-                return fieldLookup(field, other.get());
+            if (files.size() == 1) {
+                Path f = files.get(0);
+                if (f.equals(ctx.file)) {
+                    return ctx;
+                }
+                return contexts.get(f).orElse(null);
             }
         }
         return null;
@@ -549,6 +660,10 @@ final class JavaResolver {
             case JExpr.Call c -> {
                 if (!DECODERS.contains(c.name())) {
                     return false;
+                }
+                if (c.object() != null && RECEIVER_DECODERS.contains(c.name())) {
+                    // s.getBytes("UTF-8"): the argument is a charset, only the receiver is data (t3 J-GB)
+                    return value(c.object(), ctx, d + 1) != null;
                 }
                 return (c.object() != null && value(c.object(), ctx, d + 1) != null)
                         || (c.firstArgument() != null && value(c.firstArgument(), ctx, d + 1) != null);
