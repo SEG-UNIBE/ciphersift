@@ -25,6 +25,14 @@ final class JavaOutliner {
     private record Frame(SyntaxNode node, int cls, boolean inCode, int nesting) {}
 
     static Outline outline(SyntaxNode root, String path, boolean test) {
+        return outline(root, path, test, false);
+    }
+
+    /**
+     * @param constructors constructors are definitions (named like their class) and {@code new C(…)} without a class
+     *        body is a call of them (t3 J-CTOR)
+     */
+    static Outline outline(SyntaxNode root, String path, boolean test, boolean constructors) {
         Outline o = new Outline(Outline.Lang.JAVA, path, test);
         ArrayDeque<Frame> stack = new ArrayDeque<>();
         stack.push(new Frame(root, -1, false, 0));
@@ -62,6 +70,9 @@ final class JavaOutliner {
                         }
                         continue;
                     }
+                    if (constructors) {
+                        newCall(o, n, cls);
+                    }
                 }
                 default -> {
                     // below
@@ -80,7 +91,7 @@ final class JavaOutliner {
                 cls = o.javaClasses.size() - 1;
                 inCode = false;
                 nesting++;
-            } else if (n.is("method_declaration")) {
+            } else if (n.is("method_declaration") || (constructors && n.is("constructor_declaration") && cls >= 0)) {
                 method(o, n, cls, nesting);
                 inCode = true;
                 nesting++;
@@ -161,6 +172,45 @@ final class JavaOutliner {
         o.defs.add(new Outline.Def(o.defs.size(), name.text(), name.line(), endLine, n.start(), nesting,
                 display.toString(), addressable, o.path + "#" + cls, cls, null, arity, varargs, null,
                 new HashSet<>(), Map.of()));
+    }
+
+    /**
+     * {@code new T(…)} as a call of the constructors of T (t3 J-CTOR): name = the last segment of T, qualifier = T
+     * (generic arguments removed), so that 18.4 Java step 2 resolves the class and step 3 its constructors.
+     */
+    private static void newCall(Outline o, SyntaxNode n, int cls) {
+        SyntaxNode type = n.field("type");
+        if (type == null) {
+            return;
+        }
+        String t = removeGenerics(Texts.removeWhitespace(type.text()));
+        if (t.isEmpty() || t.indexOf('<') >= 0) {
+            return;
+        }
+        String name = Texts.lastSegment(t);
+        if (name.isEmpty() || !Character.isUpperCase(name.charAt(0))) {
+            return;
+        }
+        int arity = 0;
+        SyntaxNode args = n.field("arguments");
+        if (args != null) {
+            for (SyntaxNode a : args.namedChildren()) {
+                if (!a.is("line_comment") && !a.is("block_comment")) {
+                    arity++;
+                }
+            }
+        }
+        o.calls.add(new Outline.Call(name, List.of(t), type.line(), n.start(), n.end(), arity, "new " + t, -1, cls,
+                null));
+    }
+
+    private static String removeGenerics(String s) {
+        String prev;
+        do {
+            prev = s;
+            s = s.replaceAll("<[^<>]*>", "");
+        } while (!s.equals(prev));
+        return s;
     }
 
     /** Number of line feeds in a node's text (its last row minus its start row). */

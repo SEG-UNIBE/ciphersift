@@ -1,0 +1,4 @@
+{"case": "java/constructor-wrappers", "findings": [
+  {"file": "w/Sha256Box.java", "line": 10, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-256"},
+  {"file": "w/Sha256Box.java", "line": 25, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA-256", "via": ["w/Sha256Box.java:9 Sha256Box.Sha256Box"], "origin": "w/Sha256Box.java:10"}
+]}
