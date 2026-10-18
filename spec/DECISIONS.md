@@ -333,3 +333,25 @@ precision by more than 2 pp on the development projects is switched off by defau
 | B-P-LIT IANA names as Python literals (LIT) | **benchmark-informed** (python-recall: +2 / +3 sites, 20/20 sampled new findings TP, ~23 findings per gained site). New Python anchor `literal` (exact strings; 8.6.2) and 215 names of the IANA SSH, JOSE and TLS-group registries filed under the rule of each family they name (no Python rule: Twofish, Serpent, HPKE, NTRU Prime). Design choices beyond the simulation: literals come after calls and references (which name a line's finding), and a literal inside the arguments of a call with a finding is that call's data. Feature `python-literal-names` (default on); `python/references`, `python/misc-libs` and `python/fork-fixtures` pass it `off` (their JOSE/SSH strings were written as "nothing" cases or data); new case `python/literal-names`. | 5.6, 8.6.2 |
 | B-P-B2 asn1crypto schemas (python-precision B2) | **benchmark-informed** (pyhanko `pubkey.py:707`: `('cert', x509.Certificate)` in a `_fields` schema, judged debatable). An assignment to `_fields`, `_child_spec` or `_oid_specs` (asn1crypto's schema attributes, asn1crypto documentation) is not a value position for bare references (8.6.1). Feature `python-asn1-schemas` (default on). | 8.6.1 |
 | B-P-B3 fold key objects into operations (python-precision B3) | **benchmark-informed** (14 electrum lines `ECPubkey(pk).ecdsa_verify(…)` with an EC key-object finding and an ECDSA finding). A call hit inside the receiver of an enclosing call with a hit of the same asset type and family is dropped (8.6), the Python counterpart of Java's 7.7.2 for receivers. Feature `python-fold-receivers` (default on). New case `python/fold-and-schemas` (B2, B3). | 8.6 |
+
+**Evaluation of round t2 (2026-10-18, `work/ciphersift-t2-impl/`; native scans of `$TMPDIR` copies, default
+options; before = tier 1 `e0e316a`, after = this round's final jar).** Micro corpora: identical occurrences
+(micro-java 11/11, micro-python 11/11, micro-go 10/11). Determinism: all 22 inputs byte-identical across reruns,
+`--threads 1`/`8` and with the pre-filter off. Speed (LOC/s, 1 / 8 threads, before → after): age 9.0 k → 7.9 k /
+10.2 k → 9.1 k; smallstep 25.4 k → 22.8 k / 32.4 k → 32.8 k; pdfbox 98 k → 44 k / 132 k → 83 k (the `anyCall`
+pre-filter cost, B-J-SNx); electrum 31.2 k → 29.7 k / 53.0 k → 51.7 k — all above 1/4 of tier 1. Fair precision
+rescore (tool-compare `TC_CST2=1`, samples `ciphersift-t2:<p>:1`, 25 per project; verdicts reused only for identical
+findings, propagated ones only with the same chain; the rest judged from the code by Sonnet judges, the Python units
+by a second, source-reading Sonnet judge with Fable as tie-breaker where the two disagreed; no unit stayed "unsure"):
+
+| Language | strict P t1 → t2 | R all | R seed 1 | R seed 2 | F1 strict |
+|---|---|---|---|---|---|
+| Java | 99 → 98 | 76 → 82 | 86 → 90 | 66 → 74 | 86 → 89 |
+| Python | 98 → 98 | 72 → 79 | 78 → 84 | 66 → 74 | 83 → 87 |
+| Go | 91 → 97 | 56 → 66 | 53 → 62 | 59 → 70 | 69 → 79 |
+
+A separate sample of 60 new non-test findings per language: Java 58 TP / 1 wrong-detail / 1 debatable, Python 60/60
+TP, Go 38/42 TP (3 wrong-detail: B3L `ecc` package for Ed25519, a dynamic Noise cipher; 1 debatable) after the B3L
+fix. No booster lowers a language's F1 or strict precision by more than 2 pp, so all are on by default (the owner's
+rule); two were corrected during the gauntlet (B-G-B3L without V2 aliases, B-P-U1 without HMAC variants). Per-booster
+contributions (switching each feature off): `work/ciphersift-t2-impl/ablation-t2c.tsv`.
