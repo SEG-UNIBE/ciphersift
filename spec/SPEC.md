@@ -184,6 +184,7 @@ individually; the table lists every id and its default.
 | Id | Default | Behaviour when on | Section |
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
+| `wrapper-depth-4` | on | wrapper chains of up to 4 definitions (else 3) | 18.5 |
 | `wrapper-aliases-v2` | on | the V2 aliases of 18.6 (certificates, keys, TLS/SSH, `hash160`) name family keys | 18.6 |
 
 `rules validate` loads and validates the bundled rules (or `--rules DIR`), prints one line
@@ -2900,7 +2901,7 @@ Definitions in test files (4.7) are candidates only for call sites in test files
 ### 18.5 Crypto callables
 
 A **crypto callable** is a definition together with the family keys it **carries**; for each
-carried key it records its **depth** (1–3: the number of definitions on its chain), its
+carried key it records its **depth** (1–4: the number of definitions on its chain), its
 **evidence** (the body finding at the end of the chain) and its **chain** (the definitions from it
 to the one holding the evidence). The callables are computed by levels, repeated until a level adds
 nothing; level *k* sees only what levels below *k* produced, so the result does not depend on the
@@ -2919,7 +2920,8 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
   test is made once, at the first level where it holds).
 * In both, evidence and chain are those of the group's **representative** for *F* with the definition
   prepended (of several such calls, the one whose representative has the smallest depth, then the
-  first call); no carry is made whose chain would have more than 3 definitions.
+  first call); no carry is made whose chain would have more than 4 definitions *(DECISIONS B-C; 3 with
+  `--feature wrapper-depth-4=off`)*.
 
 A **group carries** *F* if every definition of the group carries *F*; its representative for *F* is
 the member with the smallest depth for *F* (then path, then line).

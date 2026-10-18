@@ -30,8 +30,8 @@ import java.util.function.Function;
  * hash maps: outlines are visited in path order, definitions and calls in file order.
  */
 public final class WrapperPass {
-    /** SPEC 18.5. */
-    static final int MAX_DEPTH = 3;
+    /** SPEC 18.5: the longest chain, 4 definitions (DECISIONS B-C), 3 with {@code wrapper-depth-4=off}. */
+    private final int maxDepth;
     /** Safety bound on the number of levels; the computation stops earlier when nothing changes. */
     static final int MAX_LEVELS = 1000;
     static final int MAX_THIN_LINES = 8;
@@ -116,6 +116,7 @@ public final class WrapperPass {
     public WrapperPass(WrapperOptions options, Project project) {
         this.options = options;
         this.project = project;
+        this.maxDepth = options.features().on(Features.WRAPPER_DEPTH_4) ? 4 : 3;
     }
 
     /** The rule-id prefix of a language ({@code java}, {@code python}, {@code go}). */
@@ -260,7 +261,7 @@ public final class WrapperPass {
                 }
             }
         }
-        // further levels until nothing changes (SPEC 18.5); a chain never exceeds MAX_DEPTH definitions
+        // further levels until nothing changes (SPEC 18.5); a chain never exceeds maxDepth definitions
         for (int level = 2; level < MAX_LEVELS; level++) {
             List<Map.Entry<Node, Map<String, Carry>>> pending = new ArrayList<>();
             for (Outline o : outlines.values()) {
@@ -323,9 +324,9 @@ public final class WrapperPass {
     /**
      * The carry of {@code n} for {@code f} through the best of its calls (the representative with the
      * smallest depth, then the first call), from groups carrying {@code f} below {@code level}; null if
-     * none or if the chain would exceed {@link #MAX_DEPTH}.
+     * none or if the chain would exceed {@link #maxDepth}.
      */
-    private static Carry bestVia(Node n, String f, List<Integer> calls, Res[] rs, int level) {
+    private Carry bestVia(Node n, String f, List<Integer> calls, Res[] rs, int level) {
         Carry best = null;
         for (int i : calls) {
             Node rep = representative(rs[i].group(), f, level);
@@ -333,7 +334,7 @@ public final class WrapperPass {
                 continue;
             }
             Carry rc = rep.carry.get(f);
-            if (rc.depth() + 1 > MAX_DEPTH) {
+            if (rc.depth() + 1 > maxDepth) {
                 continue;
             }
             if (best == null || rc.depth() + 1 < best.depth()) {

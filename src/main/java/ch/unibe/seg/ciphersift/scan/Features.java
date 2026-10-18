@@ -33,9 +33,13 @@ public final class Features {
     /** Wrapper-name aliases for certificates, keys and protocols (V2, SPEC 18.6). */
     public static final String WRAPPER_ALIASES_V2 = "wrapper-aliases-v2";
 
+    /** Wrapper chains of up to 4 definitions instead of 3 (C, SPEC 18.5). */
+    public static final String WRAPPER_DEPTH_4 = "wrapper-depth-4";
+
     static {
         known(TRANSITIVE_DEPS, false);
         known(WRAPPER_ALIASES_V2, true);
+        known(WRAPPER_DEPTH_4, true);
     }
 
     /** The defaults. */
