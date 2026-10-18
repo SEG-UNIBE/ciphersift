@@ -59,7 +59,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 * Dependency discovery in Maven `pom.xml`, Gradle `build.gradle`, `build.gradle.kts` and
   version catalogs (`*.versions.toml`), and Python `requirements*.txt`, `pyproject.toml`,
   `Pipfile`, `Pipfile.lock`, `poetry.lock`, `setup.cfg` and the literal requirements of `setup.py`
-  (9.8), and Go `go.mod` and `go.sum` (17.10); lock files and `// indirect` requirements only with
+  (9.8), and Go `go.mod` and `go.sum` (17.10); `go.sum` and `// indirect` requirements only with
   `--transitive-deps` (3.1). Only packages on the crypto-library lists of the
   dependency rules are reported.
 * Output: one CycloneDX 1.7 JSON document (1.6 with `--cyclonedx-version 1.6`).
@@ -172,7 +172,7 @@ ciphersift --help | ciphersift <command> --help
 | `--rules DIR` | Use the rule documents under `DIR` (recursively) **instead of** the bundled rules. To extend the bundled rules, run `rules export`, edit, and pass the directory. |
 | `--weakness-indicators` | Also report the findings of rules with `indicator: weakness` (5.3), e.g. non-cryptographic random generators. **Off by default**: without the option these findings are dropped after extraction, so every other finding is exactly the one of a scan with the option; the document metadata records the option (11.2.1) *(DECISIONS E2, decided by owner)*. |
 | `--python-thin-wrappers` | Also treat thin Python functions (at most 8 lines, one family; section 18.5, W6) as crypto wrappers whose call sites are reported. **Off by default** for Python (on for Java and Go, where it has no option); the metadata records the option (11.2.1) *(DECISIONS T3)*. |
-| `--transitive-deps` | Also report transitive dependencies: `go.mod` requirements marked `// indirect` (17.10) and the entries of the lock files `go.sum`, `poetry.lock` and `Pipfile.lock` (9.4). **Off by default**: these manifests list what the build resolved, not what the project chose; a lock file still counts as a scanned manifest. Same as `--feature transitive-deps=on` *(DECISIONS B-G1, B-G2)*. |
+| `--transitive-deps` | Also report transitive dependencies: `go.mod` requirements marked `// indirect` (17.10) and the entries of `go.sum` (and of `poetry.lock` / `Pipfile.lock` under `--feature skip-python-lock-files=on`, 9.4). **Off by default**: these manifests list what the build resolved, not what the project chose; a skipped lock file still counts as a scanned manifest. Same as `--feature transitive-deps=on` *(DECISIONS B-G1, B-G2)*. |
 | `--feature ID=on\|off` | Repeatable. Switches one detection feature (table below) on or off; a later setting of the same id wins; an unknown id or value is a usage error (exit 2). The non-default settings are recorded in the metadata (11.2.1) *(DECISIONS B0)*. |
 | `--cyclonedx-version V` | CycloneDX version of the output: `1.7` (default) or `1.6`. Any other value is a usage error (exit 2). The findings, components, their order and bom-refs are the same for both; 1.7 adds the registry fields of 11.3.1 *(DECISIONS C1)*. |
 | `--quiet` | Only errors on standard error. |
@@ -183,7 +183,8 @@ individually; the table lists every id and its default.
 
 | Id | Default | Behaviour when on | Section |
 |---|---|---|---|
-| `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
+| `transitive-deps` | off | `// indirect` requirements and all lock files are reported | 9.4, 17.10 |
+| `skip-python-lock-files` | off | without `transitive-deps`: `poetry.lock` and `Pipfile.lock` give no findings either | 9.4 |
 | `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
 | `java-any-call` | on | Java `anyCall` patterns with `feature: java-any-call` (registry names as arguments of any call) | 5.5 |
 | `java-any-call-short` | on | Java `anyCall` patterns with `feature: java-any-call-short` (short JCA names, JOSE names) | 5.5 |
@@ -1700,10 +1701,11 @@ iff, after trimming, it matches `^=?=?\s*(\d[^\s,*]*)$`; the version is group 1 
   string, read like a Poetry table (9.3): only an exact pin (`"==3.20.0"`) gives a version
   (https://pipenv.pypa.io/en/latest/pipfile.html). Other tables (`source`, `requires`) are ignored.
 * **Lock files are transitive** *(DECISIONS B-G2)*: `Pipfile.lock`, `poetry.lock` (and Go's `go.sum`,
-  17.10) list every resolved package, the dependencies of dependencies included. By default they
-  yield no findings (they are still counted as scanned manifests); the project's direct requirements
-  come from `Pipfile`, `pyproject.toml` and `go.mod`. With `--transitive-deps` (3.1) they are read as
-  below.
+  17.10) list every resolved package, the dependencies of dependencies included. By default `go.sum`
+  yields no findings; the Python lock files are read as below unless the feature
+  `skip-python-lock-files` is on (3.1; then they are counted as scanned manifests without findings,
+  and the project's direct requirements come from `Pipfile` and `pyproject.toml`). With
+  `--transitive-deps` all lock files are read.
 * **Pipfile.lock** (JSON): the objects `default`, then `develop`; each key is a name; the
   version is the entry's `version` string with all leading `=` removed (`"==4.9"` → `4.9`);
   no `version` → none.
@@ -3198,8 +3200,8 @@ run, or an alias ending in a digit, the same holds, or at most two characters en
 | x509 (subtype) | `x509` |
 | `java.cert.keystore` (rule id) | `keystore`, `truststore` |
 | HMAC, RSA, EC, AES (V1, IANA JOSE) | `hs256`, `hs384`, `hs512`; `rs256`, `rs384`, `rs512`, `ps256`, `ps384`, `ps512`; `es256`, `es384`, `es512`; `a128`, `a192`, `a256` |
-| EC (V1, IANA TLS groups / SSH, JCA, RFC 5480) | `sect`, `nistp`, `p192`, `p224`, `ecmqv`, `x962` |
-| DH (V1, JCA, IANA TLS / SSH) | `diffie`, `diffiehellman`, `ffdhe`, `dhe`, `dhkem` |
+| EC (V1, IANA TLS groups / SSH, JCA, RFC 5480, RFC 9180) | `sect`, `nistp`, `p192`, `p224`, `ecmqv`, `x962`, `dhkem` |
+| DH (V1, JCA, IANA TLS / SSH) | `diffie`, `diffiehellman`, `ffdhe`, `dhe` |
 | DSA, 3DES (V1, IANA SSH, NIST SP 800-67) | `dss`; `tdea`, `tdes`, `des3` |
 | IDEA, SEED, CAST5, PBE (V1) | `idea`; `seed`; `cast128`; `pbe`, `pbes2` |
 | ConcatKDF, KBKDF, X963KDF, ElGamal (V1) | `concatkdf`; `kbkdf`; `x963kdf`; `elgamal` |

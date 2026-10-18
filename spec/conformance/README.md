@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-92 cases, 1624 expected findings. A conforming implementation produces exactly the expected
+93 cases, 1639 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -82,11 +82,12 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/wrappers` | 8 | 17 | (with `--feature go-thin-wrappers=off`) `pkg.F` through `go.mod` and `vendor/`, same package, receiver / `&T{}` / `var` / struct-field types, build-tag variants as one group, a local variable shadowing a wrapper, an untyped value, test files, thin wrappers off for Go |
 | `go/api-ag` | 1 | 85 | the third-party Go APIs of SPEC 17.11 (age, agessh, sigstore cryptoutils, `x509.Marshal*`, securesystemslib `encrypted`, CIRCL, flynn/noise, go-containerregistry `v1.SHA256`, pkcs11 `CKM_ECDSA*`, azkeys) and non-anchors (types, size constants, other members, a switch case) |
 | `deps/crypto-services` | 3 | 24 | the list policy of SPEC 9.9 in all three ecosystems: cloud KMS key clients, HPKE, Noise, WireGuard, PIV, Sigstore signing and time-stamping are listed; storage, secret stores and general SDKs are not (DECISIONS F3); the Vault API client, Rekor and Sigstore's protobuf-specs are listed by owner decision (DECISIONS B-G4, 3 expectations added) |
-| `deps/transitive` | 6 | 6 | default: `go.mod` `// indirect` entries (also `//indirect`, `// indirect; …`, not `// indirectly …`), `go.sum`, `poetry.lock` and `Pipfile.lock` give nothing; `Pipfile` `[packages]` / `[dev-packages]` and `pyproject.toml` do (DECISIONS B-G1, B-G2) |
+| `deps/transitive` | 6 | 10 | default: `go.mod` `// indirect` entries (also `//indirect`, `// indirect; …`, not `// indirectly …`) and `go.sum` give nothing; `poetry.lock`, `Pipfile.lock`, `Pipfile` `[packages]` / `[dev-packages]` and `pyproject.toml` do (DECISIONS B-G1, B-G2) |
+| `deps/skip-python-lock-files` | 6 | 6 | the same input with `--feature skip-python-lock-files=on`: `poetry.lock` and `Pipfile.lock` give nothing either (DECISIONS B-G2) |
 | `deps/transitive-included` | 6 | 16 | the same input with `--transitive-deps` |
 | `deps/commons-codec-used` | 3 | 3 | `commons-codec` is reported when a Java file names `org.apache.commons.codec.digest` (here fully qualified) (DECISIONS B-J4) |
 | `deps/commons-codec-unused` | 3 | 1 | `commons-codec` used only for Base64 / Hex: not reported; other libraries unaffected (DECISIONS B-J4) |
-| `common/wrapper-aliases` | 4 | 26 | V2 wrapper-name aliases in Java, Python and Go (`tls`, `ssh`, `cert`/`certificate`, `privkey`, `hash160`) and the V1 alias `des3` → 3DES, on definitions that are not thin wrappers (DECISIONS B-A1, B-A2) |
+| `common/wrapper-aliases` | 4 | 31 | V2 wrapper-name aliases in Java, Python and Go (`tls`, `ssh`, `cert`/`certificate`, `privkey`, `hash160`) and the V1 alias `des3` → 3DES, on definitions that are not thin wrappers; a Go `sslFingerprint` without TLS evidence carries nothing (DECISIONS B-A1, B-A2) |
 | `java/wrapper-depth` | 1 | 5 | name-consistent chains of 2, 3 and 4 definitions are reported, a chain of 5 is not (DECISIONS B-C) |
 | `java/thin-12` | 1 | 3 | Java thin wrappers of 12 lines carry their family, 13 lines do not (DECISIONS B-J-G) |
 | `java/propagate-random` | 1 | 4 | a Java helper returning a `SecureRandom` is a thin wrapper; one with a CSPRNG and AES is not (DECISIONS B-J-D) |
