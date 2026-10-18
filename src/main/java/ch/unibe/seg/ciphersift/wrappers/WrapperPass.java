@@ -76,7 +76,7 @@ public final class WrapperPass {
     public record Result(List<SourceFinding> findings, int callables, int ambiguous) {}
 
     /** A Go package whose name names family keys, with its first non-test finding per such key (SPEC 18.8). */
-    record GoPkg(String dir, String name, TreeMap<String, SourceFinding> evidence) {}
+    record GoPkg(String dir, String name, TreeMap<String, SourceFinding> evidence, Set<String> variantKeys) {}
 
     /** Member names that a package-name call does not count for (SPEC 18.8): sizes, encodings, look-ups, names. */
     static final java.util.regex.Pattern GO_PKG_EXCLUDED = java.util.regex.Pattern.compile(
@@ -214,6 +214,37 @@ public final class WrapperPass {
         return rest.isEmpty() ? out : rest;
     }
 
+    /**
+     * Whether findings of one family key name different variants: two findings of the same rule with different
+     * non-null params (curves P-256 / P-384, parameter sets ML-DSA-65 / -87). A propagated occurrence then cannot
+     * say which one its call reaches (DECISIONS T3-G7).
+     */
+    static boolean variants(List<SourceFinding> fs) {
+        if (fs == null || fs.size() < 2) {
+            return false;
+        }
+        Map<String, String> first = new HashMap<>();
+        for (SourceFinding f : fs) {
+            if (f.param() == null) {
+                continue;
+            }
+            String p = first.putIfAbsent(f.rule().id(), f.param());
+            if (p != null && !p.equals(f.param())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The evidence as reported at a Go call (T3-G7): the rule's name and no param if the variant is open. */
+    private SourceFinding generic(SourceFinding e, boolean open, Outline.Lang lang) {
+        if (!open || lang != Outline.Lang.GO || !options.features().on(Features.GO_GENERIC_VARIANTS)) {
+            return e;
+        }
+        return new SourceFinding(e.path(), e.line(), e.rule(), e.rule().name(), e.symbol(), e.snippet(), null, null,
+                e.test(), e.via(), e.origin());
+    }
+
     static String familyKey(SourceRule r) {
         if (r.asset().family() != null) {
             return r.asset().family();
@@ -340,6 +371,7 @@ public final class WrapperPass {
                 continue;
             }
             TreeMap<String, SourceFinding> ev = new TreeMap<>(Texts.CODE_POINT_ORDER);
+            Map<String, List<SourceFinding>> byKey = new HashMap<>();
             for (Outline o : outlines.values()) { // path order
                 if (o.lang != Outline.Lang.GO || o.test || !o.goDir.equals(e.getKey()) || !o.goPackage.equals(name)) {
                     continue;
@@ -351,11 +383,18 @@ public final class WrapperPass {
                     String k = familyKey(f.rule());
                     if (fams.contains(k)) {
                         ev.putIfAbsent(k, f);
+                        byKey.computeIfAbsent(k, x -> new ArrayList<>()).add(f);
                     }
                 }
             }
             if (!ev.isEmpty()) {
-                goPkgs.put(e.getKey(), new GoPkg(e.getKey(), name, ev));
+                Set<String> vk = new TreeSet<>(Texts.CODE_POINT_ORDER);
+                for (Map.Entry<String, List<SourceFinding>> b : byKey.entrySet()) {
+                    if (variants(b.getValue())) {
+                        vk.add(b.getKey());
+                    }
+                }
+                goPkgs.put(e.getKey(), new GoPkg(e.getKey(), name, ev, vk));
             }
         }
     }
@@ -685,9 +724,11 @@ public final class WrapperPass {
                     for (Node v : rc.chain()) {
                         via.add(v.where());
                     }
-                    SourceFinding e = rc.evidence();
+                    SourceFinding e0 = rc.evidence();
+                    Node last = rc.chain().get(rc.chain().size() - 1);
+                    SourceFinding e = generic(e0, variants(last.bodyByKey.get(f)), o.lang);
                     out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippet, e.param(),
-                            e.oid(), o.test, via, e.path() + ":" + e.line()));
+                            e.oid(), o.test, via, e0.path() + ":" + e0.line()));
                 }
             }
             // package-name consistency (SPEC 18.8): after the callables, so that a callable's chain wins
@@ -714,7 +755,8 @@ public final class WrapperPass {
                         String snippet = fileText != null && c.end() <= fileText.length()
                                 ? Texts.truncateCodePoints(fileText.substring(c.start(), c.end()), SNIPPET_MAX)
                                 : c.symbol();
-                        SourceFinding e = ev.getValue();
+                        SourceFinding e0 = ev.getValue();
+                        SourceFinding e = generic(e0, g.variantKeys().contains(ev.getKey()), o.lang);
                         out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippet, e.param(),
                                 e.oid(), o.test, List.of(g.dir() + ": package " + g.name()), e.path() + ":" + e.line()));
                     }

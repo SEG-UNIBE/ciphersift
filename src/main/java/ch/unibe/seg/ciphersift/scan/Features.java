@@ -66,6 +66,9 @@ public final class Features {
     /** Go: rand.Int(r, big.NewInt(len(x))) draws a random index, not secret material: not reported (T3-G6). */
     public static final String GO_RANDOM_INDEX = "go-random-index";
 
+    /** Go propagation: evidence with several variants of its family is reported under the rule's name (T3-G7). */
+    public static final String GO_GENERIC_VARIANTS = "go-generic-variants";
+
     /** Java {@code anyCall} patterns: registry algorithm names as arguments of any call (SNx, SPEC 5.5). */
     public static final String JAVA_ANY_CALL = "java-any-call";
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
@@ -114,6 +117,7 @@ public final class Features {
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
         known(GO_NESTED_SAME_RULE, true);
+        known(GO_GENERIC_VARIANTS, true);
         known(GO_RANDOM_INDEX, false);
         known(GO_THIN_KEY_MATERIAL, true);
         known(GO_PACKAGE_NAMES, true);

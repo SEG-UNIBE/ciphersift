@@ -1,0 +1,7 @@
+{"case": "go/generic-variants", "findings": [
+  {"file": "cmd/main.go", "line": 6, "rule": "go.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "ECDH key agreement in Go", "via": ["keys/keys.go:5 keys.Curve"], "origin": "keys/keys.go:8"},
+  {"file": "cmd/main.go", "line": 7, "rule": "go.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": "P-256", "name": "crypto/ecdh.P256", "via": ["keys/keys.go:14 keys.Fixed"], "origin": "keys/keys.go:15"},
+  {"file": "keys/keys.go", "line": 8, "rule": "go.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": "P-384", "name": "crypto/ecdh.P384"},
+  {"file": "keys/keys.go", "line": 10, "rule": "go.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": "P-256", "name": "crypto/ecdh.P256"},
+  {"file": "keys/keys.go", "line": 15, "rule": "go.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": "P-256", "name": "crypto/ecdh.P256"}
+]}

@@ -202,6 +202,7 @@ individually; the table lists every id and its default.
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `go-thin-key-material` | on | Go thin wrappers: key loading (`private-key`, `public-key`) next to another key does not count (18.5) | 18.5 |
 | `go-random-index` | off | a Go `rand.Int(r, big.NewInt(len(x)))` (also `int64(len(x))`) draws an index into a collection and is not reported (17.8) | 17.8 |
+| `go-generic-variants` | on | a Go propagated finding whose evidence definition (or package, 18.8) has findings of one rule with different params is reported under the rule's name without param (18.7) | 18.7, 18.8 |
 | `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
@@ -3259,6 +3260,11 @@ occurrence records the chain (11.4): `via` = the group representative and the de
 each as `<path>:<line of the name> <display name>` (Java `Outer.Inner.m`, Python `module.f` or
 `module.Class.m`, Go `pkg.F` or `pkg.Type.M`), and `origin` = `<path>:<line>` of the evidence.
 
+* **Open variants (Go)** *(DECISIONS T3-G7, feature `go-generic-variants`)*: if the definition holding the
+  evidence (the last of the chain) has body findings of the carried key from one rule with two different
+  non-null params (`ecdh.P256()` and `ecdh.P384()` in one curve selector; `mldsa65` and `mldsa87`), the call
+  cannot be tied to one of them: the propagated finding takes the rule's `name` as its name and no param or OID
+  (its origin stays the evidence). The same holds for 18.8 when the package has such findings.
 * **Folding of nested duplicates**: a propagated finding is dropped if a finding of phase 3 at the
   same (file, line) has the same family key (the direct finding is more specific); of several
   propagated findings with the same (file, line, family key) only the one of the leftmost call is
