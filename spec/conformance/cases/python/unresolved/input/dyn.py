@@ -17,11 +17,11 @@ def digest(name, data):
 def pyca(alg, key, data):
     hashes.Hash(alg)  # want: python.hash.unresolved cryptography.hazmat.primitives.hashes.Hash
     hashes.Hash(hashes.SHA256())  # want: python.hash.sha2 cryptography.hazmat.primitives.hashes.SHA256
-    pyca_hmac.HMAC(key, alg)  # want: python.mac.hmac cryptography.hazmat.primitives.hmac.HMAC | python.hash.unresolved cryptography.hazmat.primitives.hmac.HMAC
+    pyca_hmac.HMAC(key, alg)  # want: python.mac.hmac cryptography.hazmat.primitives.hmac.HMAC
     Cipher(alg, modes.CBC(b"0" * 16))  # want: python.cipher.unresolved cryptography.hazmat.primitives.ciphers.Cipher
 
 
 def stdlib_hmac(key, msg, mod):
-    hmac.new(key, msg, mod)  # want: python.mac.hmac hmac.new | python.hash.unresolved hmac.new
+    hmac.new(key, msg, mod)  # want: python.mac.hmac hmac.new
     hmac.new(key, msg, digestmod=hashlib.sha256)  # want: python.mac.hmac hmac.new | python.hash.sha2 hmac.new
     hmac.new(key, msg, digestmod="sha512")  # want: python.mac.hmac hmac.new | python.hash.sha2 hmac.new

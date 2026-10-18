@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-92 cases, 1626 expected findings. A conforming implementation produces exactly the expected
+92 cases, 1624 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -99,7 +99,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/resolution-t2` | 1 | 9 | a constant getter (not with two declarations or a parameter), deferred locals with one value, agreeing values (RSA, no name), disagreeing values and a compound assignment (fallback), `SecretKeySpec.getAlgorithm()` (DECISIONS B-J-JP1, B-J-JP3, B-J-JP5) |
 | `java/jca-name-gaps` | 1 | 7 | JCA standard names without a specific rule before: `*inP1363Format`, `SHAKE128-256` / `SHAKE256-512`, `SecretKeyFactory` `ARCFOUR` / `ChaCha20`, `KEM` `DHKEM`, `Cipher` `ECIES` (DECISIONS B-A3) |
 | `common/oid-table-t2` | 2 | 8 | OID table entries of DECISIONS B-A4 through the Java and Python OID constructors (RIPEMD-160, a `sect` curve with param, RFC 3370 HMAC, PKCS #12 PBE, CMS 3DES wrap, BLAKE2b, SM3, RC4); no rule in a language gives nothing |
-| `python/unresolved` | 1 | 14 | Python fallbacks: `hashlib.new(var)`, `getattr(hashlib, x)`, pyca `hashes.Hash(var)`, pyca and stdlib HMAC with an unknown hash, `Cipher(var, …)`; not when a specific hash rule hits (DECISIONS B-P-U1) |
+| `python/unresolved` | 1 | 12 | Python fallbacks: `hashlib.new(var)`, `getattr(hashlib, x)`, pyca `hashes.Hash(var)`, `Cipher(var, …)`; HMAC with an unknown hash gives only HMAC; not when a specific hash rule hits (DECISIONS B-P-U1) |
 | `python/hash-wrappers` | 2 | 7 | Python wrappers named with `hash` / `digest` carry the hash fallback (also transitively); a function whose name names nothing does not; W7 evidence by name token (`_ecdh_*` → the ECDH finding) (DECISIONS B-P-U1W, B-P-B5) |
 | `python/pqc` | 1 | 5 | pyca ML-KEM / ML-DSA keys (call and class reference) and liboqs-python, with the parameter set (DECISIONS B-P-PQ) |
 | `python/reexports` | 1 | 3 | pyca classes and functions re-exported by other packages (`jwt.algorithms.hashes.SHA1`, a module alias) as call and reference (DECISIONS B-P-RX) |

@@ -1471,8 +1471,8 @@ is not refined if another hit's rule is refined and has the same identity.
 **Fallbacks** *(DECISIONS B-P-U1)*: a hit of a rule whose id ends in `.unresolved` is dropped if the call
 has a hit of another rule with the same asset type and — when the fallback rule has a primitive — the same
 primitive (the Python counterpart of the Java specificity rule, 7.7.1). The bundled fallbacks are
-`python.hash.unresolved` (`hashlib.new`, `getattr` on a hash module, pyca `hashes.Hash` and `hmac.HMAC`
-and the stdlib `hmac` functions whose hash is not one of the known hash APIs) and
+`python.hash.unresolved` (`hashlib.new`, `getattr` on a hash module, pyca `hashes.Hash` whose hash is not one
+of pyca's hash classes; not HMAC calls, whose HMAC finding names the operation) and
 `python.cipher.unresolved` (pyca `Cipher` without one of pyca's algorithm classes among its symbols),
 both under the feature `python-unresolved` (3.1).
 
