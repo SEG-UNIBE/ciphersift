@@ -79,7 +79,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/wrappers` | 6 | 30 | (with `--feature java-thin-12=off` and `--feature java-propagate-random=off`, so that its 10-line `checksum` and its CSPRNG helper stay non-callables) wrapper propagation (SPEC 18): `Class.m`, FQN, static import, enclosing-class calls, overload groups with the caller removed, depth 1–3 and the depth limit, mutual recursion, thin wrappers (two families, CSPRNG only: not), folding (two calls on a line, a direct finding on the line), a collision through two on-demand imports, a class of the file shadowing them, test-file wrappers |
 | `python/wrappers` | 7 | 20 | absolute, aliased, relative and package imports, a re-export through `__init__.py`, `self` and class methods, a parameter shadowing a wrapper, an ambiguous module name, thin wrappers off by default, test files |
 | `python/thin-wrappers` | 1 | 8 | `--python-thin-wrappers`: thin wrappers, a thin wrapper of a thin wrapper, two families, nine lines, CSPRNG only |
-| `go/wrappers` | 8 | 17 | `pkg.F` through `go.mod` and `vendor/`, same package, receiver / `&T{}` / `var` / struct-field types, build-tag variants as one group, a local variable shadowing a wrapper, an untyped value, test files, thin wrappers off for Go |
+| `go/wrappers` | 8 | 17 | (with `--feature go-thin-wrappers=off`) `pkg.F` through `go.mod` and `vendor/`, same package, receiver / `&T{}` / `var` / struct-field types, build-tag variants as one group, a local variable shadowing a wrapper, an untyped value, test files, thin wrappers off for Go |
 | `go/api-ag` | 1 | 85 | the third-party Go APIs of SPEC 17.11 (age, agessh, sigstore cryptoutils, `x509.Marshal*`, securesystemslib `encrypted`, CIRCL, flynn/noise, go-containerregistry `v1.SHA256`, pkcs11 `CKM_ECDSA*`, azkeys) and non-anchors (types, size constants, other members, a switch case) |
 | `deps/crypto-services` | 3 | 24 | the list policy of SPEC 9.9 in all three ecosystems: cloud KMS key clients, HPKE, Noise, WireGuard, PIV, Sigstore signing and time-stamping are listed; storage, secret stores and general SDKs are not (DECISIONS F3); the Vault API client, Rekor and Sigstore's protobuf-specs are listed by owner decision (DECISIONS B-G4, 3 expectations added) |
 | `deps/transitive` | 6 | 6 | default: `go.mod` `// indirect` entries (also `//indirect`, `// indirect; …`, not `// indirectly …`), `go.sum`, `poetry.lock` and `Pipfile.lock` give nothing; `Pipfile` `[packages]` / `[dev-packages]` and `pyproject.toml` do (DECISIONS B-G1, B-G2) |
@@ -90,6 +90,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/wrapper-depth` | 1 | 5 | name-consistent chains of 2, 3 and 4 definitions are reported, a chain of 5 is not (DECISIONS B-C) |
 | `java/thin-12` | 1 | 3 | Java thin wrappers of 12 lines carry their family, 13 lines do not (DECISIONS B-J-G) |
 | `java/propagate-random` | 1 | 4 | a Java helper returning a `SecureRandom` is a thin wrapper; one with a CSPRNG and AES is not (DECISIONS B-J-D) |
+| `go/thin-wrappers` | 1 | 6 | Go thin wrappers: 3 and 12 lines (an early error return) carry, 14 lines do not; a fallback getter (`if … { return crypto.SHA256 }; return c.DefaultHash`) does not (DECISIONS B-G-E) |
 
 ## Format of expected.json
 

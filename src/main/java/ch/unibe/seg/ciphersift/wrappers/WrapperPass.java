@@ -39,8 +39,25 @@ public final class WrapperPass {
         return switch (l) {
             case JAVA -> options.features().on(Features.JAVA_THIN_12) ? 12 : 8;
             case PYTHON -> 8;
-            case GO -> 8;
+            case GO -> 12;
         };
+    }
+
+    /**
+     * Whether a line of definition {@code d} lies in one of its conditional returns (Go only: SPEC 18.5,
+     * fallback-getter guard, DECISIONS B-G-E). Such findings and calls do not count for the thin-wrapper test.
+     */
+    private static boolean guarded(Outline o, int d, int line) {
+        List<int[]> g = o.goGuards.get(d);
+        if (g == null) {
+            return false;
+        }
+        for (int[] r : g) {
+            if (r[0] <= line && line <= r[1]) {
+                return true;
+            }
+        }
+        return false;
     }
     static final int MAX_REEXPORT_HOPS = 4;
     static final int SNIPPET_MAX = 500;
@@ -65,6 +82,8 @@ public final class WrapperPass {
         final Set<String> nameFams;
         /** Family key → evidence (first body finding by line, then rule id). */
         final TreeMap<String, SourceFinding> direct = new TreeMap<>(Texts.CODE_POINT_ORDER);
+        /** Family key → evidence for the thin-wrapper test: body findings outside guarded lines (SPEC 18.5). */
+        final TreeMap<String, SourceFinding> thinDirect = new TreeMap<>(Texts.CODE_POINT_ORDER);
         /** Family key → carried evidence. */
         final TreeMap<String, Carry> carry = new TreeMap<>(Texts.CODE_POINT_ORDER);
 
@@ -225,6 +244,9 @@ public final class WrapperPass {
                 int d = innermost(o, f.line());
                 if (d >= 0) {
                     l.get(d).direct.putIfAbsent(familyKey(f.rule()), f);
+                    if (!guarded(o, d, f.line())) {
+                        l.get(d).thinDirect.putIfAbsent(familyKey(f.rule()), f);
+                    }
                 }
             }
         }
@@ -271,8 +293,8 @@ public final class WrapperPass {
                         }
                     }
                 }
-                if (thin && n.direct.size() == 1 && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
-                    Map.Entry<String, SourceFinding> e = n.direct.firstEntry();
+                if (thin && n.thinDirect.size() == 1 && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
+                    Map.Entry<String, SourceFinding> e = n.thinDirect.firstEntry();
                     n.carry.putIfAbsent(e.getKey(), new Carry(1, 1, e.getValue(), List.of(n)));
                 }
             }
@@ -311,13 +333,17 @@ public final class WrapperPass {
                     }
                     if (thin && n.carry.isEmpty() && m.isEmpty() && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                         Set<String> keys = new TreeSet<>(Texts.CODE_POINT_ORDER);
-                        keys.addAll(n.direct.keySet());
+                        keys.addAll(n.thinDirect.keySet());
+                        List<Integer> unguarded = new ArrayList<>();
                         for (int i : e.getValue()) {
-                            keys.addAll(carriedBelow(rs[i].group(), level));
+                            if (!guarded(o, e.getKey(), o.calls.get(i).line())) {
+                                unguarded.add(i);
+                                keys.addAll(carriedBelow(rs[i].group(), level));
+                            }
                         }
                         if (keys.size() == 1) {
                             String f = keys.iterator().next();
-                            Carry c = bestVia(n, f, e.getValue(), rs, level);
+                            Carry c = bestVia(n, f, unguarded, rs, level);
                             if (c != null) {
                                 m.put(f, c);
                             }

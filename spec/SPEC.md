@@ -184,6 +184,7 @@ individually; the table lists every id and its default.
 | Id | Default | Behaviour when on | Section |
 |---|---|---|---|
 | `transitive-deps` | off | `// indirect` requirements and lock files are reported | 9.4, 17.10 |
+| `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
 | `wrapper-depth-4` | on | wrapper chains of up to 4 definitions (else 3) | 18.5 |
@@ -2788,7 +2789,7 @@ only within the scan root.
 | Component | Java | Python | Go |
 |---|---|---|---|
 | Name-consistent wrappers (W7, 18.5) | on | on | on |
-| Thin wrappers (W6, 18.5) | on | off; on with `--python-thin-wrappers` | off *(DECISIONS T14)* |
+| Thin wrappers (W6, 18.5) | on (12 lines) | off; on with `--python-thin-wrappers` | on, 12 lines, with the fallback-getter guard *(DECISIONS B-G-E; T14 had it off)* |
 
 ### 18.1 Terms
 
@@ -2920,6 +2921,12 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
   findings have exactly one family key carries that key (whatever its name). Evidence as above.
 * **Level *k* ≥ 2, W7**: a definition that does not yet carry a key *F* carries *F* if *F* is one of
   its name families and a call site of its body resolves to a group carrying *F* below level *k*.
+* **Fallback-getter guard (Go W6)** *(DECISIONS B-G-E)*: in a Go definition with at least two
+  `return_statement`s of its own (not of a function literal inside it), a return statement that lies
+  inside an `if_statement` of the definition is a *conditional return*. Body findings and call sites on
+  the lines of a conditional return do not count for the W6 tests (here and at level *k*): a getter
+  `if c.DefaultHash == 0 { return crypto.SHA256 }; return c.DefaultHash` returns a configured value with
+  a default, it does not wrap SHA-256. W7 is not affected.
 * **Level *k* ≥ 2, W6**, where enabled: a definition of at most *L* lines that carries nothing yet
   carries *F* if the family keys of its body findings together with the keys carried (below level
   *k*) by the groups its call sites resolve to are exactly {*F*} (a thin wrapper of a wrapper; the

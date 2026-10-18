@@ -151,7 +151,9 @@ class WrapperPropagationTest {
         assertEquals(List.of(
                 "h.go:6 go.hash.sha1 <- h.go:5 h.sha1A | h.go:5",
                 "h.go:7 go.hash.sha1 <- h.go:6 h.sha1B , h.go:5 h.sha1A | h.go:5",
-                "h.go:8 go.hash.sha1 <- h.go:7 h.sha1C , h.go:6 h.sha1B , h.go:5 h.sha1A | h.go:5"), got);
+                "h.go:8 go.hash.sha1 <- h.go:7 h.sha1C , h.go:6 h.sha1B , h.go:5 h.sha1A | h.go:5",
+                // DECISIONS B-C: chains of up to 4 definitions
+                "h.go:9 go.hash.sha1 <- h.go:8 h.sha1D , h.go:7 h.sha1C , h.go:6 h.sha1B , h.go:5 h.sha1A | h.go:5"), got);
     }
 
     @Test

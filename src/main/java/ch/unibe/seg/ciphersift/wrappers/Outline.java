@@ -100,6 +100,11 @@ public final class Outline {
     public final Map<String, String> goImports = new HashMap<>();
     /** Struct type → field → field type (this file only). */
     public final Map<String, Map<String, TypeRef>> goStructs = new HashMap<>();
+    /**
+     * Go: definition index → the line ranges ({@code {first, last}}) of its conditional returns (SPEC 18.5,
+     * fallback-getter guard, DECISIONS B-G-E); only definitions with at least two return statements have any.
+     */
+    public final Map<Integer, List<int[]>> goGuards = new HashMap<>();
 
     public Outline(Lang lang, String path, boolean test) {
         this.lang = lang;

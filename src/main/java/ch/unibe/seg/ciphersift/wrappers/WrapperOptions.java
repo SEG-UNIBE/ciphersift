@@ -23,7 +23,7 @@ public record WrapperOptions(boolean javaNamed, boolean pythonNamed, boolean goN
 
     /**
      * The defaults of SPEC 18 (table), with Python thin wrappers as given by {@code --python-thin-wrappers}.
-     * Go thin wrappers are off (DECISIONS T14: the owner's decision rule, Go precision).
+     * Go thin wrappers follow the feature {@code go-thin-wrappers} (DECISIONS B-G-E; T14 had them off).
      */
     public static WrapperOptions defaults(boolean pythonThin) {
         return defaults(pythonThin, Features.DEFAULTS);
@@ -31,7 +31,7 @@ public record WrapperOptions(boolean javaNamed, boolean pythonNamed, boolean goN
 
     /** The defaults with the given feature switches (SPEC 3.1). */
     public static WrapperOptions defaults(boolean pythonThin, Features features) {
-        return new WrapperOptions(true, true, true, true, pythonThin, false, features);
+        return new WrapperOptions(true, true, true, true, pythonThin, features.on(Features.GO_THIN_WRAPPERS), features);
     }
 
     public boolean any() {

@@ -34,6 +34,7 @@ final class GoOutliner {
         o.goDir = dirOf(path);
         List<Set<String>> locals = new ArrayList<>();
         List<Map<String, Outline.TypeRef>> types = new ArrayList<>();
+        Map<Integer, List<int[]>> returns = new HashMap<>(); // def → {first, last, conditional}
         ArrayDeque<Frame> stack = new ArrayDeque<>();
         stack.push(new Frame(root, -1, 0));
         while (!stack.isEmpty()) {
@@ -139,6 +140,11 @@ final class GoOutliner {
                     }
                 }
                 case "call_expression" -> call(o, n);
+                case "return_statement" -> {
+                    if (def >= 0) {
+                        ret(n, def, returns);
+                    }
+                }
                 default -> {
                     // nothing
                 }
@@ -150,7 +156,42 @@ final class GoOutliner {
                 }
             }
         }
+        for (Map.Entry<Integer, List<int[]>> e : returns.entrySet()) {
+            if (e.getValue().size() >= 2) {
+                List<int[]> g = new ArrayList<>();
+                for (int[] r : e.getValue()) {
+                    if (r[2] == 1) {
+                        g.add(new int[] {r[0], r[1]});
+                    }
+                }
+                if (!g.isEmpty()) {
+                    o.goGuards.put(e.getKey(), g);
+                }
+            }
+        }
         return o;
+    }
+
+    /**
+     * A return statement of definition {@code def} (not of a function literal inside it), and whether it is
+     * conditional: inside an {@code if} statement of the definition (SPEC 18.5, DECISIONS B-G-E).
+     */
+    private static void ret(SyntaxNode n, int def, Map<Integer, List<int[]>> returns) {
+        boolean conditional = false;
+        for (SyntaxNode x = n.parent(); x != null; x = x.parent()) {
+            if (x.is("func_literal")) {
+                return;
+            }
+            if (x.is("function_declaration") || x.is("method_declaration")) {
+                break;
+            }
+            if (x.is("if_statement")) {
+                conditional = true;
+            }
+        }
+        int first = n.line();
+        int last = n.startRow() + 1 + JavaOutliner.countLines(n.text());
+        returns.computeIfAbsent(def, k -> new ArrayList<>()).add(new int[] {first, last, conditional ? 1 : 0});
     }
 
     /** Records a declared type; a second, different one (or an untyped declaration) makes it a conflict. */

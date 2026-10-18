@@ -42,8 +42,12 @@ public final class Features {
     /** Java secure-random findings are propagated through wrappers (D, SPEC 18.1). */
     public static final String JAVA_PROPAGATE_RANDOM = "java-propagate-random";
 
+    /** Go thin wrappers of up to 12 lines with the fallback-getter guard (E, SPEC 18.5). */
+    public static final String GO_THIN_WRAPPERS = "go-thin-wrappers";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(GO_THIN_WRAPPERS, true);
         known(JAVA_PROPAGATE_RANDOM, true);
         known(JAVA_THIN_12, true);
         known(WRAPPER_ALIASES_V2, true);

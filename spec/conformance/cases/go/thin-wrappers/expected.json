@@ -1,0 +1,8 @@
+{"case": "go/thin-wrappers", "findings": [
+  {"file": "cfg/cfg.go", "line": 13, "rule": "go.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/aes.NewCipher"},
+  {"file": "cfg/cfg.go", "line": 21, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.New"},
+  {"file": "cfg/cfg.go", "line": 37, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto.SHA256"},
+  {"file": "cfg/cfg.go", "line": 54, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.New"},
+  {"file": "cfg/cfg.go", "line": 58, "rule": "go.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/aes.NewCipher", "via": ["cfg/cfg.go:12 cfg.newBlock"], "origin": "cfg/cfg.go:13"},
+  {"file": "cfg/cfg.go", "line": 59, "rule": "go.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/sha256.New", "via": ["cfg/cfg.go:17 cfg.digestOf"], "origin": "cfg/cfg.go:21"}
+]}
