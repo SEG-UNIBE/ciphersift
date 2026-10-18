@@ -63,3 +63,10 @@ match:
 - call: github.com/ethereum/go-ethereum/crypto.S256
   param:
     value: secp256k1
+# DECISIONS T3-G4: golang-jwt PEM key parsers whose name fixes the algorithm (https://pkg.go.dev/github.com/golang-jwt/jwt/v5).
+- call: github.com/golang-jwt/jwt.ParseECPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt.ParseECPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseECPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseECPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseECPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseECPublicKeyFromPEM

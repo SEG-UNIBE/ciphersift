@@ -2672,7 +2672,10 @@ practice; a path written with escapes is not recognised). The spec's **local nam
 * without `name`: the last `/`-segment of the path; if that segment is a major-version suffix
   `v2`, `v3`, … (`^v[0-9]+$`) and there is a segment before it, that previous segment
   (`math/rand/v2` → `rand`, `github.com/golang-jwt/jwt/v5` → `jwt`); a trailing `.vN` of the
-  segment is removed (`gopkg.in/yaml.v3` → `yaml`). (Go takes the name from the package clause
+  segment is removed (`gopkg.in/yaml.v3` → `yaml`). If the result is not a Go identifier (it contains `-` or `.`), a leading
+  `go-` and a trailing `-go` are removed and the remaining `-` and `.` dropped, the naming convention of such
+  repositories (`github.com/go-jose/go-jose/v4` → `jose`, `gopkg.in/square/go-jose.v2` → `jose`,
+  `github.com/dgrijalva/jwt-go` → `jwt`) *(DECISIONS T3-G4)*. (Go takes the name from the package clause
   of the imported package, which a scanner cannot see; these are the naming conventions of
   every package the bundled rules name.)
 
@@ -2961,6 +2964,8 @@ selected libraries, written from their pkg.go.dev documentation and filed under 
 | `github.com/cloudflare/circl/sign/slhdsa` (B-G-B2) | the twelve FIPS 205 parameter-set identifiers `SHA2_128s` … `SHAKE_256f` (param `SLH-DSA-…`), `GenerateKey` (param from argument 1) | `go.pqc.slhdsa` (new rule) |
 | `github.com/ethereum/go-ethereum/crypto` (*DECISIONS T3-G2*) | `Keccak256`, `Keccak256Hash`, `NewKeccakState`, `HashData` / `Sign`, `VerifySignature`, `Ecrecover`, `SigToPub` (param `secp256k1`) / `GenerateKey`, `S256` (param `secp256k1`) / `ToECDSA`, `ToECDSAUnsafe`, `HexToECDSA`, `LoadECDSA`, `FromECDSA`, `SaveECDSA` / `UnmarshalPubkey`, `DecompressPubkey`, `FromECDSAPub`, `CompressPubkey` (address derivation, `ValidateSignatureValues` and the size constants name no operation) | `go.hash.sha3` / `go.asym.ecdsa` / `go.asym.ec` / `go.key.load.private` / `go.key.load.public` |
 | `github.com/ethereum/go-ethereum/accounts/keystore` (T3-G2) | `NewKeyStore`, `EncryptKey`, `DecryptKey`, `EncryptDataV3`, `DecryptDataV3`, `StoreKey` (scrypt-protected key files) / methods `KeyStore.SignHash`, `SignHashWithPassphrase`, `SignTx`, `SignTxWithPassphrase` (17.12; `NewKeyStore` → `KeyStore` in the result-type table) | `go.kdf.scrypt` / `go.asym.ecdsa` (param `secp256k1`) |
+| `github.com/go-jose/go-jose/v3`, `/v4`, `gopkg.in/square/go-jose.v2`, `gopkg.in/go-jose/go-jose.v2` (values; *DECISIONS T3-G4*) | JOSE identifiers (RFC 7518): `HS*` / `RS*` / `PS*` / `ES*` (curve as param) / `EdDSA`, `ED25519` / `RSA1_5` / `RSA_OAEP`, `RSA_OAEP_256` / `A*KW` / `A*GCMKW`, `A*GCM` / `ECDH_ES`, `ECDH_ES_A*KW` / `PBES2_*` / `A*CBC_HS*` (key size as param for AES); not `DIRECT`, `DEFLATE`, `NONE` | `go.mac.hmac` / `go.asym.rsa.pkcs1v15.sign` / `go.asym.rsa.pss` / `go.asym.ecdsa` / `go.asym.ed25519` / `go.asym.rsa.pkcs1v15.encrypt` / `go.asym.rsa.oaep` / `go.sym.aes` / `go.sym.aes.gcm` / `go.asym.ecdh` / `go.kdf.pbkdf2` / `go.sym.aes.cbc` |
+| `github.com/golang-jwt/jwt`, `/v4`, `/v5` (T3-G4) | `SigningMethodHS*` / `RS*` / `PS*` / `ES*` / `EdDSA` (not `SigningMethodNone`); `ParseRSA…`, `ParseEC…`, `ParseEd…` `Private`/`PublicKeyFromPEM` under the algorithm their name fixes | as for go-jose; `go.asym.rsa`, `go.asym.ec`, `go.asym.ed25519` |
 
 The `go-containerregistry` package is named `v1`; it is recognised only when imported with that
 explicit name (17.4 skips a `vN` segment); the same holds for protobuf-specs' `common/v1` package (any

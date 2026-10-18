@@ -78,7 +78,23 @@ public final class GoAnalyzer {
         if (seg.length > 1 && MAJOR_VERSION.matcher(last).matches()) {
             last = seg[seg.length - 2];
         }
-        return DOT_MAJOR_VERSION.matcher(last).replaceFirst("");
+        String n = DOT_MAJOR_VERSION.matcher(last).replaceFirst("");
+        // DECISIONS T3-G4: a segment that is no Go identifier (go-jose, jwt-go) is not the package name; the
+        // convention for such repositories drops a "go-" prefix or "-go" suffix (package jose, package jwt)
+        if (n.indexOf('-') >= 0 || n.indexOf('.') >= 0) {
+            String c = n;
+            if (c.startsWith("go-")) {
+                c = c.substring(3);
+            }
+            if (c.endsWith("-go")) {
+                c = c.substring(0, c.length() - 3);
+            }
+            c = c.replace("-", "").replace(".", "");
+            if (!c.isEmpty()) {
+                return c;
+            }
+        }
+        return n;
     }
 
     /** Decodes the content of an interpreted string literal (SPEC 17.6). */

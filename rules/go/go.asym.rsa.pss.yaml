@@ -32,3 +32,28 @@ match:
 - ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256
 - ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256
 - ref: github.com/sigstore/protobuf-specs/gen/pb-go/common/v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256
+# DECISIONS T3-G4 (benchmark-informed in the choice of packages: go-jose, cosign, vault, smallstep, node): JOSE algorithm
+# identifiers of go-jose (https://pkg.go.dev/github.com/go-jose/go-jose/v4, v4.1.6; same names in v2/v3) and golang-jwt signing
+# methods / PEM key parsers (https://pkg.go.dev/github.com/golang-jwt/jwt/v5, v5.3.1; same names in v3/v4), names per the IANA
+# JOSE registry (RFC 7518).
+- ref: github.com/go-jose/go-jose/v3.PS256
+- ref: github.com/go-jose/go-jose/v3.PS384
+- ref: github.com/go-jose/go-jose/v3.PS512
+- ref: github.com/go-jose/go-jose/v4.PS256
+- ref: github.com/go-jose/go-jose/v4.PS384
+- ref: github.com/go-jose/go-jose/v4.PS512
+- ref: gopkg.in/square/go-jose.v2.PS256
+- ref: gopkg.in/square/go-jose.v2.PS384
+- ref: gopkg.in/square/go-jose.v2.PS512
+- ref: gopkg.in/go-jose/go-jose.v2.PS256
+- ref: gopkg.in/go-jose/go-jose.v2.PS384
+- ref: gopkg.in/go-jose/go-jose.v2.PS512
+- ref: github.com/golang-jwt/jwt.SigningMethodPS256
+- ref: github.com/golang-jwt/jwt.SigningMethodPS384
+- ref: github.com/golang-jwt/jwt.SigningMethodPS512
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodPS256
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodPS384
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodPS512
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodPS256
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodPS384
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodPS512

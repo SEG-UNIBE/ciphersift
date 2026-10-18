@@ -17,3 +17,28 @@ match:
 - call: crypto/hmac.New
 - call: golang.org/x/crypto/nacl/auth.Sum
 - call: golang.org/x/crypto/nacl/auth.Verify
+# DECISIONS T3-G4 (benchmark-informed in the choice of packages: go-jose, cosign, vault, smallstep, node): JOSE algorithm
+# identifiers of go-jose (https://pkg.go.dev/github.com/go-jose/go-jose/v4, v4.1.6; same names in v2/v3) and golang-jwt signing
+# methods / PEM key parsers (https://pkg.go.dev/github.com/golang-jwt/jwt/v5, v5.3.1; same names in v3/v4), names per the IANA
+# JOSE registry (RFC 7518).
+- ref: github.com/go-jose/go-jose/v3.HS256
+- ref: github.com/go-jose/go-jose/v3.HS384
+- ref: github.com/go-jose/go-jose/v3.HS512
+- ref: github.com/go-jose/go-jose/v4.HS256
+- ref: github.com/go-jose/go-jose/v4.HS384
+- ref: github.com/go-jose/go-jose/v4.HS512
+- ref: gopkg.in/square/go-jose.v2.HS256
+- ref: gopkg.in/square/go-jose.v2.HS384
+- ref: gopkg.in/square/go-jose.v2.HS512
+- ref: gopkg.in/go-jose/go-jose.v2.HS256
+- ref: gopkg.in/go-jose/go-jose.v2.HS384
+- ref: gopkg.in/go-jose/go-jose.v2.HS512
+- ref: github.com/golang-jwt/jwt.SigningMethodHS256
+- ref: github.com/golang-jwt/jwt.SigningMethodHS384
+- ref: github.com/golang-jwt/jwt.SigningMethodHS512
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodHS256
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodHS384
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodHS512
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodHS256
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodHS384
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodHS512

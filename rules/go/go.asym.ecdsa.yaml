@@ -95,3 +95,70 @@ match:
 - method: github.com/ethereum/go-ethereum/accounts/keystore.KeyStore.SignTxWithPassphrase
   param:
     value: secp256k1
+# DECISIONS T3-G4 (benchmark-informed in the choice of packages: go-jose, cosign, vault, smallstep, node): JOSE algorithm
+# identifiers of go-jose (https://pkg.go.dev/github.com/go-jose/go-jose/v4, v4.1.6; same names in v2/v3) and golang-jwt signing
+# methods / PEM key parsers (https://pkg.go.dev/github.com/golang-jwt/jwt/v5, v5.3.1; same names in v3/v4), names per the IANA
+# JOSE registry (RFC 7518).
+- ref: github.com/go-jose/go-jose/v3.ES256
+  param:
+    value: P-256
+- ref: github.com/go-jose/go-jose/v3.ES384
+  param:
+    value: P-384
+- ref: github.com/go-jose/go-jose/v3.ES512
+  param:
+    value: P-521
+- ref: github.com/go-jose/go-jose/v4.ES256
+  param:
+    value: P-256
+- ref: github.com/go-jose/go-jose/v4.ES384
+  param:
+    value: P-384
+- ref: github.com/go-jose/go-jose/v4.ES512
+  param:
+    value: P-521
+- ref: gopkg.in/square/go-jose.v2.ES256
+  param:
+    value: P-256
+- ref: gopkg.in/square/go-jose.v2.ES384
+  param:
+    value: P-384
+- ref: gopkg.in/square/go-jose.v2.ES512
+  param:
+    value: P-521
+- ref: gopkg.in/go-jose/go-jose.v2.ES256
+  param:
+    value: P-256
+- ref: gopkg.in/go-jose/go-jose.v2.ES384
+  param:
+    value: P-384
+- ref: gopkg.in/go-jose/go-jose.v2.ES512
+  param:
+    value: P-521
+- ref: github.com/golang-jwt/jwt.SigningMethodES256
+  param:
+    value: P-256
+- ref: github.com/golang-jwt/jwt.SigningMethodES384
+  param:
+    value: P-384
+- ref: github.com/golang-jwt/jwt.SigningMethodES512
+  param:
+    value: P-521
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodES256
+  param:
+    value: P-256
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodES384
+  param:
+    value: P-384
+- ref: github.com/golang-jwt/jwt/v4.SigningMethodES512
+  param:
+    value: P-521
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodES256
+  param:
+    value: P-256
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodES384
+  param:
+    value: P-384
+- ref: github.com/golang-jwt/jwt/v5.SigningMethodES512
+  param:
+    value: P-521

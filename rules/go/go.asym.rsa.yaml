@@ -63,3 +63,10 @@ match:
   param:
     value: '2048'
 # (the v1 module github.com/go-piv/piv-go/piv, v1.11.0, has no AlgorithmRSA3072 / AlgorithmRSA4096)
+# DECISIONS T3-G4: golang-jwt PEM key parsers whose name fixes the algorithm (https://pkg.go.dev/github.com/golang-jwt/jwt/v5).
+- call: github.com/golang-jwt/jwt.ParseRSAPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt.ParseRSAPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseRSAPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v4.ParseRSAPublicKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseRSAPrivateKeyFromPEM
+- call: github.com/golang-jwt/jwt/v5.ParseRSAPublicKeyFromPEM

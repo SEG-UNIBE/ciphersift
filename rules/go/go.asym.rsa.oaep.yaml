@@ -23,3 +23,15 @@ match:
 # packages (versions in spec/PROVENANCE.md, "Wrapper propagation").
 - ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.EncryptionAlgorithmRSAOAEP
 - ref: github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys.EncryptionAlgorithmRSAOAEP256
+# DECISIONS T3-G4 (benchmark-informed in the choice of packages: go-jose, cosign, vault, smallstep, node): JOSE algorithm
+# identifiers of go-jose (https://pkg.go.dev/github.com/go-jose/go-jose/v4, v4.1.6; same names in v2/v3) and golang-jwt signing
+# methods / PEM key parsers (https://pkg.go.dev/github.com/golang-jwt/jwt/v5, v5.3.1; same names in v3/v4), names per the IANA
+# JOSE registry (RFC 7518).
+- ref: github.com/go-jose/go-jose/v3.RSA_OAEP
+- ref: github.com/go-jose/go-jose/v3.RSA_OAEP_256
+- ref: github.com/go-jose/go-jose/v4.RSA_OAEP
+- ref: github.com/go-jose/go-jose/v4.RSA_OAEP_256
+- ref: gopkg.in/square/go-jose.v2.RSA_OAEP
+- ref: gopkg.in/square/go-jose.v2.RSA_OAEP_256
+- ref: gopkg.in/go-jose/go-jose.v2.RSA_OAEP
+- ref: gopkg.in/go-jose/go-jose.v2.RSA_OAEP_256
