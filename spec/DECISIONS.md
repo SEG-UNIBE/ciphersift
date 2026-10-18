@@ -384,3 +384,13 @@ code (Sonnet): 124 TP, 20 debatable, 4 FP, 1 wrong-detail. Changes:
 * **B-G-B2 go-piv v1.** The v1 module `github.com/go-piv/piv-go/piv` (v1.11.0, proxy.golang.org) has no
   `AlgorithmRSA3072`, `AlgorithmRSA4096` or `AlgorithmX25519`; the three mirrored anchors are removed (no effect
   on any scan).
+
+**Round t3, Go tuning (2026-10-18, branch `tune-go`; scratch `work/ciphersift-t3/go/`).** Tuned on the 15 Go DEV
+projects (DEV-REPOS.md A, B, E): recall on the go-eval seeds 1+2, the new-dev GT v2.1 and micro-go's hand GT;
+strict precision from the DEV-15 t2r sample (`work/eval2/score-dev`), new findings judged from the code. Every
+item is **benchmark-informed**; per-item numbers in `work/ciphersift-t3/go/CHANGES.tsv`.
+
+| item | decision | where in SPEC.md |
+|---|---|---|
+| T3-G1 nested same-rule duplicates (Go) | **benchmark-informed** (new-dev desktop-app: 6 of 25 sampled findings were `crypto/rand.Reader` passed to `rand.Int` on the same line, a second component for one CSPRNG call; GT protocol v2 R2 does not count such an argument as a site). G8 dropped nested duplicates only for rules with a family; a rule without family (CSPRNG, key loading, certificates) is now compared by rule id, on the same line only (fields of a multi-line `tls.Config` keep their lines). No recall change on any DEV GT; new-dev strict precision +3 pp. Feature `go-nested-same-rule` (default on). New case `go/nested-same-rule`. | 17.8, 3.1 |
+

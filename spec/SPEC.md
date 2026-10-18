@@ -200,6 +200,7 @@ individually; the table lists every id and its default.
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
+| `go-nested-same-rule` | on | a Go finding of a rule without family nested on the same line in an event of the same rule is dropped (17.8) | 17.8 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
 | `java-thin-12` | on | Java thin wrappers (W6) of up to 12 lines (else 8) | 18.5 |
 | `wrapper-depth-4` | on | wrapper chains of up to 4 definitions (else 3) | 18.5 |
@@ -2796,6 +2797,11 @@ expression ancestors `argument_list`, `call_expression`, `parenthesized_expressi
 *(DECISIONS G8)*: `ecdsa.GenerateKey(elliptic.P256(), rand.Reader)` is one ECDSA finding (the
 inner EC curve has the same family) plus the CSPRNG (no family); `cipher.NewGCM(` … `aes.NewCipher(k)` … `)`
 written inline is AES-GCM only.
+A rule **without** `family` (CSPRNG, key loading, certificates) is compared by rule id instead: such a
+selection is dropped if an expression ancestor **on the same line** has a selection of the same rule
+*(DECISIONS T3-G1, feature `go-nested-same-rule`)*: `rand.Int(rand.Reader, n)` is one CSPRNG finding
+(`crypto/rand.Int`), `c.Verify(x509.VerifyOptions{Roots: x509.NewCertPool()})` one X.509 finding; an inner
+event on another line (a field of a multi-line literal) keeps its finding.
 
 Each kept (event, rule) pair yields one finding:
 

@@ -57,6 +57,9 @@ public final class Features {
     /** Calls into a project Go package whose name names a family carry its findings of that family (B3L, SPEC 18.8). */
     public static final String GO_PACKAGE_NAMES = "go-package-names";
 
+    /** Go: a finding of a rule without family nested in a call with a finding of the same rule is dropped (T3-G1, SPEC 17.8). */
+    public static final String GO_NESTED_SAME_RULE = "go-nested-same-rule";
+
     /** Java {@code anyCall} patterns: registry algorithm names as arguments of any call (SNx, SPEC 5.5). */
     public static final String JAVA_ANY_CALL = "java-any-call";
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
@@ -104,6 +107,7 @@ public final class Features {
         known(JAVA_DEFERRED_LOCALS, true);
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
+        known(GO_NESTED_SAME_RULE, true);
         known(GO_PACKAGE_NAMES, true);
         known(GO_TYPED_METHODS, true);
         known(GO_THIN_WRAPPERS, true);

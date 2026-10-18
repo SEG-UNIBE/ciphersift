@@ -1,0 +1,13 @@
+{"case": "go/nested-same-rule", "findings": [
+  {"file": "m.go", "line": 11, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Int"},
+  {"file": "m.go", "line": 12, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Prime"},
+  {"file": "m.go", "line": 13, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"},
+  {"file": "m.go", "line": 14, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Read"},
+  {"file": "m.go", "line": 15, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"},
+  {"file": "m.go", "line": 16, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Int"},
+  {"file": "m.go", "line": 18, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Int"},
+  {"file": "m.go", "line": 19, "rule": "go.rand.prng.secure", "type": "algorithm", "subtype": "prng-secure", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/rand.Reader"},
+  {"file": "m.go", "line": 23, "rule": "go.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/x509.Certificate.Verify"},
+  {"file": "m.go", "line": 24, "rule": "go.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/x509.Certificate.Verify"},
+  {"file": "m.go", "line": 25, "rule": "go.cert.x509", "type": "algorithm", "subtype": "x509", "primitive": null, "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "crypto/x509.NewCertPool"}
+]}

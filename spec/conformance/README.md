@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-93 cases, 1648 expected findings. A conforming implementation produces exactly the expected
+94 cases, 1659 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -111,6 +111,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `go/typed-methods` | 1 | 26 | method anchors on typed receivers: parameters, results by position, type assertions, a single-type type-switch case (not two types), struct fields, one level of embedding (not when the file declares the method), `ecdh` / `mlkem` / `x509` / `ssh` result chains, composite and `new`, a reassigned variable, accessors (DECISIONS B-G-B1a) |
 | `go/api-b2` | 1 | 19 | Sigstore protobuf-specs key and hash values (an aliased `common/v1` import), sigstore `WithED25519ph` and `AlgorithmDetails` methods, go-piv algorithms and `Verify`, CIRCL SLH-DSA parameter sets; LMS and other members give nothing (DECISIONS B-G-B2) |
 | `go/package-names` | 6 | 5 | Go package-name consistency: `aes.NewCipher()` and a method on a variable declared `*aes.Cipher` carry the AES finding of the project package `aes` (via `aes: package aes`); a variable typed only by a call, an excluded member (`EncodedLength`), a package named `ecdsa` without EC findings and a package whose only finding is in a test file give nothing (DECISIONS B-G-B3L) |
+| `go/nested-same-rule` | 1 | 11 | a finding of a rule without family nested on the same line in an event of the same rule is dropped (`rand.Int(rand.Reader, n)`, `VerifyOptions{Roots: NewCertPool()}`); other lines and other rules keep theirs (DECISIONS T3-G1) |
 
 ## Format of expected.json
 

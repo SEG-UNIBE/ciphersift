@@ -47,6 +47,8 @@ public final class GoAnalyzer {
     private final GoRuleIndex index;
     /** Method events on typed receivers (SPEC 17.12, DECISIONS B-G-B1a, feature {@code go-typed-methods}). */
     private final boolean methods;
+    /** Nested duplicates of a rule without family (SPEC 17.8, DECISIONS T3-G1, feature {@code go-nested-same-rule}). */
+    private final boolean nestedSameRule;
 
     public GoAnalyzer(RuleSet rules) {
         this(rules, Features.DEFAULTS);
@@ -55,6 +57,7 @@ public final class GoAnalyzer {
     public GoAnalyzer(RuleSet rules, Features features) {
         this.index = new GoRuleIndex(rules.goRules());
         this.methods = !index.method.isEmpty() && features.on(Features.GO_TYPED_METHODS);
+        this.nestedSameRule = features.on(Features.GO_NESTED_SAME_RULE);
     }
 
     /** Analyses one parsed Go file. */
@@ -1039,7 +1042,11 @@ public final class GoAnalyzer {
         /** SPEC 7.7.2 with the Go expression ancestors (17.8). */
         private boolean nestedDuplicate(Selected s, Map<SyntaxNode, List<Selected>> byNode) {
             String family = s.rule().asset().family();
-            if (family == null) {
+            // DECISIONS T3-G1: a rule without family (CSPRNG, key loading, certificates) is a nested duplicate of
+            // the same rule on an expression ancestor on the same line: rand.Int(rand.Reader, n) is one CSPRNG
+            // finding; the fields of a multi-line tls.Config literal keep their own lines.
+            boolean sameRule = family == null && nestedSameRule;
+            if (family == null && !sameRule) {
                 return false;
             }
             String type = s.rule().asset().type();
@@ -1048,7 +1055,8 @@ public final class GoAnalyzer {
                 List<Selected> l = byNode.get(p);
                 if (l != null) {
                     for (Selected o : l) {
-                        if (type.equals(o.rule().asset().type()) && family.equals(o.rule().asset().family())) {
+                        if (sameRule ? s.rule().id().equals(o.rule().id()) && o.event().line() == s.event().line()
+                                : type.equals(o.rule().asset().type()) && family.equals(o.rule().asset().family())) {
                             return true;
                         }
                     }
