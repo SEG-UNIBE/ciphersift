@@ -25,7 +25,7 @@ class ApiT3 {
     }
 
     void jose(JsonWebSignature jws) {
-        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256); // want: java.asym.rsa RS256
+        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256); // want: java.asym.rsa RS256 | java.hash.sha2 RS256
         jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.NONE); // "none" is not in the constants table: nothing
     }
 

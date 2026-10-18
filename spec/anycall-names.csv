@@ -1,16 +1,22 @@
 name,family,rule,level,group,source_url,source_version
 A128CBC,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A128CBC-HS256,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+A128CBC-HS256,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
+A128CBC-HS256,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 A128GCM,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A128GCMKW,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A128KW,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A192CBC,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A192CBC-HS384,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+A192CBC-HS384,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
+A192CBC-HS384,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 A192GCM,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A192GCMKW,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A192KW,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A256CBC,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A256CBC-HS512,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+A256CBC-HS512,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
+A256CBC-HS512,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 A256GCM,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A256GCMKW,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 A256KW,aes,java.sym.aes,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
@@ -38,15 +44,22 @@ ECDH-ES+A192KW,ecdh,java.asym.ecdh,SA,G5c-jose-name,https://www.iana.org/assignm
 ECDH-ES+A256KW,ecdh,java.asym.ecdh,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 ECMQV,ecdh,java.asym.ecdh,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#keyagreement-algorithms,Java SE 21 Standard Algorithm Names
 ES256,ecdsa,java.asym.ecdsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+ES256,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 ES256K,ecdsa,java.asym.ecdsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+ES256K,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 ES384,ecdsa,java.asym.ecdsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+ES384,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 ES512,ecdsa,java.asym.ecdsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+ES512,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 Ed25519,ed25519,java.asym.ed25519,SNx,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 Ed448,ed25519,java.asym.ed25519,SNx,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 EdDSA,ed25519,java.asym.ed25519,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 HS256,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+HS256,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 HS384,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+HS384,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 HS512,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+HS512,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 HmacMD5,hmac,java.mac.hmac,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#keygenerator-algorithms,Java SE 21 Standard Algorithm Names
 HmacPBESHA1,hmac,java.mac.hmac,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#mac-algorithms,Java SE 21 Standard Algorithm Names
 HmacPBESHA224,hmac,java.mac.hmac,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#mac-algorithms,Java SE 21 Standard Algorithm Names
@@ -111,8 +124,14 @@ NativePRNGNonBlocking,prng-secure,java.rand.prng.secure,SNx,G5a-jca-name,https:/
 OAEP,rsa,java.asym.rsa,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#algorithmparameters-algorithms,Java SE 21 Standard Algorithm Names
 PBE,pbe,java.kdf.pbe,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#algorithmparameters-algorithms,Java SE 21 Standard Algorithm Names
 PBES2-HS256+A128KW,pbe,java.kdf.pbe,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+PBES2-HS256+A128KW,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
+PBES2-HS256+A128KW,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 PBES2-HS384+A192KW,pbe,java.kdf.pbe,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+PBES2-HS384+A192KW,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
+PBES2-HS384+A192KW,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 PBES2-HS512+A256KW,pbe,java.kdf.pbe,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+PBES2-HS512+A256KW,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
+PBES2-HS512+A256KW,hmac,java.mac.hmac,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 PBKDF2WithHmacMD5,pbkdf2,java.kdf.pbkdf2,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#secretkeyfactory-algorithms,Java SE 21 Standard Algorithm Names
 PBKDF2WithHmacSHA1,pbkdf2,java.kdf.pbkdf2,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#secretkeyfactory-algorithms,Java SE 21 Standard Algorithm Names
 PBKDF2WithHmacSHA224,pbkdf2,java.kdf.pbkdf2,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#secretkeyfactory-algorithms,Java SE 21 Standard Algorithm Names
@@ -123,18 +142,27 @@ PBKDF2WithHmacSHA512/224,pbkdf2,java.kdf.pbkdf2,SNx,G5a-jca-name,https://docs.or
 PBKDF2WithHmacSHA512/256,pbkdf2,java.kdf.pbkdf2,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#secretkeyfactory-algorithms,Java SE 21 Standard Algorithm Names
 PKIX,x509,java.cert.x509,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#keymanagerfactory-algorithms,Java SE 21 Standard Algorithm Names
 PS256,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+PS256,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 PS384,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+PS384,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 PS512,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+PS512,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 RC2,rc2,java.sym.rc2,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#algorithmparameters-algorithms,Java SE 21 Standard Algorithm Names
 RC4,rc4,java.sym.rc4,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#cipher-algorithms,Java SE 21 Standard Algorithm Names
 RS256,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+RS256,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 RS384,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+RS384,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 RS512,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+RS512,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 RSA,rsa,java.asym.rsa,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#cipher-algorithms,Java SE 21 Standard Algorithm Names
 RSA-OAEP,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 RSA-OAEP-256,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+RSA-OAEP-256,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 RSA-OAEP-384,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+RSA-OAEP-384,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 RSA-OAEP-512,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
+RSA-OAEP-512,sha2,java.hash.sha2,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18); R3-X-JOSE
 RSA1_5,rsa,java.asym.rsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 RSASSA-PSS,rsa,java.asym.rsa,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#algorithmparameters-algorithms,Java SE 21 Standard Algorithm Names
 SHA-1,sha1,java.hash.sha1,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#messagedigest-algorithms,Java SE 21 Standard Algorithm Names

@@ -188,6 +188,7 @@ individually; the table lists every id and its default.
 | `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
 | `java-any-call` | on | Java `anyCall` patterns with `feature: java-any-call` (registry names as arguments of any call) | 5.5 |
 | `java-any-call-short` | on | Java `anyCall` patterns with `feature: java-any-call-short` (short JCA names, JOSE names) | 5.5 |
+| `java-any-call-metadata` | on | Java `anyCall` patterns do not hold on logging calls, type-label setters and configuration puts keyed by a non-name literal (5.5) *(DECISIONS R3-X-A1)* | 5.5 |
 | `java-constant-getters` | on | constant getters and `SecretKeySpec.getAlgorithm()` in Java string resolution (7.4.1) | 7.4.1 |
 | `java-deferred-locals` | on | Java locals assigned after their declaration (7.4.3, 7.7.1) | 7.4.3 |
 | `java-inherited-constants` | on | Java constants inherited from project supertypes (7.4.3 step 4, 7.4.4, 7.4.5) *(DECISIONS T3-J-INH)* | 7.4 |
@@ -479,6 +480,21 @@ factories whose own patterns decide, messages and properties): `equals`, `equals
 `fine`, `finer`, `finest`, `log`, `println`, `printf`, `print`, `format`, `append`, `fail`, `getProperty`,
 `getString`, `getMessage`, `isLoggable`, `add`, `addAll`, `of`, `setOf`, `asList`, `stream`, `copyOf`, and every
 name starting with `assert`, `equals`, `contains` or `log`.
+
+With the feature `java-any-call-metadata` *(on; DECISIONS R3-X-A1)* an `anyCall` pattern also does not hold for
+a call that is metadata rather than use: (a) logging — the names `fatal` and the JBoss Logging format variants
+`tracev`, `debugv`, `infov`, `warnv`, `errorv`, `fatalv`, `tracef`, `debugf`, `infof`, `warnf`, `errorf`, `fatalf`, or a
+receiver whose last `.`-segment is `log` or `logger` in any case (`LOG`, `this.logger`); (b) the type-label
+setters `setType` and `setKeyType` (a JWK `kty`, a key wrapper's key type: a key type selects no algorithm);
+(c) `put`, `putSingle` or `putIfAbsent` with at least two arguments whose first argument is a string literal that
+is itself no `anyCall` name (no enabled `anyCall` pattern's string condition holds for it): the entry is a
+configuration attribute (`config.putSingle("algorithm", Algorithm.RS256)`, `header.put("alg", "ES256")`), whereas
+a name-mapping entry (`algs.put("RS256", "SHA256withRSA")`) still holds.
+
+**Composite names** *(DECISIONS R3-X-JOSE)*: a name that names several families is listed under the rule of each,
+as the JCA names are (`SHA256withRSA`: RSA and SHA-2): the JOSE names `RS256`, `PS384`, `ES512`, `HS256`,
+`RSA-OAEP-256` are also SHA-2 names, `A128CBC-HS256` and `PBES2-HS256+A128KW` also HMAC and SHA-2 names
+(`spec/anycall-names.csv`, group `G5c-jose-name`), as for the Python and Go `literal` patterns (8.6.2, 17.5).
 
 **`feature`** (optional, any anchor; a feature id of 3.1): the pattern takes part only while that feature is
 on (3.1); it is ignored by the index (7.5) and by the pre-filter (14) otherwise. An unknown id is a rule
@@ -2702,7 +2718,7 @@ one anchor:
 | `composite` | `path.Type` (no `*`) | A composite-literal event (17.5): `tls.Config{…}`, `&rsa.PSSOptions{…}`, `new(tls.Config)`. |
 | `assign` | a field name | A field-assignment event (17.5): the keyed element `InsecureSkipVerify: true` of any composite literal, or the assignment `cfg.InsecureSkipVerify = true`. |
 | `method` | `path.Type.Method` (split at the last two `.`; no `*`) | A method event (17.12): a call `r.Method(…)` whose receiver `r` has the known type `path.Type` *(DECISIONS B-G-B1a)*. Takes no `anySymbol` and no `param: {self}`; `param: {index}` and `{value}` work as for `call`. |
-| `literal` | a list of exact strings, optional `feature` | A literal event (17.5): a string literal in value position whose value equals a listed string *(DECISIONS T3-G10, feature `go-literal-names`)*. Takes no `anySymbol` and no `param`. |
+| `literal` | a list of exact strings, optional `feature` | A literal event (17.5): a string literal in value position whose value equals a listed string *(DECISIONS T3-G10, feature `go-literal-names`)*. Takes no `anySymbol` and no `param`. A Go pattern takes `feature` only together with `literal` (the schema rejects it on the other anchors, which have no switch; *DECISIONS R3-X-S1*). |
 
 Conditions:
 
@@ -3048,8 +3064,8 @@ selected libraries, written from their pkg.go.dev documentation and filed under 
 | `github.com/cloudflare/circl/sign/slhdsa` (B-G-B2) | the twelve FIPS 205 parameter-set identifiers `SHA2_128s` … `SHAKE_256f` (param `SLH-DSA-…`), `GenerateKey` (param from argument 1) | `go.pqc.slhdsa` (new rule) |
 | `github.com/ethereum/go-ethereum/crypto` (*DECISIONS T3-G2*) | `Keccak256`, `Keccak256Hash`, `NewKeccakState`, `HashData` / `Sign`, `VerifySignature`, `Ecrecover`, `SigToPub` (param `secp256k1`) / `GenerateKey`, `S256` (param `secp256k1`) / `ToECDSA`, `ToECDSAUnsafe`, `HexToECDSA`, `LoadECDSA`, `FromECDSA`, `SaveECDSA` / `UnmarshalPubkey`, `DecompressPubkey`, `FromECDSAPub`, `CompressPubkey` (address derivation, `ValidateSignatureValues` and the size constants name no operation) | `go.hash.sha3` / `go.asym.ecdsa` / `go.asym.ec` / `go.key.load.private` / `go.key.load.public` |
 | `github.com/ethereum/go-ethereum/accounts/keystore` (T3-G2) | `NewKeyStore`, `EncryptKey`, `DecryptKey`, `EncryptDataV3`, `DecryptDataV3`, `StoreKey` (scrypt-protected key files) / methods `KeyStore.SignHash`, `SignHashWithPassphrase`, `SignTx`, `SignTxWithPassphrase` (17.12; `NewKeyStore` → `KeyStore` in the result-type table) | `go.kdf.scrypt` / `go.asym.ecdsa` (param `secp256k1`) |
-| `github.com/go-jose/go-jose/v3`, `/v4`, `gopkg.in/square/go-jose.v2`, `gopkg.in/go-jose/go-jose.v2` (values; *DECISIONS T3-G4*) | JOSE identifiers (RFC 7518): `HS*` / `RS*` / `PS*` / `ES*` (curve as param) / `EdDSA`, `ED25519` / `RSA1_5` / `RSA_OAEP`, `RSA_OAEP_256` / `A*KW` / `A*GCMKW`, `A*GCM` / `ECDH_ES`, `ECDH_ES_A*KW` / `PBES2_*` / `A*CBC_HS*` (key size as param for AES); not `DIRECT`, `DEFLATE`, `NONE` | `go.mac.hmac` / `go.asym.rsa.pkcs1v15.sign` / `go.asym.rsa.pss` / `go.asym.ecdsa` / `go.asym.ed25519` / `go.asym.rsa.pkcs1v15.encrypt` / `go.asym.rsa.oaep` / `go.sym.aes` / `go.sym.aes.gcm` / `go.asym.ecdh` / `go.kdf.pbkdf2` / `go.sym.aes.cbc` |
-| `github.com/golang-jwt/jwt`, `/v4`, `/v5` (T3-G4) | `SigningMethodHS*` / `RS*` / `PS*` / `ES*` / `EdDSA` (not `SigningMethodNone`); `ParseRSA…`, `ParseEC…`, `ParseEd…` `Private`/`PublicKeyFromPEM` under the algorithm their name fixes | as for go-jose; `go.asym.rsa`, `go.asym.ec`, `go.asym.ed25519` |
+| `github.com/go-jose/go-jose/v3`, `/v4`, `gopkg.in/square/go-jose.v2`, `gopkg.in/go-jose/go-jose.v2` (values; *DECISIONS T3-G4*) | JOSE identifiers (RFC 7518): `HS*` / `RS*` / `PS*` / `ES*` (curve as param) / `EdDSA`, `ED25519` / `RSA1_5` / `RSA_OAEP`, `RSA_OAEP_256` / `A*KW` / `A*GCMKW`, `A*GCM` / `ECDH_ES`, `ECDH_ES_A*KW` / `PBES2_*` / `A*CBC_HS*` (key size as param for AES); not `DIRECT`, `DEFLATE`, `NONE`. A composite name is reported under each family it names *(DECISIONS R3-X-JOSE)*: `HS*`, `RS*`, `PS*`, `ES*`, `RSA_OAEP_256`, `PBES2_*`, `A*CBC_HS*` also under `go.hash.sha2`, `PBES2_*` and `A*CBC_HS*` also under `go.mac.hmac` | `go.mac.hmac` / `go.asym.rsa.pkcs1v15.sign` / `go.asym.rsa.pss` / `go.asym.ecdsa` / `go.asym.ed25519` / `go.asym.rsa.pkcs1v15.encrypt` / `go.asym.rsa.oaep` / `go.sym.aes` / `go.sym.aes.gcm` / `go.asym.ecdh` / `go.kdf.pbkdf2` / `go.sym.aes.cbc` (+ `go.hash.sha2`) |
+| `github.com/golang-jwt/jwt`, `/v4`, `/v5` (T3-G4) | `SigningMethodHS*` / `RS*` / `PS*` / `ES*` / `EdDSA` (not `SigningMethodNone`); `ParseRSA…`, `ParseEC…`, `ParseEd…` `Private`/`PublicKeyFromPEM` under the algorithm their name fixes; the signing methods `HS*` / `RS*` / `PS*` / `ES*` also under `go.hash.sha2` (R3-X-JOSE) | as for go-jose; `go.asym.rsa`, `go.asym.ec`, `go.asym.ed25519` |
 | `github.com/btcsuite/btcd/btcec/v2` and `…/btcec/v2/ecdsa` (*DECISIONS T3-G5*) | `PrivKeyFromBytes`, `PrivKeyFromScalar`, `NewPrivateKey`, `NewPublicKey`, `ParsePubKey`, `S256` / `GenerateSharedSecret` / `ecdsa.Sign`, `SignCompact`, `RecoverCompact` (all param `secp256k1`; signature parsing and point arithmetic are not anchors) | `go.asym.ec` / `go.asym.ecdh` / `go.asym.ecdsa` |
 | `github.com/libp2p/go-libp2p/core/crypto` (T3-G5) | key generation and (un)marshalling functions of a fixed type under that type's rule (`…Secp256k1…` EC with param `secp256k1`, `…ECDSA…`, `…Ed25519…`, `…Rsa…`, `GenerateRSAKeyPair` bits as param), the key-type constants `RSA`, `Ed25519`, `Secp256k1`, `ECDSA`; the type-generic `UnmarshalPrivateKey` / `MarshalPrivateKey` / `PrivKeyToStdKey` / `KeyPairFromStdKey` and the public-key counterparts as key loading | `go.asym.ec`, `go.asym.ecdsa`, `go.asym.ed25519`, `go.asym.rsa` / `go.key.load.*` |
 

@@ -24,10 +24,6 @@ final class JavaOutliner {
 
     private record Frame(SyntaxNode node, int cls, boolean inCode, int nesting) {}
 
-    static Outline outline(SyntaxNode root, String path, boolean test) {
-        return outline(root, path, test, false);
-    }
-
     /**
      * @param constructors constructors are definitions (named like their class) and {@code new C(…)} without a class
      *        body is a call of them (t3 J-CTOR)

@@ -83,6 +83,9 @@ public final class Features {
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
     public static final String JAVA_ANY_CALL_SHORT = "java-any-call-short";
 
+    /** Java {@code anyCall}: not on logging calls, type-label setters, literal-keyed config puts (R3-X-A1, SPEC 5.5). */
+    public static final String JAVA_ANY_CALL_METADATA = "java-any-call-metadata";
+
     /** Java: a no-argument call of the file's only constant getter, and {@code key.getAlgorithm()} (JP1, JP5). */
     public static final String JAVA_CONSTANT_GETTERS = "java-constant-getters";
     /** Java: constants inherited from project supertypes (t3 J-INH, SPEC 7.4.3, 7.4.5). */
@@ -154,6 +157,7 @@ public final class Features {
         known(MAVEN_TEST_SCOPE, true);
         known(JAVA_ANY_CALL, true);
         known(JAVA_ANY_CALL_SHORT, true);
+        known(JAVA_ANY_CALL_METADATA, true);
         known(GO_NESTED_SAME_RULE, true);
         known(GO_LITERAL_NAMES, true);
         known(GO_FOLD_RECEIVER_KEYS, true);

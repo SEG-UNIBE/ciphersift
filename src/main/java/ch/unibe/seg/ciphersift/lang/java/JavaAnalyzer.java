@@ -41,6 +41,8 @@ public final class JavaAnalyzer {
     private final boolean inherited;
     private final boolean crossModule;
     private final boolean constructorCalls;
+    /** DECISIONS R3-X-A1: anyCall does not fire on logging calls, type-label setters, literal-keyed config puts. */
+    private final boolean anyCallMetadata;
 
     public JavaAnalyzer(RuleSet rules, JavaContexts contexts) {
         this(rules, contexts, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
@@ -55,6 +57,41 @@ public final class JavaAnalyzer {
         this.inherited = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_INHERITED_CONSTANTS);
         this.crossModule = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CROSS_MODULE_CONSTANTS);
         this.constructorCalls = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CONSTRUCTOR_CALLS);
+        this.anyCallMetadata = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_ANY_CALL_METADATA);
+    }
+
+    /**
+     * Logging methods beyond the base list of SPEC 5.5: {@code fatal} (Log4j, Commons Logging, JBoss Logging) and the
+     * JBoss Logging message-format variants {@code tracev}, {@code tracef}, … (org.jboss.logging.BasicLogger).
+     */
+    static final Set<String> ANY_CALL_LOG_VARIANTS = Set.of("fatal", "tracev", "debugv", "infov", "warnv", "errorv",
+            "fatalv", "tracef", "debugf", "infof", "warnf", "errorf", "fatalf");
+    /** A receiver that is a logger: its last segment is {@code log} or {@code logger} (any case, {@code LOG}, {@code LOGGER}). */
+    static final Pattern LOGGER_RECEIVER = Pattern.compile("(?:^|[._])(?i:log|logger)$");
+    /** Setters of a type label (a JWK {@code kty}, a key wrapper's key type): a key type names no algorithm use. */
+    static final Set<String> TYPE_SETTERS = Set.of("setType", "setKeyType");
+    /** Map / multimap puts: with a string literal as key, the entry is a configuration attribute and its value data. */
+    static final Set<String> CONFIG_PUTS = Set.of("put", "putSingle", "putIfAbsent");
+
+    /**
+     * DECISIONS R3-X-A1 (feature {@code java-any-call-metadata}, SPEC 5.5): an {@code anyCall} pattern does not hold
+     * for a call that logs (a logging variant or a logger receiver), sets a type label, or puts a configuration entry
+     * whose key is a string literal that is no anyCall name itself ({@code config.putSingle("algorithm", RS256)} is
+     * configuration data; {@code algs.put("RS256", "SHA256withRSA")} stays a name-mapping entry).
+     */
+    private boolean anyCallMetadata(Event ev, JavaContext ctx, JavaResolver resolver) {
+        if (ANY_CALL_LOG_VARIANTS.contains(ev.name) || TYPE_SETTERS.contains(ev.name)) {
+            return true;
+        }
+        if (ev.receiver != null && LOGGER_RECEIVER.matcher(ev.receiver).find()) {
+            return true;
+        }
+        if (CONFIG_PUTS.contains(ev.name) && ev.args().size() >= 2 && ev.args().get(0).is("string_literal")) {
+            // the key literal is an attribute name, not itself an algorithm name of the anyCall lists
+            List<String> key = resolver.stringList(List.of(ev.args().get(0)), ctx);
+            return key.isEmpty() || !index.anyCallName(key.get(0));
+        }
+        return false;
     }
 
     /** An event (SPEC 7.2). */
@@ -406,7 +443,8 @@ public final class JavaAnalyzer {
                 }
             }
             case ANY_CALL -> {
-                if (ev.kind != EventKind.CALL || !JavaRuleIndex.anyCallFires(ev.name)) {
+                if (ev.kind != EventKind.CALL || !JavaRuleIndex.anyCallFires(ev.name)
+                        || (anyCallMetadata && anyCallMetadata(ev, ctx, resolver))) {
                     return false;
                 }
             }

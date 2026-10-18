@@ -172,6 +172,16 @@ class RuleLoaderTest {
         assertTrue(e.getMessage().contains("\"*\" is not allowed"), e.getMessage());
     }
 
+    /** DECISIONS R3-X-S1: a Go pattern takes {@code feature} only with {@code literal} (no other Go anchor has a switch). */
+    @Test
+    void goFeatureOnlyOnLiterals() throws Exception {
+        String go = "id: go.t.x\nkind: source\nlanguage: go\nname: t\nasset: {type: algorithm}\nmatch:\n";
+        RuleException e = fail("g.yaml", go + "- call: crypto/sha256.New\n  feature: go-literal-names\n");
+        assertTrue(e.getMessage().contains("g.yaml"), e.getMessage());
+        RuleLoader.load(List.of(new RuleLoader.RuleFile("g.yaml",
+                (go + "- literal: ['RS256']\n  feature: go-literal-names\n").getBytes(StandardCharsets.UTF_8))));
+    }
+
     /** DECISIONS O2: {@code param} does not make a Java pattern specific. */
     @Test
     void paramIsNotACondition() throws Exception {

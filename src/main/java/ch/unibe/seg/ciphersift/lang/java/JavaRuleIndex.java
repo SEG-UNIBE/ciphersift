@@ -96,6 +96,28 @@ public final class JavaRuleIndex {
         return !anyCall.isEmpty();
     }
 
+    /**
+     * Whether some enabled {@code anyCall} pattern's string condition holds for this single string, i.e. the string
+     * is a name of the anyCall lists (DECISIONS R3-X-A1).
+     */
+    public boolean anyCallName(String s) {
+        for (JavaPattern p : anyCall) {
+            if (p.anyString != null && p.anyString.matcher(s).lookingAt()
+                    || p.firstString != null && p.firstString.matcher(s).lookingAt()) {
+                return true;
+            }
+            if (p.stringContains != null) {
+                String l = ch.unibe.seg.ciphersift.util.Texts.lower(s);
+                for (String n : p.stringContains) {
+                    if (l.contains(ch.unibe.seg.ciphersift.util.Texts.lower(n))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     /** Is there any candidate for this event (cheap pre-check)? */
     public boolean hasCandidates(JavaPattern.EventKind kind, String name) {
         if (kind == JavaPattern.EventKind.CALL && !anyCall.isEmpty() && anyCallFires(name)) {

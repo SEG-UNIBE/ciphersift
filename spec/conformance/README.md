@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-114 cases, 1806 expected findings. A conforming implementation produces exactly the expected
+116 cases, 1846 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -93,13 +93,15 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `deps/skip-python-lock-files` | 6 | 6 | the same input with `--feature skip-python-lock-files=on`: `poetry.lock` and `Pipfile.lock` give nothing either (DECISIONS B-G2) |
 | `deps/transitive-included` | 6 | 16 | the same input with `--transitive-deps` |
 | `deps/commons-codec-used` | 3 | 3 | `commons-codec` is reported when a Java file names `org.apache.commons.codec.digest` (here fully qualified) (DECISIONS B-J4) |
-| `deps/commons-codec-unused` | 3 | 1 | `commons-codec` used only for Base64 / Hex: not reported; other libraries unaffected (DECISIONS B-J4) |
+| `deps/commons-codec-unused` | 2 | 1 | `commons-codec` used only for Base64 / Hex: not reported; other libraries unaffected (DECISIONS B-J4) |
 | `common/wrapper-aliases` | 4 | 31 | V2 wrapper-name aliases in Java, Python and Go (`tls`, `ssh`, `cert`/`certificate`, `privkey`, `hash160`) and the V1 alias `des3` → 3DES, on definitions that are not thin wrappers; a Go `sslFingerprint` without TLS evidence carries nothing (DECISIONS B-A1, B-A2) |
 | `java/wrapper-depth` | 1 | 5 | name-consistent chains of 2, 3 and 4 definitions are reported, a chain of 5 is not (DECISIONS B-C) |
 | `java/thin-12` | 1 | 3 | Java thin wrappers of 12 lines carry their family, 13 lines do not (DECISIONS B-J-G) |
 | `java/propagate-random` | 1 | 5 | a Java helper returning a `SecureRandom` is a thin wrapper; one with a CSPRNG and AES is a thin wrapper of AES (the CSPRNG does not count next to another key; DECISIONS B-J-D, review) |
 | `java/any-call` | 1 | 9 | `anyCall`: registry names (JCA, XML-Security URIs, provider service keys, a short name) as arguments of unknown methods, also through a constant and the JSR 105 constants table; comparisons, logging, collection builders, a non-name string and a `getInstance` call (its own rule) give nothing more (DECISIONS B-J-SNx, B-J-XD2) |
 | `java/any-call-off` | 1 | 2 | the same input with `java-any-call` and `java-any-call-short` off |
+| `java/any-call-metadata` | 1 | 11 | `anyCall` gives nothing for type-label setters (`setType`, `setKeyType`), JBoss Logging variants (`tracev`, `debugf`), a logger receiver and `put` / `putIfAbsent` of a configuration attribute keyed by a non-name literal; name-mapping puts and `setAlgorithm` stay; a composite JOSE name gives every family it names (`RS256` → RSA and SHA-2, `A128CBC-HS256` → AES, HMAC, SHA-2) (DECISIONS R3-X-A1, R3-X-JOSE) |
+| `java/any-call-metadata-off` | 1 | 23 | the same input with `java-any-call-metadata` off |
 | `java/api-additions` | 1 | 6 | Java SE classes (`CipherInputStream`, `SealedObject`, `PBEParameterSpec`) and Bouncy Castle classes named after their algorithm (DECISIONS B-J-JDK, B-J-BC2) |
 | `java/bc-oids` | 1 | 3 | a Bouncy Castle OID constant as a value (field anchor) and through `getId()` into JCA factories, with the OID recorded (DECISIONS B-J-BCOID, B-J-JP2) |
 | `java/jwt-constants` | 1 | 4 | Nimbus and jjwt algorithm constants, also a nested class `Jwts.ENC` (DECISIONS B-J-JWT) |
@@ -121,11 +123,11 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/constant-closure` | 9 | 14 | constants inherited from a superclass of another module and from its interface, a non-final inherited field (not when the subclass assigns it, review3 R3-J-INH1), `C.F` declared in a supertype of `C`, an imported class of another source root, a class path present twice (unresolved), a parameter shadowing an inherited constant; `super(…)` / `this(…)` with an algorithm name (not with a parameter or a non-name); `s.getBytes("UTF-8")` is no constant key, `"…".getBytes("UTF-8")` is (DECISIONS T3-J-INH, T3-J-XMOD, T3-J-SUPER, T3-J-GB) |
 | `java/constructor-wrappers` | 1 | 2 | a constructor with a body finding as wrapper definition, `new C()` as its call site; an overload of another arity without crypto, a class without crypto and an anonymous subclass give nothing (DECISIONS T3-J-CTOR) |
 | `deps/gradle-catalog-accessors` | 3 | 9 | `libs.a.b` and camel-case accessors, a bundle, a non-crypto library and a version accessor through `gradle/libs.versions.toml`; `testImplementation` and `<scope>test</scope>` as test occurrences, a key declared with and without test scope, `attestationImplementation` is no test configuration (DECISIONS T3-J-CAT, T3-J-TSCOPE, review3 R3-J-TS1) |
-| `java/api-t3` | 1 | 9 | `CertificateFactory.generateCertificate` / `generateCRL` on a variable, JSR 105 `XMLSignatureFactory.getInstance`, OpenSAML `Signer.signObject` and `KeyStoreCredentialResolver`, OpenSAML and jose4j constants (not jose4j `NONE`), ed25519-java `EdDSAEngine` and `EdDSANamedCurveTable.getByName` (DECISIONS T3-J-CF, T3-J-XSIG, T3-J-CONST, T3-J-I2P) |
+| `java/api-t3` | 1 | 10 | `CertificateFactory.generateCertificate` / `generateCRL` on a variable, JSR 105 `XMLSignatureFactory.getInstance`, OpenSAML `Signer.signObject` and `KeyStoreCredentialResolver`, OpenSAML and jose4j constants (not jose4j `NONE`), ed25519-java `EdDSAEngine` and `EdDSANamedCurveTable.getByName` (DECISIONS T3-J-CF, T3-J-XSIG, T3-J-CONST, T3-J-I2P; the JOSE name `RS256` also as SHA-2, R3-X-JOSE) |
 | `go/nested-same-rule` | 1 | 11 | a finding of a rule without family nested on the same line in an event of the same rule is dropped (`rand.Int(rand.Reader, n)`, `VerifyOptions{Roots: NewCertPool()}`); other lines and other rules keep theirs (DECISIONS T3-G1) |
 | `go/api-ethereum` | 1 | 11 | go-ethereum `crypto` (Keccak, secp256k1 signatures and keys) and `accounts/keystore` (scrypt key files, `KeyStore.SignHash` on a typed receiver); nothing for address derivation, size constants or `Accounts()` (DECISIONS T3-G2) |
 | `go/thin-key-material` | 3 | 9 | Go thin wrappers whose key loading sits next to an SSH host-key registration or a SHA-256 key id carry that operation; key loading alone stays a key-loading wrapper (DECISIONS T3-G3) |
-| `go/api-jose` | 2 | 9 | go-jose and golang-jwt algorithm identifiers and PEM key parsers; default local name `jose` for `go-jose/v4` and `go-jose.v2`; nothing in comparisons, `case` values, `DIRECT`, `DEFLATE`, `SigningMethodNone` (DECISIONS T3-G4) |
+| `go/api-jose` | 2 | 14 | go-jose and golang-jwt algorithm identifiers and PEM key parsers; default local name `jose` for `go-jose/v4` and `go-jose.v2`; nothing in comparisons, `case` values, `DIRECT`, `DEFLATE`, `SigningMethodNone`; names with a SHA-2 hash also as `go.hash.sha2`, the PBES2 name also as HMAC (DECISIONS T3-G4, R3-X-JOSE) |
 | `go/api-secp256k1-libp2p` | 1 | 9 | btcec/v2 secp256k1 keys, ECDSA and ECDH; libp2p key functions and key-type constants; nothing for signature parsing, `IsCompressedPubKey`, `ConfigEncodeKey` (DECISIONS T3-G5) |
 | `go/random-index` | 1 | 3 | (with `--feature go-random-index=on`) `rand.Int` over `big.NewInt(len(x))` / `int64(len(x))` is dropped with its `rand.Reader`; other bounds stay (DECISIONS T3-G6) |
 | `go/generic-variants` | 3 | 5 | a curve selector with two params of one rule is propagated under the rule's name; a wrapper of one curve keeps its name and param (DECISIONS T3-G7) |

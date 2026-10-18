@@ -1240,6 +1240,19 @@
               ]
             }
           }
+        },
+        {
+          "description": "feature only on literal patterns: the other Go anchors have no feature switch (DECISIONS R3-X-S1)",
+          "if": {
+            "required": [
+              "feature"
+            ]
+          },
+          "then": {
+            "required": [
+              "literal"
+            ]
+          }
         }
       ]
     },

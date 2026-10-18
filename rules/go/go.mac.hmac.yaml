@@ -42,6 +42,33 @@ match:
 - ref: github.com/golang-jwt/jwt/v5.SigningMethodHS256
 - ref: github.com/golang-jwt/jwt/v5.SigningMethodHS384
 - ref: github.com/golang-jwt/jwt/v5.SigningMethodHS512
+# DECISIONS R3-X-JOSE: a composite JOSE algorithm name is filed under every family it names, as the Go and Python
+# literal names (T3-G10, B-P-LIT) and the JCA names: the HMAC of the go-jose / golang-jwt identifiers of T3-G4
+# (RFC 7518; https://pkg.go.dev/github.com/go-jose/go-jose/v4, https://pkg.go.dev/github.com/golang-jwt/jwt/v5).
+- ref: github.com/go-jose/go-jose/v3.PBES2_HS256_A128KW
+- ref: github.com/go-jose/go-jose/v3.PBES2_HS384_A192KW
+- ref: github.com/go-jose/go-jose/v3.PBES2_HS512_A256KW
+- ref: github.com/go-jose/go-jose/v4.PBES2_HS256_A128KW
+- ref: github.com/go-jose/go-jose/v4.PBES2_HS384_A192KW
+- ref: github.com/go-jose/go-jose/v4.PBES2_HS512_A256KW
+- ref: gopkg.in/square/go-jose.v2.PBES2_HS256_A128KW
+- ref: gopkg.in/square/go-jose.v2.PBES2_HS384_A192KW
+- ref: gopkg.in/square/go-jose.v2.PBES2_HS512_A256KW
+- ref: gopkg.in/go-jose/go-jose.v2.PBES2_HS256_A128KW
+- ref: gopkg.in/go-jose/go-jose.v2.PBES2_HS384_A192KW
+- ref: gopkg.in/go-jose/go-jose.v2.PBES2_HS512_A256KW
+- ref: github.com/go-jose/go-jose/v3.A128CBC_HS256
+- ref: github.com/go-jose/go-jose/v3.A192CBC_HS384
+- ref: github.com/go-jose/go-jose/v3.A256CBC_HS512
+- ref: github.com/go-jose/go-jose/v4.A128CBC_HS256
+- ref: github.com/go-jose/go-jose/v4.A192CBC_HS384
+- ref: github.com/go-jose/go-jose/v4.A256CBC_HS512
+- ref: gopkg.in/square/go-jose.v2.A128CBC_HS256
+- ref: gopkg.in/square/go-jose.v2.A192CBC_HS384
+- ref: gopkg.in/square/go-jose.v2.A256CBC_HS512
+- ref: gopkg.in/go-jose/go-jose.v2.A128CBC_HS256
+- ref: gopkg.in/go-jose/go-jose.v2.A192CBC_HS384
+- ref: gopkg.in/go-jose/go-jose.v2.A256CBC_HS512
 # DECISIONS T3-G10: names as string literals in value positions: the IANA SSH / JOSE / TLS-group names of the Python rules
 # (DECISIONS B-P-LIT, spec/PROVENANCE.md) and OpenSSL cipher names as used by OpenVPN --data-ciphers.
 - literal: ['A128CBC-HS256', 'A192CBC-HS384', 'A256CBC-HS512', 'HS1', 'HS256', 'HS384', 'HS512', 'PBES2-HS256+A128KW', 'PBES2-HS384+A192KW', 'PBES2-HS512+A256KW', 'hmac-md5', 'hmac-md5-96', 'hmac-sha1', 'hmac-sha1-96', 'hmac-sha2-256', 'hmac-sha2-512']
