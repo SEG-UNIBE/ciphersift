@@ -1,0 +1,5 @@
+# DECISIONS P3-DEP
+TgCrypto-pyrofork==1.2.7  # want: dep.pypi tgcrypto-pyrofork 1.2.7
+unicrypto>=0.0.10  # want: dep.pypi unicrypto (no pinned version)
+unicrypto-extra==1.0  # another package: nothing
+tgcrypto_pyrofork_utils  # another package: nothing
