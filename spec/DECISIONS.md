@@ -533,3 +533,29 @@ Measurements: `work/ciphersift-t3/review-cross/` (`ev.py`, `verdicts.jsonl`).
 | R3-X-A1 anyCall on metadata (Java) | **benchmark-informed** (open item of the Java review: keycloak label setters and log arguments). New feature `java-any-call-metadata` (on): an `anyCall` pattern does not hold on (a) logging calls — `fatal` and the JBoss Logging format variants `tracev`, `debugf`, … (`org.jboss.logging.BasicLogger`), or a receiver named `log` / `logger` in any case — and (b) the type-label setters `setType` / `setKeyType` (a JWK `kty`, a key wrapper's key type selects no algorithm). It mirrors the Go message-call exclusion for literals (T3-G10). A third candidate, puts of a configuration value keyed by a non-name literal (`config.putSingle("algorithm", Algorithm.RSA_OAEP)`), was implemented, judged and **dropped**: Fable judged those 6 findings TP (the value selects the algorithm of the keys the provider generates). Effect on the DEV-45: 22 Java findings removed (keycloak), judged 20 debatable + 2 FP, 0 TP (Fable); recall unchanged on every GT (old seeds and dev v2.1: 0 sites lost). `getJavaAlgorithmForHash(RS512)` stays reported as RSA (wrong-detail); with R3-X-JOSE it now also gives the SHA-2 finding. New cases `java/any-call-metadata`, `java/any-call-metadata-off`. | 5.5, 3.1 |
 | R3-X-JOSE composite JOSE names | **Convention: a composite algorithm name is reported under every family it names** — already the rule for the JCA names (`SHA256withRSA` → RSA and SHA-2, Java), for the IANA SSH / JOSE / TLS-group literals of Python (B-P-LIT, SPEC 8.6.2: "`curve25519-sha256` is X25519 and SHA-2") and Go (T3-G10), and for the TLS 1.3 suites in all three languages. Two places deviated: Java `anyCall` JOSE names (`RS256` → RSA only) and the Go go-jose / golang-jwt constants of T3-G4 (`jose.RS256` → signature only). Argument from `JUDGING.md`: TP means the line uses "a crypto algorithm … of the reported family"; RS512 is RSASSA-PKCS1-v1_5 *with SHA-512* (RFC 7518 §3.1), so SHA-2 is a family of the asset at that line, not a wrong detail (wrong-detail is for a family/variant that is *wrong*); the evaluation's recall GT records JOSE sites as `["RSA","SHA2"]`, `["HMAC","SHA2"]`, `["EC","SHA2"]` (uaa `JwtAlgorithms`, oauthlib `jwt.encode(…, 'RS256')`, go-jose allow-lists), and earlier judging counted HS256/RS256 SHA-2 findings TP (t2 tuner 12/12). The review judge's 3/3 wrong-detail had no convention to go by. Now: Java `anyCall` JOSE names also under `java.hash.sha2` (all SHA-2-bearing names) and `java.mac.hmac` (`A*CBC-HS*`, `PBES2-HS*`), as in Python/Go (`spec/anycall-names.csv`, 28 rows); Go T3-G4 constants and signing methods also under `go.hash.sha2` (112 refs) and `go.mac.hmac` (24 refs). Matcher: `lib.match` accepts a finding if any of its keys is a site family, so the extra SHA-2 finding never costs recall and the signature finding still matches `["RSA","SHA2"]` sites. Shared-code companion fix (feature `wrapper-composite-names`, on): the SHA-2 / HMAC part of a composite name on the same line as its main family's finding is no second key for the thin-wrapper test — without it the new SHA-2 findings turned 18 thin JOSE wrappers (api-gateway `JwtSessionManager.generateKey`, keycloak `createDefaultConfiguration`; 10 judged TP) into two-family definitions that no longer propagated; with it these are restored and 1 more vault call propagates; no other change on the DEV-45 (Python unchanged). Judged: Java additions 56 TP / 4 debatable of 60 judged, Go 22/22 TP, Python JOSE SHA-2 findings 11 TP / 1 debatable (pyjwt's `requires_cryptography` set). Cases `go/api-jose`, `java/api-t3`, `java/any-call-metadata`. | 5.5, 17.11, 18.5, 3.1 |
 
+
+Final measurement of round t3 on main (this review merged; DEV-45, native scans of `$TMPDIR` copies, default
+options). Recall: tool-compare `lib.match` with TC_TRUSTALL on, old seeds 1+2 (old tuning) and `eval2/gt/dev.jsonl`
+v2.1 (new dev); old dev/regression has no recall GT. Strict precision (CSPRNG rule): t1 and t2r from the judged DEV
+rescore sample; final = per project, the t2r sample's TP rate on the findings kept from t2r plus the judged verdicts
+of the added findings (tuners, language reviews, this review; additions without a verdict take the TP rate of this
+review's stratified sample of that project's additions), weighted like the t2r sample.
+
+| lang | subset | P t1 / t2r / final | R t1 / t2r / final | F1 t1 / t2r / final |
+|---|---|---|---|---|
+| Java | old tuning | 99.2 / 98.4 / 97.8 | 76.5 / 81.5 / 83.5 | 86.4 / 89.2 / 90.1 |
+| Java | old devreg | 87.1 / 88.8 / 92.4 | – | – |
+| Java | new dev | 88.0 / 89.6 / 94.4 | 57.2 / 64.8 / 82.8 | 69.4 / 75.2 / 88.2 |
+| Java | all 15 | 91.5 / 92.3 / 94.9 | 66.9 / 73.1 / 83.1 | 77.3 / 81.6 / 88.6 |
+| Python | old tuning | 99.2 / 100.0 / 99.9 | 72.0 / 79.2 / 81.1 | 83.4 / 88.4 / 89.5 |
+| Python | old devreg | 97.5 / 97.5 / 97.6 | – | – |
+| Python | new dev | 98.4 / 98.4 / 95.1 | 74.8 / 74.8 / 84.9 | 85.0 / 85.0 / 89.7 |
+| Python | all 15 | 98.4 / 98.6 / 97.5 | 73.4 / 77.0 / 83.0 | 84.1 / 86.5 / 89.7 |
+| Go | old tuning | 92.0 / 96.8 / 97.9 | 56.0 / 66.5 / 70.2 | 69.6 / 78.8 / 81.8 |
+| Go | old devreg | 98.4 / 96.7 / 98.6 | – | – |
+| Go | new dev | 97.6 / 99.2 / 100.0 | 80.8 / 82.3 / 90.5 | 88.4 / 90.0 / 95.0 |
+| Go | all 15 | 96.0 / 97.6 / 98.9 | 68.2 / 74.3 / 80.3 | 79.8 / 84.4 / 88.6 |
+
+Merged t3 before this review: Java all 15 P 94.7, Go 98.9, Python 97.5, recall identical. Determinism: `--threads 1`
+equals the default on six large DEV projects (CBOM minus serial and timestamp). Speed (1 thread, six large DEV
+projects): 96.7 s merged t3, 84.2 s final.
