@@ -30,6 +30,12 @@ public final class Features {
     /** Keep go.mod {@code // indirect} requirements and lock files (go.sum, poetry.lock, Pipfile.lock). */
     public static final String TRANSITIVE_DEPS = "transitive-deps";
 
+    /**
+     * Without {@code transitive-deps}: also skip the Python lock files poetry.lock and Pipfile.lock (B-G2's Python
+     * part; off by default since the review of round t2, DECISIONS B-G2).
+     */
+    public static final String SKIP_PYTHON_LOCK_FILES = "skip-python-lock-files";
+
     /** Wrapper-name aliases for certificates, keys and protocols (V2, SPEC 18.6). */
     public static final String WRAPPER_ALIASES_V2 = "wrapper-aliases-v2";
 
@@ -85,6 +91,7 @@ public final class Features {
 
     static {
         known(TRANSITIVE_DEPS, false);
+        known(SKIP_PYTHON_LOCK_FILES, false);
         known(PYTHON_ASN1_SCHEMAS, true);
         known(PYTHON_FOLD_RECEIVERS, true);
         known(PYTHON_LITERAL_NAMES, true);

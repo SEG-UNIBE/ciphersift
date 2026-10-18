@@ -10,10 +10,10 @@ Development steps of the unreleased 1.0.0, newest first.
 ### Boosters, round t2 (DECISIONS B0–B-P-B5; benchmark-informed)
 
 Every behaviour booster has a feature switch (`--feature ID=on|off`, SPEC 3.1; recorded as
-`ciphersift:features`); all are on by default except `transitive-deps`.
+`ciphersift:features`); all are on by default except `transitive-deps` and `skip-python-lock-files`.
 
-* **Dependencies**: `go.mod` `// indirect` requirements and lock files (`go.sum`, `poetry.lock`,
-  `Pipfile.lock`) only with `--transitive-deps`; `Pipfile` is read; Vault API client, Sigstore
+* **Dependencies**: `go.mod` `// indirect` requirements and `go.sum` only with `--transitive-deps`
+  (`poetry.lock` / `Pipfile.lock` stay reported unless `--feature skip-python-lock-files=on`, review fix); `Pipfile` is read; Vault API client, Sigstore
   protobuf-specs and Rekor listed (owner decision); `certifi` removed; `commons-codec` only where its
   digest package is used (new rule key `usedIf`).
 * **All languages**: registry aliases (V1; fixes `des3` → DES) and certificate/key/protocol aliases
@@ -29,7 +29,7 @@ Every behaviour booster has a feature switch (`--feature ID=on|off`, SPEC 3.1; r
 * **Python**: `python.hash.unresolved` / `python.cipher.unresolved` fallbacks; `hash`/`digest`
   wrapper names; re-exported pyca names; `isinstance` key dispatch; IANA names as literals
   (`literal` anchor); ML-KEM / ML-DSA rules; asn1crypto schemas and receiver folding.
-* Conformance: 92 cases, 1633 findings (1624 + 3 of the Java review, + 6 of the Go review fix of the fallback-getter guard); changed expectations are listed in DECISIONS (round t2 and its reviews).
+* Conformance: 93 cases, 1648 findings (1624 + 3 of the Java review, + 6 of the Go review fix of the fallback-getter guard, + 15 and one case of the cross-language review); changed expectations are listed in DECISIONS (round t2 and its reviews).
 
 ### Recall extension, tier 1 (DECISIONS T1–T14, SPEC section 18; benchmark-informed)
 

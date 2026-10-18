@@ -81,8 +81,8 @@ Extra JVM options can be passed in `CIPHERSIFT_JAVA_OPTS` (e.g. `-Xmx4g`).
 | `--rules DIR` | Use the rules under `DIR` instead of the bundled ones (`rules export` gives you a copy to edit). |
 | `--weakness-indicators` | Also report *weakness indicators* (see below), e.g. non-cryptographic random generators. Off by default; all other findings are exactly those of a default scan. |
 | `--python-thin-wrappers` | Also treat thin Python functions (at most 8 lines, one family, any name) as crypto wrappers whose call sites are reported (see "Wrapper propagation"). Off by default; the metadata records it as `ciphersift:pythonThinWrappers=included`. |
-| `--transitive-deps` | Also report transitive dependencies: `go.mod` requirements marked `// indirect` and the lock files `go.sum`, `poetry.lock`, `Pipfile.lock`. Off by default (direct requirements come from `go.mod`, `pyproject.toml`, `Pipfile`, requirements files, POMs). |
-| `--feature ID=on\|off` | Switch one detection booster of round t2 on or off (repeatable). Ids and defaults: SPEC 3.1; every booster is on by default except `transitive-deps`. Non-default settings are recorded in the metadata (`ciphersift:features`). |
+| `--transitive-deps` | Also report transitive dependencies: `go.mod` requirements marked `// indirect` and `go.sum`. Off by default (direct requirements come from `go.mod`). The Python lock files `poetry.lock` and `Pipfile.lock` are reported by default; `--feature skip-python-lock-files=on` skips them too. |
+| `--feature ID=on\|off` | Switch one detection booster of round t2 on or off (repeatable). Ids and defaults: SPEC 3.1; every booster is on by default except `transitive-deps` and `skip-python-lock-files`. Non-default settings are recorded in the metadata (`ciphersift:features`). |
 | `--cyclonedx-version V` | `1.7` (default) or `1.6`. The 1.6 document is the former output format: the same components, bom-refs and properties, without the 1.7 registry fields `algorithmFamily` and `ellipticCurve`. |
 | `--quiet`, `--verbose` | Only errors / also debug messages (one line per skipped file) on standard error. |
 

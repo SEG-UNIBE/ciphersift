@@ -4,6 +4,6 @@
   {"file": "g/Gaps.java", "line": 14, "rule": "java.hash.sha3", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA3", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHAKE256-512"},
   {"file": "g/Gaps.java", "line": 15, "rule": "java.sym.rc4", "type": "algorithm", "subtype": null, "primitive": "stream-cipher", "family": "RC4", "variant": null, "protocol": null, "version": null, "param": null, "name": "ARCFOUR"},
   {"file": "g/Gaps.java", "line": 16, "rule": "java.sym.chacha20", "type": "algorithm", "subtype": null, "primitive": "stream-cipher", "family": "ChaCha20", "variant": null, "protocol": null, "version": null, "param": null, "name": "ChaCha20"},
-  {"file": "g/Gaps.java", "line": 17, "rule": "java.asym.dh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "DH", "variant": null, "protocol": null, "version": null, "param": null, "name": "DHKEM"},
+  {"file": "g/Gaps.java", "line": 17, "rule": "java.asym.ecdh", "type": "algorithm", "subtype": null, "primitive": "key-agree", "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "DHKEM"},
   {"file": "g/Gaps.java", "line": 18, "rule": "java.asym.ec", "type": "algorithm", "subtype": null, "primitive": null, "family": "EC", "variant": null, "protocol": null, "version": null, "param": null, "name": "ECIES"}
 ]}
