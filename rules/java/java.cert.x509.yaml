@@ -60,3 +60,11 @@ match:
 - anyCall: true
   anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?-i:PKIX)$'
   feature: java-any-call-short
+# t3 J-CF (benchmark-informed): CertificateFactory operations on any receiver (the factory is a variable, like
+# KeyFactory.generatePublic in B-J-KL); Java SE 21 API, java.security.cert.CertificateFactory:
+# https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/security/cert/CertificateFactory.html
+- method: generateCertificate
+- method: generateCertificates
+- method: generateCRL
+- method: generateCRLs
+- method: generateCertPath
