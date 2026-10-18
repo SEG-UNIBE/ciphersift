@@ -83,7 +83,7 @@ public final class Features {
     /** The short-name and JOSE / TLS-suite part of them (SA, SPEC 5.5). */
     public static final String JAVA_ANY_CALL_SHORT = "java-any-call-short";
 
-    /** Java {@code anyCall}: not on logging calls, type-label setters, literal-keyed config puts (R3-X-A1, SPEC 5.5). */
+    /** Java {@code anyCall}: not on logging calls and type-label setters (R3-X-A1, SPEC 5.5). */
     public static final String JAVA_ANY_CALL_METADATA = "java-any-call-metadata";
 
     /** Java: a no-argument call of the file's only constant getter, and {@code key.getAlgorithm()} (JP1, JP5). */
@@ -130,12 +130,16 @@ public final class Features {
     /** Python: parameter default values are value positions (P3-DEF, SPEC 8.6.1; reverses D6). */
     public static final String PYTHON_DEFAULT_VALUES = "python-default-values";
 
+    /** Wrappers: the hash / MAC part of a composite name (RS256, SHA256withRSA) is no extra key for the thin test (R3-X-JOSE, SPEC 18.5). */
+    public static final String WRAPPER_COMPOSITE_NAMES = "wrapper-composite-names";
+
     /** Python: classes named after a family whose body has a finding of it are callables (P3-CLS, SPEC 18.5). */
     public static final String PYTHON_CLASS_WRAPPERS = "python-class-wrappers";
 
     static {
         known(TRANSITIVE_DEPS, false);
         known(PYTHON_CLASS_WRAPPERS, true);
+        known(WRAPPER_COMPOSITE_NAMES, true);
         known(PYTHON_RETURN_VALUES, true);
         known(PYTHON_DEFAULT_VALUES, true);
         known(SKIP_PYTHON_LOCK_FILES, false);

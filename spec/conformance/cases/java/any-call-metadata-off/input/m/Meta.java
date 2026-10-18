@@ -3,7 +3,7 @@ package m;
 import java.util.HashMap;
 import java.util.Map;
 
-/** anyCall on metadata (SPEC 5.5, DECISIONS R3-X-A1), with java-any-call-metadata off and composite JOSE names (DECISIONS R3-X-JOSE). */
+/** anyCall on metadata (SPEC 5.5, DECISIONS R3-X-A1), with java-any-call-metadata and wrapper-composite-names off and composite JOSE names (DECISIONS R3-X-JOSE). */
 class Meta {
     static final String DEFAULT_ALG = "PS256";
     final Map<String, String> config = new HashMap<>();
@@ -32,6 +32,14 @@ class Meta {
     }
 
     void register(String name) {
+    }
+
+    void header() {
+        register("RS256"); // want: java.asym.rsa RS256 | java.hash.sha2 RS256
+    }
+
+    void sign() {
+        header(); // with wrapper-composite-names off two keys (RSA, SHA-2): no thin wrapper, nothing
     }
 
     static class Key {

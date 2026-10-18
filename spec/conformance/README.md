@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-116 cases, 1846 expected findings. A conforming implementation produces exactly the expected
+116 cases, 1855 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -100,8 +100,8 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/propagate-random` | 1 | 5 | a Java helper returning a `SecureRandom` is a thin wrapper; one with a CSPRNG and AES is a thin wrapper of AES (the CSPRNG does not count next to another key; DECISIONS B-J-D, review) |
 | `java/any-call` | 1 | 9 | `anyCall`: registry names (JCA, XML-Security URIs, provider service keys, a short name) as arguments of unknown methods, also through a constant and the JSR 105 constants table; comparisons, logging, collection builders, a non-name string and a `getInstance` call (its own rule) give nothing more (DECISIONS B-J-SNx, B-J-XD2) |
 | `java/any-call-off` | 1 | 2 | the same input with `java-any-call` and `java-any-call-short` off |
-| `java/any-call-metadata` | 1 | 11 | `anyCall` gives nothing for type-label setters (`setType`, `setKeyType`), JBoss Logging variants (`tracev`, `debugf`), a logger receiver and `put` / `putIfAbsent` of a configuration attribute keyed by a non-name literal; name-mapping puts and `setAlgorithm` stay; a composite JOSE name gives every family it names (`RS256` → RSA and SHA-2, `A128CBC-HS256` → AES, HMAC, SHA-2) (DECISIONS R3-X-A1, R3-X-JOSE) |
-| `java/any-call-metadata-off` | 1 | 23 | the same input with `java-any-call-metadata` off |
+| `java/any-call-metadata` | 1 | 18 | `anyCall` gives nothing for type-label setters (`setType`, `setKeyType`), JBoss Logging variants (`tracev`, `debugf`) and a logger receiver; configuration and name-mapping puts and `setAlgorithm` stay; a composite JOSE name gives every family it names (`RS256` → RSA and SHA-2, `A128CBC-HS256` → AES, HMAC, SHA-2), and a thin wrapper of one composite name carries its main family (DECISIONS R3-X-A1, R3-X-JOSE) |
+| `java/any-call-metadata-off` | 1 | 25 | the same input with `java-any-call-metadata` and `wrapper-composite-names` off |
 | `java/api-additions` | 1 | 6 | Java SE classes (`CipherInputStream`, `SealedObject`, `PBEParameterSpec`) and Bouncy Castle classes named after their algorithm (DECISIONS B-J-JDK, B-J-BC2) |
 | `java/bc-oids` | 1 | 3 | a Bouncy Castle OID constant as a value (field anchor) and through `getId()` into JCA factories, with the OID recorded (DECISIONS B-J-BCOID, B-J-JP2) |
 | `java/jwt-constants` | 1 | 4 | Nimbus and jjwt algorithm constants, also a nested class `Jwts.ENC` (DECISIONS B-J-JWT) |
@@ -290,3 +290,10 @@ curve parameter is `SECP256K1`). Two later behaviour decisions changed expectati
 cases only: transitive thin wrappers (T3, + one `twice(x)` finding) and thin wrappers off for Go
 (T14, − the `newBlock` call). No existing expectation changed.
 
+
+The cases of the booster round t2 and of round t3 (`../DECISIONS.md`, B-*, T3-J-*, P3-*, T3-G*, R3-*) are
+hand-written in the same way: Java and Python inputs carry trailing `want:` comments, the Go cases of round t3
+were checked against want lists kept with the tuning notes (`work/ciphersift-t3/go/wants/`, outside the
+suite), and `expected.json` was then written from a scan whose findings equal those expectations. Expected
+findings of earlier cases that a round changed are listed in DECISIONS under the item that changed them (round
+t3 cross review: `go/api-jose` + 5 and `java/api-t3` + 1 SHA-2 / HMAC findings of composite JOSE names, R3-X-JOSE).

@@ -3,7 +3,7 @@ package m;
 import java.util.HashMap;
 import java.util.Map;
 
-/** anyCall on metadata (SPEC 5.5, DECISIONS R3-X-A1) and composite JOSE names (DECISIONS R3-X-JOSE). */
+/** anyCall on metadata (SPEC 5.5, DECISIONS R3-X-A1; configuration puts stay) and composite JOSE names (DECISIONS R3-X-JOSE). */
 class Meta {
     static final String DEFAULT_ALG = "PS256";
     final Map<String, String> config = new HashMap<>();
@@ -18,8 +18,8 @@ class Meta {
         logger.tracev("fall back to {0}", DEFAULT_ALG); // JBoss Logging variant: nothing
         logger.debugf("using %s", "RS256"); // nothing
         log.record("HS256"); // a logger receiver: nothing
-        config.put("algorithm", "RS256"); // configuration attribute: nothing
-        config.putIfAbsent("alg", DEFAULT_ALG); // nothing
+        config.put("algorithm", "RS256"); // want: java.asym.rsa RS256 | java.hash.sha2 RS256
+        config.putIfAbsent("alg", DEFAULT_ALG); // want: java.asym.rsa PS256 | java.hash.sha2 PS256
     }
 
     void kept() {
@@ -32,6 +32,14 @@ class Meta {
     }
 
     void register(String name) {
+    }
+
+    void header() {
+        register("RS256"); // want: java.asym.rsa RS256 | java.hash.sha2 RS256
+    }
+
+    void sign() {
+        header(); // want: java.asym.rsa RS256 (thin wrapper of one composite name, R3-X-JOSE)
     }
 
     static class Key {

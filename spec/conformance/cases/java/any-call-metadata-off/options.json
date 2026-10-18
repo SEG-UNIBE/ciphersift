@@ -1,1 +1,1 @@
-{"args": ["--feature", "java-any-call-metadata=off"]}
+{"args": ["--feature", "java-any-call-metadata=off", "--feature", "wrapper-composite-names=off"]}

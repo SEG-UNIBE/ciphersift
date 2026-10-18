@@ -41,7 +41,7 @@ public final class JavaAnalyzer {
     private final boolean inherited;
     private final boolean crossModule;
     private final boolean constructorCalls;
-    /** DECISIONS R3-X-A1: anyCall does not fire on logging calls, type-label setters, literal-keyed config puts. */
+    /** DECISIONS R3-X-A1: anyCall does not fire on logging calls and type-label setters. */
     private final boolean anyCallMetadata;
 
     public JavaAnalyzer(RuleSet rules, JavaContexts contexts) {
@@ -70,26 +70,16 @@ public final class JavaAnalyzer {
     static final Pattern LOGGER_RECEIVER = Pattern.compile("(?:^|[._])(?i:log|logger)$");
     /** Setters of a type label (a JWK {@code kty}, a key wrapper's key type): a key type names no algorithm use. */
     static final Set<String> TYPE_SETTERS = Set.of("setType", "setKeyType");
-    /** Map / multimap puts: with a string literal as key, the entry is a configuration attribute and its value data. */
-    static final Set<String> CONFIG_PUTS = Set.of("put", "putSingle", "putIfAbsent");
-
     /**
      * DECISIONS R3-X-A1 (feature {@code java-any-call-metadata}, SPEC 5.5): an {@code anyCall} pattern does not hold
-     * for a call that logs (a logging variant or a logger receiver), sets a type label, or puts a configuration entry
-     * whose key is a string literal that is no anyCall name itself ({@code config.putSingle("algorithm", RS256)} is
-     * configuration data; {@code algs.put("RS256", "SHA256withRSA")} stays a name-mapping entry).
+     * for a call that logs (a logging variant or a logger receiver) or sets a type label.
      */
-    private boolean anyCallMetadata(Event ev, JavaContext ctx, JavaResolver resolver) {
+    private static boolean anyCallMetadata(Event ev) {
         if (ANY_CALL_LOG_VARIANTS.contains(ev.name) || TYPE_SETTERS.contains(ev.name)) {
             return true;
         }
         if (ev.receiver != null && LOGGER_RECEIVER.matcher(ev.receiver).find()) {
             return true;
-        }
-        if (CONFIG_PUTS.contains(ev.name) && ev.args().size() >= 2 && ev.args().get(0).is("string_literal")) {
-            // the key literal is an attribute name, not itself an algorithm name of the anyCall lists
-            List<String> key = resolver.stringList(List.of(ev.args().get(0)), ctx);
-            return key.isEmpty() || !index.anyCallName(key.get(0));
         }
         return false;
     }
@@ -444,7 +434,7 @@ public final class JavaAnalyzer {
             }
             case ANY_CALL -> {
                 if (ev.kind != EventKind.CALL || !JavaRuleIndex.anyCallFires(ev.name)
-                        || (anyCallMetadata && anyCallMetadata(ev, ctx, resolver))) {
+                        || (anyCallMetadata && anyCallMetadata(ev))) {
                     return false;
                 }
             }

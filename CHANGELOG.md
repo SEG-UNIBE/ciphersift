@@ -7,6 +7,20 @@
 
 Development steps of the unreleased 1.0.0, newest first.
 
+### Cross-language review, round t3 (DECISIONS R3-X-*)
+
+* **Java `anyCall`** (`java-any-call-metadata`): no findings on logging calls (`fatal`, JBoss Logging `tracev` /
+  `debugf` / …, `log` / `logger` receivers) and on the type-label setters `setType` / `setKeyType`.
+* **Composite names in all languages**: a JOSE name is reported under every family it names — Java `anyCall`
+  names and the Go go-jose / golang-jwt constants now also as SHA-2 (and HMAC for `A*CBC-HS*`, `PBES2-HS*`), as the
+  Python and Go literals already were. Wrappers (`wrapper-composite-names`): the hash / MAC part of a composite
+  name is no second key for the thin-wrapper test.
+* Rule schema: a Go pattern takes `feature` only with `literal`. Unused outline overloads removed.
+* DECISIONS: owner decisions of the round recorded (P3-DEF reverses D6, CSPRNG rule, T3-G6 off); every t3 tuning
+  item tagged benchmark-informed.
+* Conformance: 116 cases, 1855 findings (+ `java/any-call-metadata`, `java/any-call-metadata-off`; `go/api-jose`
+  + 5, `java/api-t3` + 1).
+
 ### Round t3 merged (Java, Python, Go tuning and reviews)
 
 * Conformance: 114 cases, 1806 findings (1648 + 35 Java + 45 Python + 78 Go).

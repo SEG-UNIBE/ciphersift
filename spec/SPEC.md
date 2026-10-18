@@ -188,7 +188,8 @@ individually; the table lists every id and its default.
 | `go-thin-wrappers` | on | Go thin wrappers (W6, 12 lines, fallback-getter guard) | 18, 18.5 |
 | `java-any-call` | on | Java `anyCall` patterns with `feature: java-any-call` (registry names as arguments of any call) | 5.5 |
 | `java-any-call-short` | on | Java `anyCall` patterns with `feature: java-any-call-short` (short JCA names, JOSE names) | 5.5 |
-| `java-any-call-metadata` | on | Java `anyCall` patterns do not hold on logging calls, type-label setters and configuration puts keyed by a non-name literal (5.5) *(DECISIONS R3-X-A1)* | 5.5 |
+| `wrapper-composite-names` | on | the hash / MAC part of a composite name on the same line as its main family's finding (`RS256`, `SHA256withRSA`) is no extra family key for the thin-wrapper test (18.5) *(DECISIONS R3-X-JOSE)* | 18.5 |
+| `java-any-call-metadata` | on | Java `anyCall` patterns do not hold on logging calls and type-label setters (5.5) *(DECISIONS R3-X-A1)* | 5.5 |
 | `java-constant-getters` | on | constant getters and `SecretKeySpec.getAlgorithm()` in Java string resolution (7.4.1) | 7.4.1 |
 | `java-deferred-locals` | on | Java locals assigned after their declaration (7.4.3, 7.7.1) | 7.4.3 |
 | `java-inherited-constants` | on | Java constants inherited from project supertypes (7.4.3 step 4, 7.4.4, 7.4.5) *(DECISIONS T3-J-INH)* | 7.4 |
@@ -484,12 +485,10 @@ name starting with `assert`, `equals`, `contains` or `log`.
 With the feature `java-any-call-metadata` *(on; DECISIONS R3-X-A1)* an `anyCall` pattern also does not hold for
 a call that is metadata rather than use: (a) logging — the names `fatal` and the JBoss Logging format variants
 `tracev`, `debugv`, `infov`, `warnv`, `errorv`, `fatalv`, `tracef`, `debugf`, `infof`, `warnf`, `errorf`, `fatalf`, or a
-receiver whose last `.`-segment is `log` or `logger` in any case (`LOG`, `this.logger`); (b) the type-label
-setters `setType` and `setKeyType` (a JWK `kty`, a key wrapper's key type: a key type selects no algorithm);
-(c) `put`, `putSingle` or `putIfAbsent` with at least two arguments whose first argument is a string literal that
-is itself no `anyCall` name (no enabled `anyCall` pattern's string condition holds for it): the entry is a
-configuration attribute (`config.putSingle("algorithm", Algorithm.RS256)`, `header.put("alg", "ES256")`), whereas
-a name-mapping entry (`algs.put("RS256", "SHA256withRSA")`) still holds.
+receiver whose last `.`-segment is `log` or `logger` in any case (`LOG`, `this.logger`); and (b) the type-label
+setters `setType` and `setKeyType` (a JWK `kty`, a key wrapper's key type: a key type selects no algorithm).
+Configuration puts (`config.putSingle("algorithm", Algorithm.RSA_OAEP)`) still hold: such a value selects the
+algorithm of the keys a provider generates.
 
 **Composite names** *(DECISIONS R3-X-JOSE)*: a name that names several families is listed under the rule of each,
 as the JCA names are (`SHA256withRSA`: RSA and SHA-2): the JOSE names `RS256`, `PS384`, `ES512`, `HS256`,
@@ -3261,7 +3260,11 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
   `public-key` *(DECISIONS T3-G3, feature `go-thin-key-material`)*: a helper that parses a key and hands it to
   an SSH server (`ssh.ParsePrivateKey` + `config.AddHostKey`) or hashes its encoding is a thin wrapper of that
   operation; a helper with key loading only still carries the key-loading key, and a definition that already
-  carries a key by its name (W7: `loadPrivKey`) gets nothing more from this. The same holds at level *k*.
+  carries a key by its name (W7: `loadPrivKey`) gets nothing more from this. A **composite companion** — a
+  hash or MAC finding whose name is also reported on the same line by a finding of another family with a lower
+  rank (main family before MAC before hash: `RS256` RSA + SHA-2, `HS256` HMAC + SHA-2, `SHA256withRSA`) — gives no
+  key of its own for this test *(DECISIONS R3-X-JOSE, feature `wrapper-composite-names`)*: one composite name is
+  one key, its main family's. The same holds at level *k*.
   Evidence as above.
 * **Level *k* ≥ 2, W7**: a definition that does not yet carry a key *F* carries *F* if *F* is one of
   its name families and a call site of its body resolves to a group carrying *F* below level *k*.

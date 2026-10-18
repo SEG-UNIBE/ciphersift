@@ -1,4 +1,8 @@
 {"case": "java/any-call-metadata", "findings": [
+  {"file": "m/Meta.java", "line": 21, "rule": "java.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "RS256"},
+  {"file": "m/Meta.java", "line": 21, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "RS256"},
+  {"file": "m/Meta.java", "line": 22, "rule": "java.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "PS256"},
+  {"file": "m/Meta.java", "line": 22, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "PS256"},
   {"file": "m/Meta.java", "line": 26, "rule": "java.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA256withRSA"},
   {"file": "m/Meta.java", "line": 26, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "SHA256withRSA"},
   {"file": "m/Meta.java", "line": 27, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "HS384"},
@@ -9,5 +13,8 @@
   {"file": "m/Meta.java", "line": 29, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "A128CBC-HS256"},
   {"file": "m/Meta.java", "line": 29, "rule": "java.sym.aes", "type": "algorithm", "subtype": null, "primitive": "block-cipher", "family": "AES", "variant": null, "protocol": null, "version": null, "param": null, "name": "A128CBC-HS256"},
   {"file": "m/Meta.java", "line": 30, "rule": "java.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "RSA-OAEP"},
-  {"file": "m/Meta.java", "line": 31, "rule": "java.asym.ed25519", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "Ed25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "EdDSA"}
+  {"file": "m/Meta.java", "line": 31, "rule": "java.asym.ed25519", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "Ed25519", "variant": null, "protocol": null, "version": null, "param": null, "name": "EdDSA"},
+  {"file": "m/Meta.java", "line": 38, "rule": "java.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "RS256"},
+  {"file": "m/Meta.java", "line": 38, "rule": "java.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "RS256"},
+  {"file": "m/Meta.java", "line": 42, "rule": "java.asym.rsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "RSA", "variant": null, "protocol": null, "version": null, "param": null, "name": "RS256", "via": ["m/Meta.java:37 Meta.header"], "origin": "m/Meta.java:38"}
 ]}

@@ -96,6 +96,11 @@ public final class WrapperPass {
 
         /** Family key → all body findings with that key, by line then rule id (for the B5 tie-break). */
         final TreeMap<String, List<SourceFinding>> bodyByKey = new TreeMap<>(Texts.CODE_POINT_ORDER);
+        /**
+         * Keys whose body findings are all composite companions (DECISIONS R3-X-JOSE): the hash or MAC part of a
+         * composite name ({@code RS256}: SHA-2) next to the finding of the name's main family on the same line.
+         */
+        final Set<String> companions = new TreeSet<>(Texts.CODE_POINT_ORDER);
 
         Node(Outline o, Outline.Def d, boolean v2, boolean u1w) {
             this.o = o;
@@ -130,6 +135,8 @@ public final class WrapperPass {
     private final Project project;
     /** DECISIONS P3-CLS: Python class wrappers. */
     private final boolean classes;
+    /** DECISIONS R3-X-JOSE: a composite name's hash / MAC companions do not count for the thin test. */
+    private final boolean composite;
     /** Python class nodes → resolutions of their base-class references (DECISIONS P3-CLS). */
     private final Map<Node, Res[]> baseRes = new HashMap<>();
 
@@ -161,6 +168,7 @@ public final class WrapperPass {
         this.project = project;
         this.maxDepth = options.features().on(Features.WRAPPER_DEPTH_4) ? 4 : 3;
         this.classes = options.features().on(Features.PYTHON_CLASS_WRAPPERS);
+        this.composite = options.features().on(Features.WRAPPER_COMPOSITE_NAMES);
     }
 
     /** The rule-id prefix of a language ({@code java}, {@code python}, {@code go}). */
@@ -250,6 +258,55 @@ public final class WrapperPass {
                 e.test(), e.via(), e.origin());
     }
 
+    /** The family keys of a node's body findings without the keys that only composite companions give. */
+    private static Set<String> thinBody(Node n) {
+        if (n.companions.isEmpty()) {
+            return n.direct.keySet();
+        }
+        Set<String> out = new TreeSet<>(Texts.CODE_POINT_ORDER);
+        out.addAll(n.direct.keySet());
+        out.removeAll(n.companions);
+        return out;
+    }
+
+    /** Rank of a primitive for composite names: the main family (0) before a MAC (1) before a hash (2). */
+    private static int compositeRank(SourceFinding f) {
+        String p = f.rule().asset().primitive();
+        return "hash".equals(p) ? 2 : "mac".equals(p) ? 1 : 0;
+    }
+
+    /**
+     * Composite companions (DECISIONS R3-X-JOSE): findings whose name is reported on the same line by a finding of
+     * another family with a lower rank ({@code RS256}: the SHA-2 finding next to the RSA one; {@code HS256}: SHA-2
+     * next to HMAC). One composite name is one key for the thin-wrapper test (SPEC 18.5).
+     */
+    static Set<SourceFinding> companions(List<SourceFinding> fs) {
+        Set<SourceFinding> out = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        Map<Integer, List<SourceFinding>> byLine = new HashMap<>();
+        for (SourceFinding f : fs) {
+            byLine.computeIfAbsent(f.line(), k -> new ArrayList<>()).add(f);
+        }
+        for (List<SourceFinding> same : byLine.values()) {
+            if (same.size() < 2) {
+                continue;
+            }
+            for (SourceFinding f : same) {
+                int r = compositeRank(f);
+                if (r == 0 || f.name() == null) {
+                    continue;
+                }
+                for (SourceFinding g : same) {
+                    if (g != f && compositeRank(g) < r && f.name().equalsIgnoreCase(g.name())
+                            && !familyKey(g.rule()).equals(familyKey(f.rule()))) {
+                        out.add(f);
+                        break;
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
     static String familyKey(SourceRule r) {
         if (r.asset().family() != null) {
             return r.asset().family();
@@ -328,6 +385,7 @@ public final class WrapperPass {
             List<SourceFinding> fs = new ArrayList<>(byFile.getOrDefault(o.path, List.of()));
             fs.sort(Comparator.comparingInt(SourceFinding::line)
                     .thenComparing(f -> f.rule().id(), Texts.CODE_POINT_ORDER));
+            Set<SourceFinding> comp = composite ? companions(fs) : Set.of();
             for (SourceFinding f : fs) {
                 if (classes) {
                     // a class node's body findings: every finding in its span (DECISIONS P3-CLS)
@@ -341,10 +399,20 @@ public final class WrapperPass {
                 }
                 int d = innermost(o, f.line());
                 if (d >= 0) {
-                    l.get(d).direct.putIfAbsent(familyKey(f.rule()), f);
-                    l.get(d).bodyByKey.computeIfAbsent(familyKey(f.rule()), k -> new ArrayList<>()).add(f);
+                    Node n = l.get(d);
+                    String key = familyKey(f.rule());
+                    boolean fresh = !n.direct.containsKey(key);
+                    n.direct.putIfAbsent(key, f);
+                    n.bodyByKey.computeIfAbsent(key, k -> new ArrayList<>()).add(f);
+                    if (comp.contains(f)) {
+                        if (fresh) {
+                            n.companions.add(key);
+                        }
+                        continue; // a companion does not count for the thin test (DECISIONS R3-X-JOSE)
+                    }
+                    n.companions.remove(key);
                     if (!guarded(o, d, f.line())) {
-                        l.get(d).thinDirect.putIfAbsent(familyKey(f.rule()), f);
+                        n.thinDirect.putIfAbsent(key, f);
                     }
                 }
             }
@@ -513,7 +581,7 @@ public final class WrapperPass {
                     // T3-G3 only for a definition without a name-consistent carry (loadPrivKey stays a key loader)
                     Outline.Lang tl = n.carry.isEmpty() ? o.lang : null;
                     Set<String> ks = thinKeys(n.thinDirect.keySet(), tl);
-                    if (ks.size() == 1 && ks.equals(thinKeys(n.direct.keySet(), tl))) {
+                    if (ks.size() == 1 && ks.equals(thinKeys(thinBody(n), tl))) {
                         String k = ks.iterator().next();
                         n.carry.putIfAbsent(k, new Carry(1, 1, n.thinDirect.get(k), List.of(n)));
                     }
@@ -558,7 +626,7 @@ public final class WrapperPass {
                         // all families, the guarded ones included: the guard only removes evidence, it never
                         // turns a definition with two families into a one-family wrapper (SPEC 18.5)
                         Set<String> all = new TreeSet<>(Texts.CODE_POINT_ORDER);
-                        all.addAll(n.direct.keySet());
+                        all.addAll(thinBody(n));
                         List<Integer> unguarded = new ArrayList<>();
                         for (int i : e.getValue()) {
                             Set<String> below = carriedBelow(rs[i].group(), level);
