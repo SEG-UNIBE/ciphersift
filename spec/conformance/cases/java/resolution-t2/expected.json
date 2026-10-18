@@ -7,5 +7,7 @@
   {"file": "r/Res.java", "line": 53, "rule": "java.jca.signature.unresolved", "type": "algorithm", "subtype": null, "primitive": "signature", "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "Signature.getInstance"},
   {"file": "r/Res.java", "line": 57, "rule": "java.jca.messagedigest.unresolved", "type": "algorithm", "subtype": null, "primitive": "hash", "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "MessageDigest.getInstance"},
   {"file": "r/Res.java", "line": 61, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "HmacSHA512"},
-  {"file": "r/Res.java", "line": 62, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "HmacSHA512"}
+  {"file": "r/Res.java", "line": 62, "rule": "java.mac.hmac", "type": "algorithm", "subtype": null, "primitive": "mac", "family": "HMAC", "variant": null, "protocol": null, "version": null, "param": null, "name": "HmacSHA512"},
+  {"file": "r/Res.java", "line": 69, "rule": "java.jca.messagedigest.unresolved", "type": "algorithm", "subtype": null, "primitive": "hash", "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "MessageDigest.getInstance"},
+  {"file": "r/Res.java", "line": 75, "rule": "java.jca.messagedigest.unresolved", "type": "algorithm", "subtype": null, "primitive": "hash", "family": null, "variant": null, "protocol": null, "version": null, "param": null, "name": "MessageDigest.getInstance"}
 ]}

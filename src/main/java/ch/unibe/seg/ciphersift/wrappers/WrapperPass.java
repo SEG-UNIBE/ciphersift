@@ -178,6 +178,23 @@ public final class WrapperPass {
     }
 
     /** The family key of a rule (SPEC 18.1): family, else subtype, else the rule id. */
+    /** The family key of the CSPRNG findings (subtype {@code prng-secure}, SPEC 18.1). */
+    static final String RANDOM_KEY = "prng-secure";
+
+    /**
+     * The keys that count for the thin-wrapper test (SPEC 18.5): a CSPRNG next to another key does not (a key
+     * generator that draws from {@code SecureRandom} stays a thin wrapper of its algorithm; DECISIONS B-J-D review).
+     */
+    static Set<String> thinKeys(Set<String> keys) {
+        if (keys.size() < 2 || !keys.contains(RANDOM_KEY)) {
+            return keys;
+        }
+        Set<String> out = new TreeSet<>(Texts.CODE_POINT_ORDER);
+        out.addAll(keys);
+        out.remove(RANDOM_KEY);
+        return out;
+    }
+
     static String familyKey(SourceRule r) {
         if (r.asset().family() != null) {
             return r.asset().family();
@@ -403,9 +420,12 @@ public final class WrapperPass {
                         }
                     }
                 }
-                if (thin && n.thinDirect.size() == 1 && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
-                    Map.Entry<String, SourceFinding> e = n.thinDirect.firstEntry();
-                    n.carry.putIfAbsent(e.getKey(), new Carry(1, 1, e.getValue(), List.of(n)));
+                if (thin && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
+                    Set<String> ks = thinKeys(n.thinDirect.keySet());
+                    if (ks.size() == 1) {
+                        String k = ks.iterator().next();
+                        n.carry.putIfAbsent(k, new Carry(1, 1, n.thinDirect.get(k), List.of(n)));
+                    }
                 }
             }
         }
@@ -451,6 +471,7 @@ public final class WrapperPass {
                                 keys.addAll(carriedBelow(rs[i].group(), level));
                             }
                         }
+                        keys = thinKeys(keys);
                         if (keys.size() == 1) {
                             String f = keys.iterator().next();
                             Carry c = bestVia(n, f, unguarded, rs, level);

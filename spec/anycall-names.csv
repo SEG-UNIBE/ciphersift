@@ -27,7 +27,6 @@ DESede,3des,java.sym.3des,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase
 DESedeWrap,3des,java.sym.3des,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#cipher-algorithms,Java SE 21 Standard Algorithm Names
 DRBG,prng-secure,java.rand.prng.secure,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#securerandom-number-generation-algorithms,Java SE 21 Standard Algorithm Names
 DSA,dsa,java.asym.dsa,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#algorithmparametergenerator-algorithms,Java SE 21 Standard Algorithm Names
-DTLS,tls,java.prot.tls.context,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#sslcontext-algorithms,Java SE 21 Standard Algorithm Names
 DTLSv1.0,tls,java.prot.tls.context,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#sslcontext-algorithms,Java SE 21 Standard Algorithm Names
 DTLSv1.2,tls,java.prot.tls.context,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#sslcontext-algorithms,Java SE 21 Standard Algorithm Names
 DiffieHellman,dh,java.asym.dh,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#algorithmparametergenerator-algorithms,Java SE 21 Standard Algorithm Names
@@ -93,11 +92,8 @@ MD5withRSA,md5,java.hash.md5,SNx,G5a-jca-name,https://docs.oracle.com/en/java/ja
 MD5withRSA,rsa,java.asym.rsa,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#signature-algorithms,Java SE 21 Standard Algorithm Names
 MD5withRSA/PSS,md5,java.hash.md5,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#signature-algorithms,Java SE 21 Standard Algorithm Names
 MD5withRSA/PSS,rsa,java.asym.rsa,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#signature-algorithms,Java SE 21 Standard Algorithm Names
-ML-DSA-44,dsa,java.asym.dsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 ML-DSA-44,ml-dsa,java.pqc.mldsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
-ML-DSA-65,dsa,java.asym.dsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 ML-DSA-65,ml-dsa,java.pqc.mldsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
-ML-DSA-87,dsa,java.asym.dsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 ML-DSA-87,ml-dsa,java.pqc.mldsa,SA,G5c-jose-name,https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms,IANA JOSE registry (fetched 2026-10-18)
 MLKEM1024,ml-kem,java.pqc.mlkem,SNx,G5e-tls-group,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8,IANA TLS Supported Groups (fetched 2026-10-18)
 MLKEM512,ml-kem,java.pqc.mlkem,SNx,G5e-tls-group,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8,IANA TLS Supported Groups (fetched 2026-10-18)
@@ -285,7 +281,6 @@ SHA512withRSA,rsa,java.asym.rsa,SNx,G5a-jca-name,https://docs.oracle.com/en/java
 SHA512withRSA,sha2,java.hash.sha2,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#signature-algorithms,Java SE 21 Standard Algorithm Names
 SHA512withRSA/PSS,rsa,java.asym.rsa,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#signature-algorithms,Java SE 21 Standard Algorithm Names
 SHA512withRSA/PSS,sha2,java.hash.sha2,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#signature-algorithms,Java SE 21 Standard Algorithm Names
-SSL,tls,java.prot.tls.context,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#sslcontext-algorithms,Java SE 21 Standard Algorithm Names
 SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA,tls,java.prot.tls.context,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#jsse-cipher-suite-names,Java SE 21 Standard Algorithm Names
 SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,tls,java.prot.tls.context,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#jsse-cipher-suite-names,Java SE 21 Standard Algorithm Names
 SSL_DHE_DSS_WITH_DES_CBC_SHA,tls,java.prot.tls.context,SNx,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#jsse-cipher-suite-names,Java SE 21 Standard Algorithm Names
@@ -321,7 +316,6 @@ SecP256r1MLKEM768,ec,java.asym.ec,SNx,G5e-tls-group,https://www.iana.org/assignm
 SecP256r1MLKEM768,ml-kem,java.pqc.mlkem,SNx,G5e-tls-group,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8,IANA TLS Supported Groups (fetched 2026-10-18)
 SecP384r1MLKEM1024,ec,java.asym.ec,SNx,G5e-tls-group,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8,IANA TLS Supported Groups (fetched 2026-10-18)
 SecP384r1MLKEM1024,ml-kem,java.pqc.mlkem,SNx,G5e-tls-group,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8,IANA TLS Supported Groups (fetched 2026-10-18)
-TLS,tls,java.prot.tls.context,SA,G5a-jca-name,https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html#sslcontext-algorithms,Java SE 21 Standard Algorithm Names
 TLS_AEGIS_128L_SHA256,tls,java.prot.tls.context,SA,G5d-tls-suite,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4,IANA TLS Cipher Suites (fetched 2026-10-18)
 TLS_AEGIS_256_SHA512,tls,java.prot.tls.context,SA,G5d-tls-suite,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4,IANA TLS Cipher Suites (fetched 2026-10-18)
 TLS_AES_128_CCM_8_SHA256,aes,java.sym.aes,SNx,G5d-tls-suite,https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4,IANA TLS Cipher Suites (fetched 2026-10-18)
@@ -789,8 +783,6 @@ http://www.w3.org/2007/05/xmldsig-more#ripemd128-rsa-MGF1,rsa,java.asym.rsa,SNx,
 http://www.w3.org/2007/05/xmldsig-more#ripemd160-rsa-MGF1,ripemd160,java.hash.rmd160,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"
 http://www.w3.org/2007/05/xmldsig-more#ripemd160-rsa-MGF1,rsa,java.asym.rsa,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"
 http://www.w3.org/2007/05/xmldsig-more#rsa-pss,rsa,java.asym.rsa,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"
-http://www.w3.org/2007/05/xmldsig-more#rsa-sha224 {Bad},rsa,java.asym.rsa,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"
-http://www.w3.org/2007/05/xmldsig-more#rsa-sha224 {Bad},sha2,java.hash.sha2,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"
 http://www.w3.org/2007/05/xmldsig-more#rsa-whirlpool,rsa,java.asym.rsa,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"
 http://www.w3.org/2007/05/xmldsig-more#sha1-rsa-MGF1,rsa,java.asym.rsa,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"
 http://www.w3.org/2007/05/xmldsig-more#sha1-rsa-MGF1,sha1,java.hash.sha1,SNx,G5b-xmlsec-uri,https://www.iana.org/assignments/xml-security-uris/xml-security-uris.xhtml,"IANA XML Security URIs, last updated 2022-07-08 (RFC 9231)"

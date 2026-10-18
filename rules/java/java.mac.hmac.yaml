@@ -91,5 +91,5 @@ match:
   anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:http://www\.w3\.org/2001/04/xmldsig-more\#hmac-ripemd160|http://www\.w3\.org/2001/04/xmldsig-more\#hmac-sha224|http://www\.w3\.org/2001/04/xmldsig-more\#hmac-sha256|http://www\.w3\.org/2001/04/xmldsig-more\#hmac-sha384|http://www\.w3\.org/2001/04/xmldsig-more\#hmac-sha512|http://www\.w3\.org/2001/04/xmldsig-more\#hmac-md5|http://www\.w3\.org/2000/09/xmldsig\#hmac-sha1|HmacPBESHA512/224|HmacPBESHA512/256|HmacSHA512/224|HmacSHA512/256|HmacPBESHA224|HmacPBESHA256|HmacPBESHA384|HmacPBESHA512|HmacSHA3-224|HmacSHA3-256|HmacSHA3-384|HmacSHA3-512|HmacPBESHA1|HmacSHA224|HmacSHA256|HmacSHA384|HmacSHA512|HmacSHA1|HmacMD5)$'
   feature: java-any-call
 - anyCall: true
-  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:HS256|HS384|HS512)$'
+  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?-i:HS256|HS384|HS512)$'
   feature: java-any-call-short

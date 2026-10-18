@@ -61,4 +61,17 @@ class Res {
         SecretKeySpec key = new SecretKeySpec(k, "HmacSHA512"); // want: java.mac.hmac HmacSHA512
         Mac.getInstance(key.getAlgorithm()); // want: java.mac.hmac HmacSHA512
     }
+
+    void selfReference() throws Exception {
+        String s;
+        s = "SHA";
+        s = s + "-256";
+        MessageDigest.getInstance(s); // want: java.jca.messagedigest.unresolved MessageDigest.getInstance
+        String a;
+        String b;
+        a = "MD5";
+        b = a;
+        a = b;
+        MessageDigest.getInstance(a); // want: java.jca.messagedigest.unresolved MessageDigest.getInstance
+    }
 }

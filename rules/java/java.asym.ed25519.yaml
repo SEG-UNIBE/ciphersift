@@ -91,5 +91,5 @@ match:
   anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:http://www\.w3\.org/2021/04/xmldsig-more\#eddsa-ed25519ctx|http://www\.w3\.org/2021/04/xmldsig-more\#eddsa-ed25519ph|http://www\.w3\.org/2021/04/xmldsig-more\#eddsa-ed25519|http://www\.w3\.org/2021/04/xmldsig-more\#eddsa-ed448ph|http://www\.w3\.org/2021/04/xmldsig-more\#eddsa-ed448|Ed25519|Ed448)$'
   feature: java-any-call
 - anyCall: true
-  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:EdDSA)$'
+  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?-i:EdDSA)$'
   feature: java-any-call-short
