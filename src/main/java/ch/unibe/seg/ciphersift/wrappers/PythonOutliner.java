@@ -44,6 +44,8 @@ final class PythonOutliner {
         int dot = o.pyModule.lastIndexOf('.');
         o.pyPackage = init ? o.pyModule : dot < 0 ? "" : o.pyModule.substring(0, dot);
         List<Set<String>> locals = new ArrayList<>();
+        Map<Integer, Map<String, Integer>> counts = new java.util.HashMap<>();
+        Map<Integer, Set<String>> paramsOf = new java.util.HashMap<>();
         ArrayDeque<Frame> stack = new ArrayDeque<>();
         stack.push(new Frame(root, null, 0, -1, 0));
         while (!stack.isEmpty()) {
@@ -68,6 +70,24 @@ final class PythonOutliner {
                         o.pyClasses.add(name.text());
                         cls = name.text();
                         level = 1;
+                        // the class as a definition for class wrappers (DECISIONS P3-CLS)
+                        int endLine = n.startRow() + 1 + JavaOutliner.countLines(n.text());
+                        String display = (o.pyModule.isEmpty() ? "" : o.pyModule + ".") + name.text();
+                        o.defs.add(new Outline.Def(o.defs.size(), name.text(), name.line(), endLine, n.start(), nesting,
+                                display, true, o.pyModule, -1, null, 0, false, null, Set.of(), Map.of()));
+                        locals.add(new HashSet<>());
+                        o.pyClassDefs.add(o.defs.size() - 1);
+                        List<Outline.Call> bases = new ArrayList<>();
+                        SyntaxNode sup = n.field("superclasses");
+                        if (sup != null) {
+                            for (SyntaxNode b : sup.namedChildren()) {
+                                Outline.Call bc = reference(b, null);
+                                if (bc != null) {
+                                    bases.add(bc);
+                                }
+                            }
+                        }
+                        o.pyBases.put(o.defs.size() - 1, bases);
                     } else {
                         level = 2;
                         cls = null;
@@ -92,6 +112,7 @@ final class PythonOutliner {
                             + (pyClass == null ? "" : pyClass + ".") + name.text();
                     Set<String> loc = new HashSet<>();
                     params(n.field("parameters"), loc);
+                    paramsOf.put(o.defs.size(), Set.copyOf(loc));
                     int endLine = n.startRow() + 1 + JavaOutliner.countLines(n.text());
                     o.defs.add(new Outline.Def(o.defs.size(), name.text(), name.line(), endLine, n.start(), nesting,
                             display, addressable, owner, -1, pyClass, 0, false, null, loc, Map.of()));
@@ -107,21 +128,35 @@ final class PythonOutliner {
                 case "assignment", "augmented_assignment" -> {
                     if (def >= 0) {
                         targets(n.field("left"), locals.get(def));
+                        count(counts, def, n.field("left"));
+                        SyntaxNode left = n.field("left");
+                        SyntaxNode right = n.field("right");
+                        if (n.is("assignment") && left != null && left.is("identifier") && right != null
+                                && right.is("call") && right.field("function") != null) {
+                            Outline.Call c = reference(right.field("function"), cls);
+                            if (c != null) {
+                                o.pyInstances.computeIfAbsent(def, k -> new java.util.HashMap<>())
+                                        .putIfAbsent(left.text(), c);
+                            }
+                        }
                     }
                 }
                 case "for_statement", "for_in_clause" -> {
                     if (def >= 0) {
                         targets(n.field("left"), locals.get(def));
+                        count(counts, def, n.field("left"));
                     }
                 }
                 case "as_pattern" -> {
                     if (def >= 0) {
                         targets(n.field("alias"), locals.get(def));
+                        count(counts, def, n.field("alias"));
                     }
                 }
                 case "named_expression" -> {
                     if (def >= 0) {
                         targets(n.field("name"), locals.get(def));
+                        count(counts, def, n.field("name"));
                     }
                 }
                 default -> {
@@ -135,7 +170,23 @@ final class PythonOutliner {
                 }
             }
         }
+        // instances: only names bound exactly once in their definition (and not parameters)
+        for (var e : o.pyInstances.entrySet()) {
+            Map<String, Integer> cnt = counts.getOrDefault(e.getKey(), Map.of());
+            Set<String> ps = paramsOf.getOrDefault(e.getKey(), Set.of());
+            e.getValue().keySet().removeIf(x -> cnt.getOrDefault(x, 0) != 1 || ps.contains(x));
+        }
         return o;
+    }
+
+    /** Counts the identifiers bound by an assignment target in definition {@code def}. */
+    private static void count(Map<Integer, Map<String, Integer>> counts, int def, SyntaxNode t) {
+        Set<String> names = new HashSet<>();
+        targets(t, names);
+        Map<String, Integer> m = counts.computeIfAbsent(def, k -> new java.util.HashMap<>());
+        for (String x : names) {
+            m.merge(x, 1, Integer::sum);
+        }
     }
 
     private static void params(SyntaxNode params, Set<String> out) {
@@ -193,28 +244,39 @@ final class PythonOutliner {
         if (fn == null) {
             return;
         }
+        Outline.Call c = reference(fn, cls);
+        if (c != null) {
+            o.calls.add(new Outline.Call(c.name(), c.qualifier(), c.line(), n.start(), n.end(), 0, c.symbol(), -1, -1,
+                    cls));
+        }
+    }
+
+    /**
+     * An identifier or an attribute chain of identifiers ({@code a.b.f}) as a call-like record: name, qualifier,
+     * line of the last identifier, offsets of the expression; null for anything else.
+     */
+    private static Outline.Call reference(SyntaxNode fn, String cls) {
         List<String> parts = new ArrayList<>();
         SyntaxNode x = fn;
         while (x.is("attribute")) {
             SyntaxNode a = x.field("attribute");
             if (a == null || !a.is("identifier")) {
-                return;
+                return null;
             }
             parts.add(0, a.text());
             x = x.field("object");
             if (x == null) {
-                return;
+                return null;
             }
         }
         if (!x.is("identifier")) {
-            return;
+            return null;
         }
         parts.add(0, x.text());
         String name = parts.get(parts.size() - 1);
         List<String> q = List.copyOf(parts.subList(0, parts.size() - 1));
-        int line = fn.is("attribute") ? fn.field("attribute").line() : n.line();
-        o.calls.add(new Outline.Call(name, q, line, n.start(), n.end(), 0, Texts.removeWhitespace(fn.text()), -1, -1,
-                cls));
+        int line = fn.is("attribute") ? fn.field("attribute").line() : fn.line();
+        return new Outline.Call(name, q, line, fn.start(), fn.end(), 0, Texts.removeWhitespace(fn.text()), -1, -1, cls);
     }
 
     private static void bind(Outline o, String local, Outline.PyBinding b) {

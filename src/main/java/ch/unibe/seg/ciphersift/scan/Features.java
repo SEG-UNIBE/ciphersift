@@ -94,8 +94,12 @@ public final class Features {
     /** Python: parameter default values are value positions (P3-DEF, SPEC 8.6.1; reverses D6). */
     public static final String PYTHON_DEFAULT_VALUES = "python-default-values";
 
+    /** Python: classes named after a family whose body has a finding of it are callables (P3-CLS, SPEC 18.5). */
+    public static final String PYTHON_CLASS_WRAPPERS = "python-class-wrappers";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_CLASS_WRAPPERS, true);
         known(PYTHON_RETURN_VALUES, true);
         known(PYTHON_DEFAULT_VALUES, true);
         known(SKIP_PYTHON_LOCK_FILES, false);

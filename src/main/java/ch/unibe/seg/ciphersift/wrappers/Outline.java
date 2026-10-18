@@ -93,6 +93,18 @@ public final class Outline {
     public final Map<String, List<PyBinding>> pyImports = new HashMap<>();
     /** Names of the module-level classes. */
     public final List<String> pyClasses = new ArrayList<>();
+    /**
+     * Python: indices into {@link #defs} of the module-level class definitions (SPEC 18.2, DECISIONS P3-CLS); they are
+     * definitions only for the class-wrapper test and are ignored without the feature {@code python-class-wrappers}.
+     */
+    public final Set<Integer> pyClassDefs = new java.util.TreeSet<>();
+    /** Python: class definition index → its base-class references, as call-like records (never call sites). */
+    public final Map<Integer, List<Call>> pyBases = new HashMap<>();
+    /**
+     * Python: definition index → local name → the call it is bound to, for names bound exactly once in the definition
+     * by {@code x = f(…)} with {@code f} a name or attribute chain (instances of class wrappers, DECISIONS P3-CLS).
+     */
+    public final Map<Integer, Map<String, Call>> pyInstances = new HashMap<>();
 
     // Go
     public String goDir = "";
