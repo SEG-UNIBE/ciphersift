@@ -26,6 +26,10 @@ match:
 - call: org.bouncycastle.crypto.engines.ChaCha7539Engine.newInstance
 - new: org.bouncycastle.crypto.engines.XSalsa20Engine
 - call: org.bouncycastle.crypto.engines.XSalsa20Engine.newInstance
+# DECISIONS B-A3 (JCA standard-name gaps): Java SE 25 Standard Algorithm Names
+# (https://docs.oracle.com/en/java/javase/25/docs/specs/security/standard-names.html)
+- call: javax.crypto.SecretKeyFactory.getInstance
+  firstString: ChaCha20$
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv
 - new: org.bouncycastle.crypto.engines.XChaCha20Engine
 - call: org.bouncycastle.crypto.engines.XChaCha20Engine.newInstance

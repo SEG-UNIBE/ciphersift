@@ -14,7 +14,7 @@ asset:
   family: SHA3
 match:
 - call: java.security.MessageDigest.getInstance
-  firstString: SHA3-(224|256|384|512)$
+  firstString: (SHA3-(224|256|384|512)|SHAKE128-256|SHAKE256-512)$
 - new: org.apache.commons.codec.digest.DigestUtils
   firstString: SHA3-(224|256|384|512)$
 - call: org.apache.commons.codec.digest.DigestUtils.getDigest

@@ -77,6 +77,10 @@ match:
   firstString: (secp192r1|secp224r1|secp256r1|secp384r1|secp521r1|secp256k1|brainpoolP160r1|brainpoolP192r1|brainpoolP224r1|brainpoolP256r1|brainpoolP320r1|brainpoolP384r1|brainpoolP512r1)$
   param:
     index: 0
+# DECISIONS B-A3 (JCA standard-name gaps): Java SE 25 Standard Algorithm Names
+# (https://docs.oracle.com/en/java/javase/25/docs/specs/security/standard-names.html)
+- call: javax.crypto.Cipher.getInstance
+  firstString: ECIES$
 # DECISIONS B-J-JDK: remaining Java SE crypto classes and constants (Java SE 21 API); sources per entry in spec/java-api-additions.csv
 - new: java.security.spec.ECField
 # DECISIONS B-J-BC2: Bouncy Castle classes whose name states the algorithm (bcprov/bcpkix 1.78.1, javadoc 1.85); sources per entry in spec/java-api-additions.csv

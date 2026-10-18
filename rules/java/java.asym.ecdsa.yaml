@@ -16,7 +16,7 @@ asset:
   family: EC
 match:
 - call: java.security.Signature.getInstance
-  firstString: (.*with(PLAIN-|CVC-)?ECDSA|ECDSA|ECDDSA)$
+  firstString: (.*with(PLAIN-|CVC-)?ECDSA(inP1363Format)?|ECDSA|ECDDSA)$
 - new: org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
   firstString: (.*with(PLAIN-|CVC-)?ECDSA|ECDSA|ECDDSA)$
 - call: java.security.KeyPairGenerator.getInstance

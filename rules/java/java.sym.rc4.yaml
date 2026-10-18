@@ -19,6 +19,10 @@ match:
   firstString: (RC4|ARCFOUR|ARC4)(/.*)?$
 - new: org.bouncycastle.crypto.engines.RC4Engine
 - call: org.bouncycastle.crypto.engines.RC4Engine.newInstance
+# DECISIONS B-A3 (JCA standard-name gaps): Java SE 25 Standard Algorithm Names
+# (https://docs.oracle.com/en/java/javase/25/docs/specs/security/standard-names.html)
+- call: javax.crypto.SecretKeyFactory.getInstance
+  firstString: (RC4|ARCFOUR|ARC4)$
 # DECISIONS B-J-BCOID: Bouncy Castle OID / algorithm constants (*ObjectIdentifiers, CMSAlgorithm, CertificateID); sources per entry in spec/java-api-additions.csv
 - field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.rc4
 - field: org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers.pbeWithSHAAnd128BitRC4

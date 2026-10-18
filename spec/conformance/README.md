@@ -19,7 +19,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | Case | Files | Findings | What it checks |
 |---|---|---|---|
 | `java/fork-fixtures` | 8 | 105 | the BF-CBOM Java fork's own fixtures (with `--weakness-indicators`): JCA, BouncyCastle, libraries, TLS, key management, edge cases, a negative file |
-| `java/regex-battery` | 1 | 134 | one `getInstance` call per line for ~130 algorithm strings over 12 JCA factories; exactly one rule per line, `*.unresolved` for unknown names |
+| `java/regex-battery` | 1 | 134 | one `getInstance` call per line for ~130 algorithm strings over 12 JCA factories; exactly one rule per line, `*.unresolved` for unknown names (`ECIES` is EC since DECISIONS B-A3: 1 expectation changed) |
 | `java/name-resolution` | 2 | 12 | explicit, wildcard, static and static-wildcard imports; FQN use; a different imported class with the same simple name; a class declared in the file; nested classes; variable receivers; line of a multi-line call |
 | `java/string-resolution` | 1 | 19 | escapes, `+` with ints and constants, parentheses, `this.f`, `C.F.toString()`, interface constants, finality and reassignment, ternary/parameter/format fallbacks, constants table, array arguments (inline and via constant, D3), text blocks (D4) |
 | `java/cross-file` | 4 | 8 | constants in other files: imported class, static import, static wildcard import, nested class, same package, wildcard-imported package, chained constants across files, missing class |
@@ -97,6 +97,7 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `java/jwt-constants` | 1 | 4 | Nimbus and jjwt algorithm constants, also a nested class `Jwts.ENC` (DECISIONS B-J-JWT) |
 | `java/key-loading` | 1 | 5 | Java key loading: `generatePublic` / `generatePrivate` on any receiver, X.509 / PKCS #8 key specs, Bouncy Castle `PublicKeyFactory` (DECISIONS B-J-KL) |
 | `java/resolution-t2` | 1 | 9 | a constant getter (not with two declarations or a parameter), deferred locals with one value, agreeing values (RSA, no name), disagreeing values and a compound assignment (fallback), `SecretKeySpec.getAlgorithm()` (DECISIONS B-J-JP1, B-J-JP3, B-J-JP5) |
+| `java/jca-name-gaps` | 1 | 7 | JCA standard names without a specific rule before: `*inP1363Format`, `SHAKE128-256` / `SHAKE256-512`, `SecretKeyFactory` `ARCFOUR` / `ChaCha20`, `KEM` `DHKEM`, `Cipher` `ECIES` (DECISIONS B-A3) |
 | `go/thin-wrappers` | 1 | 6 | Go thin wrappers: 3 and 12 lines (an early error return) carry, 14 lines do not; a fallback getter (`if … { return crypto.SHA256 }; return c.DefaultHash`) does not (DECISIONS B-G-E) |
 | `go/typed-methods` | 1 | 26 | method anchors on typed receivers: parameters, results by position, type assertions, a single-type type-switch case (not two types), struct fields, one level of embedding (not when the file declares the method), `ecdh` / `mlkem` / `x509` / `ssh` result chains, composite and `new`, a reassigned variable, accessors (DECISIONS B-G-B1a) |
 | `go/api-b2` | 1 | 19 | Sigstore protobuf-specs key and hash values (an aliased `common/v1` import), sigstore `WithED25519ph` and `AlgorithmDetails` methods, go-piv algorithms and `Verify`, CIRCL SLH-DSA parameter sets; LMS and other members give nothing (DECISIONS B-G-B2) |
