@@ -371,7 +371,7 @@ under `/rules/`. It contains:
 | Directory | Documents |
 |---|---|
 | `rules/java/` | 105 source rules (`java.*`) and the constants document `_constants.yaml` (`java.constants`) |
-| `rules/python/` | 89 source rules (`python.*`) |
+| `rules/python/` | 91 source rules (`python.*`) |
 | `rules/go/` | 70 source rules (`go.*`, section 17) |
 | `rules/dependencies/` | `dep.maven.yaml`, `dep.pypi.yaml`, `dep.golang.yaml` |
 
@@ -649,7 +649,7 @@ case), with no surrounding white space, whose dotted form is listed in the table
   is covered; Bouncy Castle OID constants used as values are anchors of their rules, *B-J-BCOID*), and
   Java locals assigned different values after their declaration unless the values agree (7.4.3, 7.7.1,
   Appendix B). OIDs whose family
-  has no rule in a language (PBES2 and the PQC OIDs in Python) give no Python finding.
+  has no rule in a language (PBES2 and SLH-DSA in Python) give no Python finding.
 
 | OID | ASN.1 name | treated as | defined in | reported by (Java) | reported by (Python) |
 |---|---|---|---|---|---|
@@ -763,12 +763,12 @@ case), with no surrounding white space, whose dotted form is listed in the table
 | `1.2.840.113549.1.5.12` | id-PBKDF2 | `PBKDF2` | RFC 8018 | `java.kdf.pbkdf2` (PBKDF2) | `python.kdf.pbkdf2` (PBKDF2) |
 | `1.2.840.113549.1.5.13` | id-PBES2 | `PBES2` | RFC 8018 | `java.kdf.pbe` (PBE) | — |
 | `1.3.6.1.4.1.11591.4.11` | id-scrypt | `SCRYPT` | RFC 7914 | `java.kdf.scrypt` (scrypt) | `python.kdf.scrypt` (scrypt) |
-| `2.16.840.1.101.3.4.4.1` | id-alg-ml-kem-512 | `ML-KEM-512` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | — |
-| `2.16.840.1.101.3.4.4.2` | id-alg-ml-kem-768 | `ML-KEM-768` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | — |
-| `2.16.840.1.101.3.4.4.3` | id-alg-ml-kem-1024 | `ML-KEM-1024` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | — |
-| `2.16.840.1.101.3.4.3.17` | id-ml-dsa-44 | `ML-DSA-44` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | — |
-| `2.16.840.1.101.3.4.3.18` | id-ml-dsa-65 | `ML-DSA-65` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | — |
-| `2.16.840.1.101.3.4.3.19` | id-ml-dsa-87 | `ML-DSA-87` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | — |
+| `2.16.840.1.101.3.4.4.1` | id-alg-ml-kem-512 | `ML-KEM-512` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | `python.pqc.mlkem` (ML-KEM), param *(B-P-PQ)* |
+| `2.16.840.1.101.3.4.4.2` | id-alg-ml-kem-768 | `ML-KEM-768` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | `python.pqc.mlkem` (ML-KEM), param *(B-P-PQ)* |
+| `2.16.840.1.101.3.4.4.3` | id-alg-ml-kem-1024 | `ML-KEM-1024` | FIPS 203 / NIST CSOR | `java.pqc.mlkem` (ML-KEM) | `python.pqc.mlkem` (ML-KEM), param *(B-P-PQ)* |
+| `2.16.840.1.101.3.4.3.17` | id-ml-dsa-44 | `ML-DSA-44` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | `python.pqc.mldsa` (ML-DSA), param *(B-P-PQ)* |
+| `2.16.840.1.101.3.4.3.18` | id-ml-dsa-65 | `ML-DSA-65` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | `python.pqc.mldsa` (ML-DSA), param *(B-P-PQ)* |
+| `2.16.840.1.101.3.4.3.19` | id-ml-dsa-87 | `ML-DSA-87` | FIPS 204 / NIST CSOR | `java.pqc.mldsa` (ML-DSA) | `python.pqc.mldsa` (ML-DSA), param *(B-P-PQ)* |
 | `2.16.840.1.101.3.4.3.20` | id-slh-dsa-sha2-128s | `SLH-DSA-SHA2-128s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
 | `2.16.840.1.101.3.4.3.21` | id-slh-dsa-sha2-128f | `SLH-DSA-SHA2-128f` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |
 | `2.16.840.1.101.3.4.3.22` | id-slh-dsa-sha2-192s | `SLH-DSA-SHA2-192s` | FIPS 205 / NIST CSOR | `java.pqc.slhdsa` (SLH-DSA) | — |

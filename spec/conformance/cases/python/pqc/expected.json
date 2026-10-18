@@ -1,0 +1,7 @@
+{"case": "python/pqc", "findings": [
+  {"file": "pq.py", "line": 6, "rule": "python.pqc.mlkem", "type": "algorithm", "subtype": null, "primitive": "kem", "family": "ML-KEM", "variant": null, "protocol": null, "version": null, "param": "ML-KEM-768", "name": "cryptography.hazmat.primitives.asymmetric.mlkem.MLKEM768PrivateKey.generate"},
+  {"file": "pq.py", "line": 7, "rule": "python.pqc.mldsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "ML-DSA", "variant": null, "protocol": null, "version": null, "param": "ML-DSA-65", "name": "cryptography.hazmat.primitives.asymmetric.mldsa.MLDSA65PrivateKey.generate"},
+  {"file": "pq.py", "line": 8, "rule": "python.pqc.mlkem", "type": "algorithm", "subtype": null, "primitive": "kem", "family": "ML-KEM", "variant": null, "protocol": null, "version": null, "param": "ML-KEM-1024", "name": "cryptography.hazmat.primitives.asymmetric.mlkem.MLKEM1024PrivateKey"},
+  {"file": "pq.py", "line": 9, "rule": "python.pqc.mlkem", "type": "algorithm", "subtype": null, "primitive": "kem", "family": "ML-KEM", "variant": null, "protocol": null, "version": null, "param": "ML-KEM-512", "name": "oqs.KeyEncapsulation"},
+  {"file": "pq.py", "line": 10, "rule": "python.pqc.mldsa", "type": "algorithm", "subtype": null, "primitive": "signature", "family": "ML-DSA", "variant": null, "protocol": null, "version": null, "param": "ML-DSA-87", "name": "oqs.Signature"}
+]}

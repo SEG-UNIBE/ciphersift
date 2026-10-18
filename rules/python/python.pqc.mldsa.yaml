@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift (DECISIONS B-P-PQ) from the pyca/cryptography documentation
+# (https://cryptography.io/en/latest/hazmat/primitives/asymmetric/mlkem/, .../mldsa/, .../hpke/, cryptography 50)
+# and the liboqs-python README (https://github.com/open-quantum-safe/liboqs-python, KeyEncapsulation / Signature).
+id: python.pqc.mldsa
+kind: source
+language: python
+name: ML-DSA usage in Python
+description: >-
+  Detects pyca/cryptography ML-DSA keys and liboqs-python Signature, with the parameter set; table OIDs (SPEC 5.11).
+asset:
+  type: algorithm
+  primitive: signature
+  family: ML-DSA
+match:
+- call: cryptography.hazmat.primitives.asymmetric.mldsa.MLDSA44PrivateKey
+  param:
+    value: ML-DSA-44
+- call: cryptography.hazmat.primitives.asymmetric.mldsa.MLDSA44PublicKey
+  param:
+    value: ML-DSA-44
+- call: cryptography.hazmat.primitives.asymmetric.mldsa.MLDSA65PrivateKey
+  param:
+    value: ML-DSA-65
+- call: cryptography.hazmat.primitives.asymmetric.mldsa.MLDSA65PublicKey
+  param:
+    value: ML-DSA-65
+- call: cryptography.hazmat.primitives.asymmetric.mldsa.MLDSA87PrivateKey
+  param:
+    value: ML-DSA-87
+- call: cryptography.hazmat.primitives.asymmetric.mldsa.MLDSA87PublicKey
+  param:
+    value: ML-DSA-87
+- call: oqs.Signature
+  firstString: (ML-DSA-(44|65|87)|Dilithium[235])$
+  param:
+    index: 0
+- call: cryptography.x509.ObjectIdentifier
+  firstString: (ML-DSA-44|ML-DSA-65|ML-DSA-87)$
+  param:
+    index: 0
+- call: cryptography.x509.oid.ObjectIdentifier
+  firstString: (ML-DSA-44|ML-DSA-65|ML-DSA-87)$
+  param:
+    index: 0
+- call: asn1crypto.core.ObjectIdentifier
+  firstString: (ML-DSA-44|ML-DSA-65|ML-DSA-87)$
+  param:
+    index: 0
+- call: pyasn1.type.univ.ObjectIdentifier
+  firstString: (ML-DSA-44|ML-DSA-65|ML-DSA-87)$
+  param:
+    index: 0

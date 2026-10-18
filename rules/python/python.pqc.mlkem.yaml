@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The CipherSift Authors
+# Written for CipherSift (DECISIONS B-P-PQ) from the pyca/cryptography documentation
+# (https://cryptography.io/en/latest/hazmat/primitives/asymmetric/mlkem/, .../mldsa/, .../hpke/, cryptography 50)
+# and the liboqs-python README (https://github.com/open-quantum-safe/liboqs-python, KeyEncapsulation / Signature).
+id: python.pqc.mlkem
+kind: source
+language: python
+name: ML-KEM usage in Python
+description: >-
+  Detects pyca/cryptography ML-KEM keys (also the HPKE hybrid ML-KEM keys) and liboqs-python KeyEncapsulation, with the parameter set; table OIDs (SPEC 5.11).
+asset:
+  type: algorithm
+  primitive: kem
+  family: ML-KEM
+match:
+- call: cryptography.hazmat.primitives.asymmetric.mlkem.MLKEM768PrivateKey
+  param:
+    value: ML-KEM-768
+- call: cryptography.hazmat.primitives.asymmetric.mlkem.MLKEM768PublicKey
+  param:
+    value: ML-KEM-768
+- call: cryptography.hazmat.primitives.asymmetric.mlkem.MLKEM1024PrivateKey
+  param:
+    value: ML-KEM-1024
+- call: cryptography.hazmat.primitives.asymmetric.mlkem.MLKEM1024PublicKey
+  param:
+    value: ML-KEM-1024
+- call: cryptography.hazmat.primitives.hpke.MLKEM768X25519PrivateKey
+  param:
+    value: ML-KEM-768
+- call: cryptography.hazmat.primitives.hpke.MLKEM768X25519PublicKey
+  param:
+    value: ML-KEM-768
+- call: cryptography.hazmat.primitives.hpke.MLKEM1024P384PrivateKey
+  param:
+    value: ML-KEM-1024
+- call: cryptography.hazmat.primitives.hpke.MLKEM1024P384PublicKey
+  param:
+    value: ML-KEM-1024
+- call: oqs.KeyEncapsulation
+  firstString: (ML-KEM-(512|768|1024)|Kyber(512|768|1024))$
+  param:
+    index: 0
+- call: cryptography.x509.ObjectIdentifier
+  firstString: (ML-KEM-512|ML-KEM-768|ML-KEM-1024)$
+  param:
+    index: 0
+- call: cryptography.x509.oid.ObjectIdentifier
+  firstString: (ML-KEM-512|ML-KEM-768|ML-KEM-1024)$
+  param:
+    index: 0
+- call: asn1crypto.core.ObjectIdentifier
+  firstString: (ML-KEM-512|ML-KEM-768|ML-KEM-1024)$
+  param:
+    index: 0
+- call: pyasn1.type.univ.ObjectIdentifier
+  firstString: (ML-KEM-512|ML-KEM-768|ML-KEM-1024)$
+  param:
+    index: 0
