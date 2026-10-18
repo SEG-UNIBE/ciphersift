@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-92 cases, 1624 expected findings. A conforming implementation produces exactly the expected
+92 cases, 1627 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -89,14 +89,14 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `common/wrapper-aliases` | 4 | 26 | V2 wrapper-name aliases in Java, Python and Go (`tls`, `ssh`, `cert`/`certificate`, `privkey`, `hash160`) and the V1 alias `des3` → 3DES, on definitions that are not thin wrappers (DECISIONS B-A1, B-A2) |
 | `java/wrapper-depth` | 1 | 5 | name-consistent chains of 2, 3 and 4 definitions are reported, a chain of 5 is not (DECISIONS B-C) |
 | `java/thin-12` | 1 | 3 | Java thin wrappers of 12 lines carry their family, 13 lines do not (DECISIONS B-J-G) |
-| `java/propagate-random` | 1 | 4 | a Java helper returning a `SecureRandom` is a thin wrapper; one with a CSPRNG and AES is not (DECISIONS B-J-D) |
+| `java/propagate-random` | 1 | 5 | a Java helper returning a `SecureRandom` is a thin wrapper; one with a CSPRNG and AES is a thin wrapper of AES (the CSPRNG does not count next to another key; DECISIONS B-J-D, review) |
 | `java/any-call` | 1 | 9 | `anyCall`: registry names (JCA, XML-Security URIs, provider service keys, a short name) as arguments of unknown methods, also through a constant and the JSR 105 constants table; comparisons, logging, collection builders, a non-name string and a `getInstance` call (its own rule) give nothing more (DECISIONS B-J-SNx, B-J-XD2) |
 | `java/any-call-off` | 1 | 2 | the same input with `java-any-call` and `java-any-call-short` off |
 | `java/api-additions` | 1 | 6 | Java SE classes (`CipherInputStream`, `SealedObject`, `PBEParameterSpec`) and Bouncy Castle classes named after their algorithm (DECISIONS B-J-JDK, B-J-BC2) |
 | `java/bc-oids` | 1 | 3 | a Bouncy Castle OID constant as a value (field anchor) and through `getId()` into JCA factories, with the OID recorded (DECISIONS B-J-BCOID, B-J-JP2) |
 | `java/jwt-constants` | 1 | 4 | Nimbus and jjwt algorithm constants, also a nested class `Jwts.ENC` (DECISIONS B-J-JWT) |
 | `java/key-loading` | 1 | 5 | Java key loading: `generatePublic` / `generatePrivate` on any receiver, X.509 / PKCS #8 key specs, Bouncy Castle `PublicKeyFactory` (DECISIONS B-J-KL) |
-| `java/resolution-t2` | 1 | 9 | a constant getter (not with two declarations or a parameter), deferred locals with one value, agreeing values (RSA, no name), disagreeing values and a compound assignment (fallback), `SecretKeySpec.getAlgorithm()` (DECISIONS B-J-JP1, B-J-JP3, B-J-JP5) |
+| `java/resolution-t2` | 1 | 11 | a constant getter (not with two declarations or a parameter), deferred locals with one value, agreeing values (RSA, no name), disagreeing values, a compound assignment and self-referential assignments (fallback, no recursion), `SecretKeySpec.getAlgorithm()` (DECISIONS B-J-JP1, B-J-JP3, B-J-JP5) |
 | `java/jca-name-gaps` | 1 | 7 | JCA standard names without a specific rule before: `*inP1363Format`, `SHAKE128-256` / `SHAKE256-512`, `SecretKeyFactory` `ARCFOUR` / `ChaCha20`, `KEM` `DHKEM`, `Cipher` `ECIES` (DECISIONS B-A3) |
 | `common/oid-table-t2` | 2 | 8 | OID table entries of DECISIONS B-A4 through the Java and Python OID constructors (RIPEMD-160, a `sect` curve with param, RFC 3370 HMAC, PKCS #12 PBE, CMS 3DES wrap, BLAKE2b, SM3, RC4); no rule in a language gives nothing |
 | `python/unresolved` | 1 | 12 | Python fallbacks: `hashlib.new(var)`, `getattr(hashlib, x)`, pyca `hashes.Hash(var)`, `Cipher(var, …)`; HMAC with an unknown hash gives only HMAC; not when a specific hash rule hits (DECISIONS B-P-U1) |

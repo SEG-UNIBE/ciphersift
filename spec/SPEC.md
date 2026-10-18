@@ -468,7 +468,8 @@ on (3.1); it is ignored by the index (7.5) and by the pre-filter (14) otherwise.
 error *(DECISIONS B0)*. The bundled `anyCall` patterns carry `feature: java-any-call` (registry names of the
 "SNx" list: XML-Security URIs, multi-token JCA standard names, TLS groups and suites, provider service keys
 `Signature.SHA256withRSA`) or `feature: java-any-call-short` (the short JCA names `AES`, `RSA`, `EC`, …, JOSE
-names); the names and their sources are listed in `spec/anycall-names.csv`.
+names; matched with their exact spelling through an inline `(?-i:…)` group, and without the bare protocol names
+`SSL`, `TLS`, `DTLS`, *DECISIONS R-J3*); the names and their sources are listed in `spec/anycall-names.csv`.
 Conditions (all optional; all present conditions must hold):
 
 | Key | Value | Allowed with | Holds when |
@@ -1036,7 +1037,8 @@ keeping the child `c` through which the walk arrived at the current node `p`:
   and its `variable_declarator`s named `N`; if there is any, use the **last** one:
   * no initialiser → *(DECISIONS B-J-JP3)* the plain assignments `N = v` (operator `=`) inside `p` that
     start after the declaration: none, a compound assignment or an increment / decrement of `N` there, or
-    an unresolved `v` → unresolved; all values equal → *(that `v`, ctx)*; different values → unresolved,
+    an unresolved `v` (also a `v` whose value needs `N` itself, such as `N = N + "x"`, or two such locals
+    assigned from each other) → unresolved; all values equal → *(that `v`, ctx)*; different values → unresolved,
     with the values as **alternatives** (7.7.1);
   * the declaration is not `final` (its `modifiers` do not contain the word `final`) and `N`
     is a reassigned name of `ctx` → unresolved;
@@ -3007,7 +3009,9 @@ only within the scan root.
   random-number call in a helper does not make the helper a cryptographic algorithm) — except in Java,
   where `prng-secure` findings are propagatable *(DECISIONS B-J-D; not with
   `--feature java-propagate-random=off`)*: a Java helper that only returns a `SecureRandom` is a thin
-  wrapper of the CSPRNG; a helper with a CSPRNG and another family is no longer a thin wrapper.
+  wrapper of the CSPRNG; for the thin-wrapper test (W6, 18.5) the key `prng-secure` does not count next to
+  another key, so a key generator that draws from a `SecureRandom` stays a thin wrapper of its algorithm
+  *(DECISIONS B-J-D, review)*.
 * **Definition**: a function or method declaration of the project (18.2). Its **span** is the
   lines from the row of its name to its last row, inclusive; its **body findings** are the
   propagatable findings whose file is the definition's file and whose line lies in the span, and for
@@ -3127,7 +3131,8 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
   `_ecdh_recipient` reports the ECDH finding of its body, not the earlier EC key generation)*.
 * **Level 1, W6 (thin)**, where enabled: a definition whose span has at most *L* lines (*L* = 12 for Java,
   *DECISIONS B-J-G*, 8 with `--feature java-thin-12=off`; 8 for Python; 12 for Go, *DECISIONS B-G-E*) and whose body
-  findings have exactly one family key carries that key (whatever its name). Evidence as above.
+  findings have exactly one family key carries that key (whatever its name); the key `prng-secure` is left
+  out of this test when another key is present (18.1). Evidence as above.
 * **Level *k* ≥ 2, W7**: a definition that does not yet carry a key *F* carries *F* if *F* is one of
   its name families and a call site of its body resolves to a group carrying *F* below level *k*.
 * **Fallback-getter guard (Go W6)** *(DECISIONS B-G-E)*: in a Go definition with at least two
@@ -3138,8 +3143,8 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
   a default, it does not wrap SHA-256. W7 is not affected.
 * **Level *k* ≥ 2, W6**, where enabled: a definition of at most *L* lines that carries nothing yet
   carries *F* if the family keys of its body findings together with the keys carried (below level
-  *k*) by the groups its call sites resolve to are exactly {*F*} (a thin wrapper of a wrapper; the
-  test is made once, at the first level where it holds).
+  *k*) by the groups its call sites resolve to are exactly {*F*}, `prng-secure` left out next to another
+  key (a thin wrapper of a wrapper; the test is made once, at the first level where it holds).
 * In both, evidence and chain are those of the group's **representative** for *F* with the definition
   prepended (of several such calls, the one whose representative has the smallest depth, then the
   first call); no carry is made whose chain would have more than 4 definitions *(DECISIONS B-C; 3 with

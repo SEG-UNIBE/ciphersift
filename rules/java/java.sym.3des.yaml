@@ -54,5 +54,5 @@ match:
   anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:http://www\.w3\.org/2001/04/xmlenc\#tripledes-cbc)$'
   feature: java-any-call
 - anyCall: true
-  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:DESedeWrap|DESede)$'
+  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?-i:DESedeWrap|DESede)$'
   feature: java-any-call-short

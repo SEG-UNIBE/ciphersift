@@ -95,5 +95,5 @@ match:
   anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:http://www\.w3\.org/2009/xmlenc11\#dh-es|ffdhe2048|ffdhe3072|ffdhe4096|ffdhe6144|ffdhe8192)$'
   feature: java-any-call
 - anyCall: true
-  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:DiffieHellman)$'
+  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?-i:DiffieHellman)$'
   feature: java-any-call-short

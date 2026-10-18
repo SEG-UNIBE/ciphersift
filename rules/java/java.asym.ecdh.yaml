@@ -125,5 +125,5 @@ match:
   anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:http://www\.w3\.org/2009/xmlenc11\#ECDH-ES|MLKEM512X25519|X25519MLKEM768|X25519|x25519|X448|x448)$'
   feature: java-any-call
 - anyCall: true
-  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:ECDH-ES\+A128KW|ECDH-ES\+A192KW|ECDH-ES\+A256KW|ECDH-ES|ECMQV|ECDH|XDH)$'
+  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?-i:ECDH-ES\+A128KW|ECDH-ES\+A192KW|ECDH-ES\+A256KW|ECDH-ES|ECMQV|ECDH|XDH)$'
   feature: java-any-call-short

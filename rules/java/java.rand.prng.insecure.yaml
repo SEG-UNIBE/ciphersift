@@ -9,7 +9,8 @@ language: java
 name: Non-cryptographic PRNG usage in Java
 description: >-
   Weakness indicator, not a cryptographic algorithm: detects the non-cryptographic PRNGs java.util.Random,
-  Math.random, ThreadLocalRandom, SplittableRandom and commons-lang RandomStringUtils wherever they are
+  Math.random, ThreadLocalRandom, SplittableRandom, commons-lang RandomStringUtils and Bouncy Castle's
+  FixedSecureRandom (fixed caller-supplied bytes, for tests) wherever they are
   used (also in tests and for non-security purposes). They are not suitable for keys, IVs, nonces or tokens.
   Asset type related-crypto-material, subtype prng-insecure; components carry the property
   ciphersift:indicator=weakness; they are reported only with --weakness-indicators.
@@ -24,3 +25,6 @@ match:
 - new: java.util.SplittableRandom
 - call: org.apache.commons.lang3.RandomStringUtils.random*
 - call: org.apache.commons.lang.RandomStringUtils.random*
+# DECISIONS B-J-BC2 (review): Bouncy Castle FixedSecureRandom returns fixed, caller-supplied bytes (a test helper,
+# https://downloads.bouncycastle.org/java/docs/bcprov-jdk18on-javadoc/org/bouncycastle/crypto/prng/FixedSecureRandom.html)
+- new: org.bouncycastle.crypto.prng.FixedSecureRandom

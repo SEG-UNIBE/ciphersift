@@ -58,5 +58,5 @@ match:
   anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:X\.509)$'
   feature: java-any-call
 - anyCall: true
-  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?:PKIX)$'
+  anyString: '(?:(?:Alg\.Alias\.)?(?:Cipher|Signature|MessageDigest|Mac|KeyPairGenerator|KeyGenerator|KeyAgreement|KeyFactory|SecretKeyFactory|SecureRandom|KeyStore|AlgorithmParameters|KEM)\.)?(?-i:PKIX)$'
   feature: java-any-call-short
