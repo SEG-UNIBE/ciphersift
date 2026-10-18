@@ -1,0 +1,4 @@
+{"case": "deps/pypi-t3", "findings": [
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "tgcrypto-pyrofork", "version": "1.2.7"},
+  {"file": "requirements.txt", "line": null, "rule": "dep.pypi", "type": "library", "ecosystem": "pypi", "package": "unicrypto", "version": null}
+]}

@@ -99,6 +99,10 @@ packages:
   note: AES-IGE/CTR/CBC (Telegram)
 - package: cryptg
   note: AES-IGE (Telethon)
+- package: tgcrypto-pyrofork
+  note: AES-IGE/CTR/CBC (TgCrypto fork for Pyrofork), DECISIONS P3-DEP
+- package: unicrypto
+  note: unified symmetric-cipher and hash interface over pycryptodome / cryptography / mbedtls, DECISIONS P3-DEP
 - package: fastecdsa
   note: elliptic-curve signatures
 - package: py-ecc

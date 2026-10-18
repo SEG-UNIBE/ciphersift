@@ -18,3 +18,7 @@ match:
 # sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
 - literal: ['chacha20-poly1305']
   feature: python-literal-names
+# DECISIONS P3-SUITE: IANA TLS cipher suites as exact string literals (names and source URL: spec/anycall-names.csv,
+# group G5d-tls-suite, IANA TLS Cipher Suites registry, fetched 2026-10-18)
+- literal: ['TLS_CHACHA20_POLY1305_SHA256']
+  feature: python-literal-names

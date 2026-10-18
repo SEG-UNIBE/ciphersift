@@ -101,8 +101,19 @@ public final class Features {
     /** Python: a key object in the receiver of an operation of the same family folds into it (B3, SPEC 8.6). */
     public static final String PYTHON_FOLD_RECEIVERS = "python-fold-receivers";
 
+    /** Python: returned values and table look-ups {@code {..}[k]} are value positions (P3-RET, SPEC 8.6.1). */
+    public static final String PYTHON_RETURN_VALUES = "python-return-values";
+    /** Python: parameter default values are value positions (P3-DEF, SPEC 8.6.1; reverses D6). */
+    public static final String PYTHON_DEFAULT_VALUES = "python-default-values";
+
+    /** Python: classes named after a family whose body has a finding of it are callables (P3-CLS, SPEC 18.5). */
+    public static final String PYTHON_CLASS_WRAPPERS = "python-class-wrappers";
+
     static {
         known(TRANSITIVE_DEPS, false);
+        known(PYTHON_CLASS_WRAPPERS, true);
+        known(PYTHON_RETURN_VALUES, true);
+        known(PYTHON_DEFAULT_VALUES, true);
         known(SKIP_PYTHON_LOCK_FILES, false);
         known(PYTHON_ASN1_SCHEMAS, true);
         known(PYTHON_FOLD_RECEIVERS, true);

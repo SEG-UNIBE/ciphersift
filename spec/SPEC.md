@@ -204,6 +204,9 @@ individually; the table lists every id and its default.
 | `python-asn1-schemas` | on | asn1crypto schema attributes are not value positions (8.6.1) | 8.6.1 |
 | `python-fold-receivers` | on | a hit in the receiver of a call with a hit of the same type and family is dropped (8.6) | 8.6 |
 | `python-reexports` | on | pyca classes re-exported by other packages, by their last two name segments (8.6) | 8.6 |
+| `python-class-wrappers` | on | Python classes named after a family are crypto callables: constructor calls and instance method calls (18.5) | 18.2, 18.5, 18.7 |
+| `python-default-values` | on | Python parameter default values are value positions, resolved in the enclosing scope (8.6.1) | 8.6.1 |
+| `python-return-values` | on | returned values and table look-ups `{…}[k]` are Python value positions (8.6.1) | 8.6.1 |
 | `go-package-names` | on | calls into a project Go package named after a family (18.8) | 18.8 |
 | `go-typed-methods` | on | Go method events on receivers of a known type (17.12) | 17.12 |
 | `java-propagate-random` | on | Java `prng-secure` findings are propagatable (18.1) | 18.1 |
@@ -1561,6 +1564,15 @@ prevent it.
   `isinstance`, `issubclass`, `cast`, `TypeVar` or `NewType` (class bases are not positions);
 * `keyword_argument`: a value position iff *x* is its `value` and the keyword argument belongs
   to the `argument_list` of such a call;
+* `return_statement` *(DECISIONS P3-RET, feature `python-return-values`)*: a value position (`return hashlib.sha1`
+  in a function that selects a hash; without the feature only as for any other node below);
+* `subscript` *(DECISIONS P3-RET)*: if *x* is a dictionary, list or tuple display that is the subscript's `value` (a
+  table look-up, `{"sha256": hashes.SHA256}[name]()`) and the feature is on, passed through; otherwise not a
+  position (an index `d[hashes.SHA256]` and type subscripts `Dict[str, …]` stay none);
+* `default_parameter`, `typed_default_parameter` *(DECISIONS P3-DEF, feature `python-default-values`; reverses the
+  evaluation's D6)*: a value position iff *x* is its `value` (`def h(v, f=hashlib.sha256)`: the default selects SHA-256 whenever
+  the caller passes none). The value is resolved in the scope that encloses the function or lambda, where Python
+  evaluates it (`def f(hashlib=None, h=hashlib.sha256)` names the module, not the parameter);
 * `assignment`: a value position iff *x* is its `right` — except, with the feature `python-asn1-schemas`
   *(DECISIONS B-P-B2)*, when its `left` is the identifier `_fields`, `_child_spec` or `_oid_specs` (an
   asn1crypto schema declaration names types; it uses no algorithm);
@@ -1583,7 +1595,7 @@ A `call` pattern fires only in a value position. A `ref` pattern fires in any *e
 position*: the same walk in which `binary_operator`, `unary_operator`, `boolean_operator`,
 `not_operator` and `await` are passed through as well and every reference counts as a container
 element (`Q = P + ecc.GENERATOR * k`, `return Mechanism.ECDSA`). Default values of parameters are
-not positions (8.3: they belong to the function's scope, Appendix B).
+positions only with the feature `python-default-values` (above; without it they are not, as the evaluation's D6 decided).
 
 **Hits, refinement, emission** as in 8.6, with these differences: there are no conditions; no
 argument range is recorded; the nesting check of step 1 applies (a reference inside the recorded
@@ -1604,7 +1616,8 @@ names the finding (one finding per rule and line, 8.6); a literal inside the arg
 hit is not matched (that call's data or configuration, `hashlib.sha256(b"ES512")`), nor is one in the recorded
 argument range of the same rule. Name and symbol: the string; line: the string's start row + 1; snippet: the
 string. The bundled rules list the IANA SSH algorithm names, JOSE algorithm and curve names and TLS group
-names (215 names, sources in `PROVENANCE.md`) under the rule of each family they name (a name of several
+names (215 names, sources in `PROVENANCE.md`) and the 356 IANA TLS cipher-suite names of `spec/anycall-names.csv`
+*(DECISIONS P3-SUITE)* under the rule of each family they name (a name of several
 families under each: `curve25519-sha256` is X25519 and SHA-2).
 
 ### 8.7 Operation-call attribution (`reportAt`)
@@ -3075,9 +3088,13 @@ Every source file of the language that is scanned contributes its definitions:
 | Python | `function_definition` (also inside `decorated_definition`) | the module (relative path without `.py`, `/` → `.`, a trailing `.__init__` removed) and, for a method, the enclosing `class_definition` | module-level functions; methods of module-level classes — not nested functions |
 | Go | `function_declaration`, `method_declaration` | the package: (directory of the file, package name of its `package_clause`); for a method also the receiver's type name (pointer and type arguments removed) | always |
 
-Constructors (Python classes and `__init__`, Go composite literals) are not definitions. A Java
+Constructors (Python `__init__`, Go composite literals) are not definitions. A Java
 `constructor_declaration` of a named class is a definition named like its class (display `Outer.C.C`, arity as for
-methods) with `java-constructor-wrappers` *(DECISIONS T3-J-CTOR)*, and not without it. Arity of a Java method: the number of formal parameters; a method with a
+methods) with `java-constructor-wrappers` *(DECISIONS T3-J-CTOR)*, and not without it. A module-level Python
+`class_definition` is a **class node** only for the class-wrapper test
+below *(DECISIONS P3-CLS, feature `python-class-wrappers`)*: addressable like a module-level function of its
+module (so `K(…)`, `mod.K(…)` and imports of `K` resolve to it), never the caller of a call site or the innermost
+definition of a finding. Arity of a Java method: the number of formal parameters; a method with a
 variable-arity parameter accepts any number ≥ arity − 1.
 
 **Files read for the index.** The source files parsed by phase 3 contribute directly. A file that
@@ -3200,6 +3217,18 @@ order in which definitions are visited, and cycles (recursion, mutual recursion)
   prepended (of several such calls, the one whose representative has the smallest depth, then the
   first call); no carry is made whose chain would have more than 4 definitions *(DECISIONS B-C; 3 with
   `--feature wrapper-depth-4=off`)*.
+
+* **Class wrappers (Python)** *(DECISIONS P3-CLS, feature `python-class-wrappers`)*: a class node whose name names
+  *F* carries *F* at level 1 if a finding of key *F* lies anywhere in the class's span (its methods included; evidence
+  as for W7), and at level *k* ≥ 2 if a call site anywhere in its span, or one of its base classes (a name or
+  attribute chain in its `superclasses`, resolved like a call to a single class node), resolves to a group carrying
+  *F* below level *k* (a class `StandardAESCryptFilter(AESCryptFilterMixin)` carries AES through its mixin). A call
+  that resolves to a class node is a constructor call and is reported like any call site (18.7). **Instance calls**:
+  a call `x.m(…)` whose `x` is bound exactly once in the caller, not as a parameter, by `x = f(…)` where `f(…)`
+  resolves to a single class node *K* carrying keys, is reported with the keys *F* that *K* carries and for which the
+  method `m` of *K* (or, if *K* does not define `m`, of its base classes, at most 4 levels up) has a body finding of
+  key *F* or carries *F* (`c = AESCipher(k); c.encrypt(m)` reports AES; `c.pad(m)` nothing); its chain is *K*'s.
+  Instance calls are reported only; they do not make their caller a callable.
 
 A **group carries** *F* if every definition of the group carries *F*; its representative for *F* is
 the member with the smallest depth for *F* (then path, then line).
@@ -3381,9 +3410,9 @@ never followed; directories `.git`, `.hg`, `.svn` are skipped; requirement lines
   `ecdsa_sign`, `verify=False` on HTTP-client method names such as `get` or `send`).
   Attribute *reads* are not anchors: asn1crypto certificate fingerprints (`cert.sha256`) are
   not reported *(DECISIONS E3)*.
-* Python parameter default values are not value positions (8.6.1): `def h(v,
-  f=hashlib.sha256)` reports nothing, at the definition or at the call `f(v)` (D6 of the
-  evaluation, by design).
+* Python parameter default values are value positions only with the feature `python-default-values` (on by
+  default, DECISIONS P3-DEF; 8.6.1): `def h(v, f=hashlib.sha256)` reports SHA-256 at the definition, never at the
+  call `f(v)` (D6 of the evaluation, by design, holds with the feature off).
 * Python import alternatives: only the import-failure handler of the same `try` is recognised
   (8.2, *DECISIONS F2*); alternatives chosen by `if` (version checks, `sys.platform`), by
   handlers of other exceptions or in another `try` statement are all bindings, so

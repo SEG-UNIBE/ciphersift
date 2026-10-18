@@ -288,3 +288,10 @@ match:
 # sources: ciphersift-boost-assess/python-recall/names.tsv (IANA SSH, JOSE and TLS registries, fetched 2026-10-18)
 - literal: ['A128CBC-HS256', 'A192CBC-HS384', 'A256CBC-HS512', 'ES256', 'ES256K', 'ES384', 'ES512', 'HS256', 'HS384', 'HS512', 'PBES2-HS256+A128KW', 'PBES2-HS384+A192KW', 'PBES2-HS512+A256KW', 'PS256', 'PS384', 'PS512', 'RS256', 'RS384', 'RS512', 'RSA-OAEP-256', 'RSA-OAEP-384', 'RSA-OAEP-512', 'curve25519-sha256', 'curve448-sha512', 'diffie-hellman-group-exchange-sha256', 'diffie-hellman-group14-sha256', 'diffie-hellman-group15-sha512', 'diffie-hellman-group16-sha512', 'diffie-hellman-group17-sha512', 'diffie-hellman-group18-sha512', 'ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ecmqv-sha2', 'hmac-sha2-256', 'hmac-sha2-512', 'mlkem1024-sha384', 'mlkem1024nistp384-sha384', 'mlkem512-sha256', 'mlkem768-sha256', 'mlkem768nistp256-sha256', 'mlkem768x25519-sha256', 'rsa-sha2-256', 'rsa-sha2-512', 'rsa2048-sha256', 'sntrup761x25519-sha512', 'x509v3-ecdsa-sha2-nistp256', 'x509v3-ecdsa-sha2-nistp384', 'x509v3-ecdsa-sha2-nistp521', 'x509v3-rsa2048-sha256']
   feature: python-literal-names
+# DECISIONS P3-SUITE: IANA TLS cipher suites as exact string literals (names and source URL: spec/anycall-names.csv,
+# group G5d-tls-suite, IANA TLS Cipher Suites registry, fetched 2026-10-18)
+- literal: ['TLS_AES_128_CCM_8_SHA256', 'TLS_AES_128_CCM_SHA256', 'TLS_AES_128_GCM_SHA256', 'TLS_AES_256_GCM_SHA384', 'TLS_CHACHA20_POLY1305_SHA256']
+  feature: python-literal-names
+# DECISIONS P3-PL: passlib's PBKDF2 function (https://passlib.readthedocs.io/en/stable/lib/passlib.crypto.digest.html: pbkdf2_hmac(digest, secret, salt, rounds, keylen))
+- call: passlib.crypto.digest.pbkdf2_hmac
+  firstString: (?i)^sha-?(224|256|384|512)([_/-](224|256))?$

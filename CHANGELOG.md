@@ -7,6 +7,17 @@
 
 Development steps of the unreleased 1.0.0, newest first.
 
+### Python tuning, round t3 (DECISIONS P3-RET … P3-PL; benchmark-informed)
+
+* **Value positions**: returned values and literal table look-ups (`python-return-values`), parameter default
+  values resolved in the enclosing scope (`python-default-values`, reverses the evaluation's D6).
+* **Class wrappers** (`python-class-wrappers`): classes named after a family whose span or bases reach a finding
+  of it are callables; constructor calls and instance method calls are reported (shared wrapper code, Python only).
+* **Rules**: TLS beyond context creation (ldap3 `Tls` / `Server(use_ssl=True)`, `ssl._create_unverified_context`,
+  `wrap_socket`, `starttls`); IANA TLS cipher suites as literals; passlib `pbkdf2_hmac`; `dep.pypi` lists
+  `tgcrypto-pyrofork` and `unicrypto`.
+* Conformance: 100 cases, 1693 findings (1648 + 44 in seven new cases + 1 in `python/fork-fixtures`).
+
 ### Boosters, round t2 (DECISIONS B0–B-P-B5; benchmark-informed)
 
 Every behaviour booster has a feature switch (`--feature ID=on|off`, SPEC 3.1; recorded as

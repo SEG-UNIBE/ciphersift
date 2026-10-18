@@ -1,0 +1,6 @@
+{"case": "python/passlib-pbkdf2", "findings": [
+  {"file": "p.py", "line": 5, "rule": "python.hash.sha1", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA1", "variant": null, "protocol": null, "version": null, "param": null, "name": "passlib.crypto.digest.pbkdf2_hmac"},
+  {"file": "p.py", "line": 5, "rule": "python.kdf.pbkdf2", "type": "algorithm", "subtype": null, "primitive": "kdf", "family": "PBKDF2", "variant": null, "protocol": null, "version": null, "param": null, "name": "passlib.crypto.digest.pbkdf2_hmac"},
+  {"file": "p.py", "line": 6, "rule": "python.hash.sha2", "type": "algorithm", "subtype": null, "primitive": "hash", "family": "SHA2", "variant": null, "protocol": null, "version": null, "param": null, "name": "passlib.crypto.digest.pbkdf2_hmac"},
+  {"file": "p.py", "line": 6, "rule": "python.kdf.pbkdf2", "type": "algorithm", "subtype": null, "primitive": "kdf", "family": "PBKDF2", "variant": null, "protocol": null, "version": null, "param": null, "name": "passlib.crypto.digest.pbkdf2_hmac"}
+]}

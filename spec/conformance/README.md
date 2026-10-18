@@ -3,7 +3,7 @@
 
 # CipherSift conformance suite
 
-97 cases, 1683 expected findings. A conforming implementation produces exactly the expected
+104 cases, 1728 expected findings. A conforming implementation produces exactly the expected
 findings for every case.
 
 ## Layout
@@ -78,6 +78,13 @@ deviations.yaml   intentional differences from the reference tool, applied when 
 | `common/shebang-scripts` | 8 | 4 | extensionless files with a Python interpreter line are Python source (`env`, `env -S`, versioned interpreter, CRLF, test directory); shell, other interpreters, no interpreter line and files with an extension are not (SPEC 4.5, DECISIONS F7) |
 | `java/wrappers` | 6 | 30 | (with `--feature java-thin-12=off` and `--feature java-propagate-random=off`, so that its 10-line `checksum` and its CSPRNG helper stay non-callables) wrapper propagation (SPEC 18): `Class.m`, FQN, static import, enclosing-class calls, overload groups with the caller removed, depth 1–3 and the depth limit, mutual recursion, thin wrappers (two families, CSPRNG only: not), folding (two calls on a line, a direct finding on the line), a collision through two on-demand imports, a class of the file shadowing them, test-file wrappers |
 | `python/wrappers` | 7 | 20 | absolute, aliased, relative and package imports, a re-export through `__init__.py`, `self` and class methods, a parameter shadowing a wrapper, an ambiguous module name, thin wrappers off by default, test files |
+| `python/return-values` | 1 | 7 | returned references and literals, a literal table look-up `{…}[k]()`, a tuple look-up; nothing for comparisons, subscript indices, attributes of functions, modules, annotations (DECISIONS P3-RET) |
+| `python/default-values` | 1 | 5 | parameter defaults (name, attribute, JOSE literal, lambda), resolved in the enclosing scope (a parameter named like the module does not shadow it); nothing for other defaults (DECISIONS P3-DEF) |
+| `python/tls-t3` | 1 | 9 | `ssl._create_unverified_context`, `wrap_socket`, `starttls` / `start_tls`, ldap3 `Tls` (version, `validate=CERT_NONE`) and `Server(use_ssl=True)`; nothing for plain SMTP / LDAP or other methods (DECISIONS P3-TLS) |
+| `python/tls-suites` | 1 | 8 | IANA TLS cipher suites as literals (TLS 1.3 suites with their algorithms); nothing for comparisons, other `TLS_` keys, other spellings (DECISIONS P3-SUITE) |
+| `deps/pypi-t3` | 1 | 2 | `tgcrypto-pyrofork`, `unicrypto`; not similarly named packages (DECISIONS P3-DEP) |
+| `python/class-wrappers` | 4 | 9 | class wrappers: constructor calls (imported, through a module, through a mixin base), instance method calls with and without evidence; nothing for classes not named after their family, names bound twice, parameters (DECISIONS P3-CLS) |
+| `python/passlib-pbkdf2` | 1 | 4 | passlib `pbkdf2_hmac` imported and through its module; another passlib function gives nothing (DECISIONS P3-PL) |
 | `python/thin-wrappers` | 1 | 8 | `--python-thin-wrappers`: thin wrappers, a thin wrapper of a thin wrapper, two families, nine lines, CSPRNG only |
 | `go/wrappers` | 8 | 17 | (with `--feature go-thin-wrappers=off`) `pkg.F` through `go.mod` and `vendor/`, same package, receiver / `&T{}` / `var` / struct-field types, build-tag variants as one group, a local variable shadowing a wrapper, an untyped value, test files, thin wrappers off for Go |
 | `go/api-ag` | 1 | 85 | the third-party Go APIs of SPEC 17.11 (age, agessh, sigstore cryptoutils, `x509.Marshal*`, securesystemslib `encrypted`, CIRCL, flynn/noise, go-containerregistry `v1.SHA256`, pkcs11 `CKM_ECDSA*`, azkeys) and non-anchors (types, size constants, other members, a switch case) |

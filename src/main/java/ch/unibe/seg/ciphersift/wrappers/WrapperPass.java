@@ -128,6 +128,10 @@ public final class WrapperPass {
 
     private final WrapperOptions options;
     private final Project project;
+    /** DECISIONS P3-CLS: Python class wrappers. */
+    private final boolean classes;
+    /** Python class nodes → resolutions of their base-class references (DECISIONS P3-CLS). */
+    private final Map<Node, Res[]> baseRes = new HashMap<>();
 
     // ---- state of the last compute()
     private final TreeMap<String, Outline> outlines = new TreeMap<>(Texts.CODE_POINT_ORDER);
@@ -156,6 +160,7 @@ public final class WrapperPass {
         this.options = options;
         this.project = project;
         this.maxDepth = options.features().on(Features.WRAPPER_DEPTH_4) ? 4 : 3;
+        this.classes = options.features().on(Features.PYTHON_CLASS_WRAPPERS);
     }
 
     /** The rule-id prefix of a language ({@code java}, {@code python}, {@code go}). */
@@ -227,6 +232,7 @@ public final class WrapperPass {
         nodes.clear();
         callers.clear();
         resolutions.clear();
+        baseRes.clear();
         javaClassOwners.clear();
         byPath.clear();
         javaMethods.clear();
@@ -273,6 +279,16 @@ public final class WrapperPass {
             fs.sort(Comparator.comparingInt(SourceFinding::line)
                     .thenComparing(f -> f.rule().id(), Texts.CODE_POINT_ORDER));
             for (SourceFinding f : fs) {
+                if (classes) {
+                    // a class node's body findings: every finding in its span (DECISIONS P3-CLS)
+                    for (int k : o.pyClassDefs) {
+                        Outline.Def cd = o.defs.get(k);
+                        if (cd.line() <= f.line() && f.line() <= cd.endLine()) {
+                            l.get(k).direct.putIfAbsent(familyKey(f.rule()), f);
+                            l.get(k).bodyByKey.computeIfAbsent(familyKey(f.rule()), x -> new ArrayList<>()).add(f);
+                        }
+                    }
+                }
                 int d = innermost(o, f.line());
                 if (d >= 0) {
                     l.get(d).direct.putIfAbsent(familyKey(f.rule()), f);
@@ -293,6 +309,16 @@ public final class WrapperPass {
                 rs[i] = resolve(o, i);
             }
             resolutions.put(o, rs);
+            if (classes) {
+                for (int k : o.pyClassDefs) {
+                    List<Outline.Call> bs = o.pyBases.getOrDefault(k, List.of());
+                    Res[] br = new Res[bs.size()];
+                    for (int i = 0; i < br.length; i++) {
+                        br[i] = resolveBase(o, bs.get(i), k);
+                    }
+                    baseRes.put(nodes.get(o).get(k), br);
+                }
+            }
         }
         levels();
     }
@@ -392,6 +418,9 @@ public final class WrapperPass {
     private static int innermost(Outline o, int line) {
         int best = -1;
         for (Outline.Def d : o.defs) {
+            if (o.pyClassDefs.contains(d.index())) {
+                continue; // class nodes own no calls or findings of their own (DECISIONS P3-CLS)
+            }
             if (d.line() <= line && line <= d.endLine()) {
                 if (best < 0) {
                     best = d.index();
@@ -422,7 +451,7 @@ public final class WrapperPass {
                 }
                 // the guard only removes evidence: a guarded finding of another family still makes two (SPEC 18.5);
                 // a CSPRNG next to another key does not count (R-J2)
-                if (thin && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
+                if (thin && !isClass(n) && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
                     Set<String> ks = thinKeys(n.thinDirect.keySet());
                     if (ks.size() == 1 && ks.equals(thinKeys(n.direct.keySet()))) {
                         String k = ks.iterator().next();
@@ -491,6 +520,9 @@ public final class WrapperPass {
                     if (!m.isEmpty()) {
                         pending.add(Map.entry(n, m));
                     }
+                }
+                if (classes && named) {
+                    classLevel(o, l, cs, rs, level, pending);
                 }
             }
             if (pending.isEmpty()) {
@@ -570,6 +602,120 @@ public final class WrapperPass {
     }
 
     /**
+     * The class node of {@code x} in a call {@code x.m(…)} where {@code x} is bound exactly once in the caller to a
+     * call that resolves to a single class wrapper (DECISIONS P3-CLS); else null.
+     */
+    private Node instanceClass(Outline o, Outline.Call c, int caller) {
+        if (o.lang != Outline.Lang.PYTHON || caller < 0 || c.qualifier().size() != 1) {
+            return null;
+        }
+        Outline.Call ctor = o.pyInstances.getOrDefault(caller, Map.of()).get(c.qualifier().get(0));
+        if (ctor == null) {
+            return null;
+        }
+        List<Node> g = resolvePython(o, ctor, caller);
+        if (g == null || g.size() != 1 || !isClass(g.get(0)) || g.get(0).carry.isEmpty()) {
+            return null;
+        }
+        Node k = g.get(0);
+        return k.o.test && !o.test ? null : k;
+    }
+
+    /**
+     * The keys of class wrapper {@code k} that an instance call of method {@code m} carries: those the class carries
+     * and the method (of the class, or of a base class, at most {@link #MAX_REEXPORT_HOPS} levels up) has a body
+     * finding of or carries itself.
+     */
+    private Set<String> instanceKeys(Node k, String m) {
+        Set<String> out = new TreeSet<>(Texts.CODE_POINT_ORDER);
+        List<Node> todo = new ArrayList<>(List.of(k));
+        Set<Node> seen = new HashSet<>();
+        for (int depth = 0; depth <= MAX_REEXPORT_HOPS && !todo.isEmpty(); depth++) {
+            List<Node> next = new ArrayList<>();
+            for (Node cls : todo) {
+                if (!seen.add(cls)) {
+                    continue;
+                }
+                List<Node> ms = pyMethods.getOrDefault(cls.o.pyModule + "\u0000" + cls.d.name(), Map.of()).get(m);
+                if (ms != null) {
+                    for (Node mn : ms) {
+                        for (String f : k.carry.keySet()) {
+                            if (mn.direct.containsKey(f) || mn.carry.containsKey(f)) {
+                                out.add(f);
+                            }
+                        }
+                    }
+                    continue; // the method is defined here: bases do not matter
+                }
+                for (Res b : baseRes.getOrDefault(cls, new Res[0])) {
+                    next.addAll(b.group());
+                }
+            }
+            todo = next;
+        }
+        return out;
+    }
+
+    private static boolean isClass(Node n) {
+        return n.o.pyClassDefs.contains(n.d.index());
+    }
+
+    /**
+     * Level k for Python class nodes (SPEC 18.5, DECISIONS P3-CLS): a class carries a family key its name names if a
+     * call anywhere in its span (its methods included) or one of its base classes resolves to a group carrying it.
+     */
+    private void classLevel(Outline o, List<Node> l, int[] cs, Res[] rs, int level,
+            List<Map.Entry<Node, Map<String, Carry>>> pending) {
+        for (int k : o.pyClassDefs) {
+            Node n = l.get(k);
+            if (n.nameFams.isEmpty()) {
+                continue;
+            }
+            List<Integer> inSpan = new ArrayList<>();
+            for (int i = 0; i < rs.length; i++) {
+                int line = o.calls.get(i).line();
+                if (n.d.line() <= line && line <= n.d.endLine() && !rs[i].group().isEmpty()) {
+                    inSpan.add(i);
+                }
+            }
+            Res[] br = baseRes.getOrDefault(n, new Res[0]);
+            Map<String, Carry> m = new TreeMap<>(Texts.CODE_POINT_ORDER);
+            for (String f : n.nameFams) {
+                if (n.carry.containsKey(f)) {
+                    continue;
+                }
+                Carry c = bestVia(n, f, inSpan, rs, level);
+                Carry b = bestVia(n, f, java.util.stream.IntStream.range(0, br.length).boxed().toList(), br, level);
+                if (b != null && (c == null || b.depth() < c.depth())) {
+                    c = b;
+                }
+                if (c != null) {
+                    m.put(f, c);
+                }
+            }
+            if (!m.isEmpty()) {
+                pending.add(Map.entry(n, m));
+            }
+        }
+    }
+
+    /** A base-class reference of a Python class resolves like a call of that name (to the base's class node). */
+    private Res resolveBase(Outline o, Outline.Call b, int cls) {
+        List<Node> cand = resolvePython(o, b, -1);
+        if (cand == null || cand.isEmpty()) {
+            return Res.NONE;
+        }
+        List<Node> g = new ArrayList<>();
+        for (Node n : cand) {
+            if (isClass(n) && !(n.o == o && n.d.index() == cls) && !(n.o.test && !o.test) && !g.contains(n)) {
+                g.add(n);
+            }
+        }
+        g.sort(NODE_ORDER);
+        return g.size() == 1 ? new Res(List.copyOf(g), List.of()) : Res.NONE;
+    }
+
+    /**
      * The names whose files the index must read (SPEC 18.2), per language: the names of the crypto
      * callables found by the last {@link #compute} and, for Java, the simple names of their classes
      * (so that a same-named class that shadows an on-demand import is known).
@@ -642,11 +788,23 @@ public final class WrapperPass {
                     }
                     continue;
                 }
-                if (r.group().isEmpty()) {
-                    continue;
-                }
                 Outline.Call c = o.calls.get(i);
-                for (String f : carried(r.group())) {
+                Set<String> keys;
+                if (r.group().isEmpty()) {
+                    // a method call on an instance of a class wrapper (DECISIONS P3-CLS)
+                    Node k = classes ? instanceClass(o, c, callers.get(o)[i]) : null;
+                    if (k == null) {
+                        continue;
+                    }
+                    keys = instanceKeys(k, c.name());
+                    if (keys.isEmpty()) {
+                        continue;
+                    }
+                    r = new Res(List.of(k), List.of());
+                } else {
+                    keys = carried(r.group());
+                }
+                for (String f : keys) {
                     String k = o.path + "\u0000" + c.line() + "\u0000" + f;
                     if (directKeys.contains(k) || !seen.add(k)) {
                         continue; // folding (SPEC 18.7)
@@ -732,7 +890,7 @@ public final class WrapperPass {
             case PYTHON -> {
                 pyModules.putIfAbsent(o.pyModule, o);
                 for (Node n : l) {
-                    if (!n.d.addressable()) {
+                    if (!n.d.addressable() || (!classes && isClass(n))) {
                         continue;
                     }
                     if (n.d.pyClass() == null) {
