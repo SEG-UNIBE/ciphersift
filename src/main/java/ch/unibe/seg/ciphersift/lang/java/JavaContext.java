@@ -223,7 +223,7 @@ final class JavaContext {
                 List<SyntaxNode> types = t.is("type_list") ? t.namedChildren() : List.of(t);
                 for (SyntaxNode x : types) {
                     if (x.is("type_identifier") || x.is("scoped_type_identifier") || x.is("generic_type")) {
-                        String name = JavaAnalyzer.removeGenerics(Texts.removeWhitespace(x.text()));
+                        String name = Texts.removeGenerics(Texts.removeWhitespace(x.text()));
                         if (!name.isEmpty()) {
                             out.add(name);
                         }

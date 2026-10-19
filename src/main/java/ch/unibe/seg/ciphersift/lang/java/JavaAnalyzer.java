@@ -31,7 +31,6 @@ public final class JavaAnalyzer {
     private static final Set<String> EXPRESSION_ANCESTORS = Set.of("argument_list", "object_creation_expression",
             "method_invocation", "parenthesized_expression", "cast_expression", "array_initializer",
             "array_creation_expression", "binary_expression");
-    private static final Pattern GENERIC_GROUP = Pattern.compile("<[^<>]*>");
     private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
     private static final Pattern LINE_COMMENT = Pattern.compile("//[^\\n]*");
     static final int SNIPPET_MAX = 500;
@@ -223,7 +222,7 @@ public final class JavaAnalyzer {
                 if (type == null) {
                     return null;
                 }
-                String t = removeGenerics(Texts.removeWhitespace(type.text()));
+                String t = Texts.removeGenerics(Texts.removeWhitespace(type.text()));
                 String name = Texts.lastSegment(t);
                 if (!index.hasCandidates(EventKind.NEW, name)) {
                     return null;
@@ -263,23 +262,10 @@ public final class JavaAnalyzer {
         }
     }
 
-    static String removeGenerics(String s) {
-        if (s.indexOf('<') < 0) {
-            return s;
-        }
-        String prev;
-        String cur = s;
-        do {
-            prev = cur;
-            cur = GENERIC_GROUP.matcher(cur).replaceAll("");
-        } while (!cur.equals(prev));
-        return cur;
-    }
-
     // ------------------------------------------------------------------ denotes (7.3.2)
 
     static boolean denotes(String reference, String cls, JavaContext ctx) {
-        String ref = removeGenerics(Texts.removeWhitespace(reference));
+        String ref = Texts.removeGenerics(Texts.removeWhitespace(reference));
         if (ref.isEmpty()) {
             return false;
         }

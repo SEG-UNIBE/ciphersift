@@ -72,7 +72,7 @@ final class PythonOutliner {
                         cls = name.text();
                         level = 1;
                         // the class as a definition for class wrappers (DECISIONS P3-CLS)
-                        int endLine = n.startRow() + 1 + JavaOutliner.countLines(n.text());
+                        int endLine = Outlines.lastLine(n);
                         String display = (o.pyModule.isEmpty() ? "" : o.pyModule + ".") + name.text();
                         o.defs.add(new Outline.Def(o.defs.size(), name.text(), name.line(), endLine, n.start(), nesting,
                                 display, true, o.pyModule, -1, null, 0, false, null, Set.of(), Map.of()));
@@ -114,7 +114,7 @@ final class PythonOutliner {
                     Set<String> loc = new HashSet<>();
                     params(n.field("parameters"), loc);
                     paramsOf.put(o.defs.size(), Set.copyOf(loc));
-                    int endLine = n.startRow() + 1 + JavaOutliner.countLines(n.text());
+                    int endLine = Outlines.lastLine(n);
                     o.defs.add(new Outline.Def(o.defs.size(), name.text(), name.line(), endLine, n.start(), nesting,
                             display, addressable, owner, -1, pyClass, 0, false, null, loc, Map.of()));
                     locals.add(loc);

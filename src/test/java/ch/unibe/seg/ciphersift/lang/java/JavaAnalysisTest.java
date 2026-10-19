@@ -15,6 +15,7 @@ import ch.unibe.seg.ciphersift.rules.RuleLoader;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.syntax.SyntaxTrees;
+import ch.unibe.seg.ciphersift.util.Texts;
 import io.github.treesitter.jtreesitter.Parser;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -85,8 +86,8 @@ class JavaAnalysisTest {
 
     @Test
     void genericsAndDenotes() throws Exception {
-        assertEquals("java.util.HashMap", JavaAnalyzer.removeGenerics("java.util.HashMap<String,List<X>>"));
-        assertEquals("HashMap", JavaAnalyzer.removeGenerics("HashMap<>"));
+        assertEquals("java.util.HashMap", Texts.removeGenerics("java.util.HashMap<String,List<X>>"));
+        assertEquals("HashMap", Texts.removeGenerics("HashMap<>"));
         JavaContext ctx = JavaContext.build(root.resolve("A.java"), SyntaxTrees.parse(parser, Grammars.get().java(),
                 "import javax.crypto.Cipher;\nimport org.x.Builder;\nclass Local {}\n"));
         assertTrue(JavaAnalyzer.denotes("Cipher", "javax.crypto.Cipher", ctx));

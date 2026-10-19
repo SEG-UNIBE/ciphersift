@@ -8,6 +8,7 @@ import ch.unibe.seg.ciphersift.rules.GoPattern;
 import ch.unibe.seg.ciphersift.rules.JavaPattern;
 import ch.unibe.seg.ciphersift.rules.PythonPattern;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
+import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -283,11 +284,11 @@ final class AnchorPrefilter {
             }
             int i = 0;
             while (i < seg.length()) {
-                while (i < seg.length() && !isWordChar(seg.charAt(i))) {
+                while (i < seg.length() && !Texts.isWordChar(seg.charAt(i))) {
                     i++;
                 }
                 int s = i;
-                while (i < seg.length() && isWordChar(seg.charAt(i))) {
+                while (i < seg.length() && Texts.isWordChar(seg.charAt(i))) {
                     i++;
                 }
                 if (i > s) {
@@ -296,10 +297,6 @@ final class AnchorPrefilter {
             }
         }
         return out;
-    }
-
-    private static boolean isWordChar(char c) {
-        return c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
     }
 
     private static AnchorPrefilter build(List<List<List<String>>> pats) {

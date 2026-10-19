@@ -164,7 +164,7 @@ final class JavaOutliner {
             display.insert(0, (s.isEmpty() ? "<anonymous>" : s) + ".");
         }
         display.append(name.text());
-        int endLine = n.startRow() + 1 + countLines(n.text());
+        int endLine = Outlines.lastLine(n);
         o.defs.add(new Outline.Def(o.defs.size(), name.text(), name.line(), endLine, n.start(), nesting,
                 display.toString(), addressable, o.path + "#" + cls, cls, null, arity, varargs, null,
                 new HashSet<>(), Map.of()));
@@ -179,7 +179,7 @@ final class JavaOutliner {
         if (type == null) {
             return;
         }
-        String t = removeGenerics(Texts.removeWhitespace(type.text()));
+        String t = Texts.removeGenerics(Texts.removeWhitespace(type.text()));
         if (t.isEmpty() || t.indexOf('<') >= 0) {
             return;
         }
@@ -198,26 +198,6 @@ final class JavaOutliner {
         }
         o.calls.add(new Outline.Call(name, List.of(t), type.line(), n.start(), n.end(), arity, "new " + t, -1, cls,
                 null));
-    }
-
-    private static String removeGenerics(String s) {
-        String prev;
-        do {
-            prev = s;
-            s = s.replaceAll("<[^<>]*>", "");
-        } while (!s.equals(prev));
-        return s;
-    }
-
-    /** Number of line feeds in a node's text (its last row minus its start row). */
-    static int countLines(String text) {
-        int k = 0;
-        for (int i = 0; i < text.length(); i++) {
-            if (text.charAt(i) == '\n') {
-                k++;
-            }
-        }
-        return k;
     }
 
     private static void call(Outline o, SyntaxNode n, int cls) {

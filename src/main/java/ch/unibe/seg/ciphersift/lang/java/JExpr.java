@@ -172,7 +172,7 @@ sealed interface JExpr {
                         }
                     }
                 }
-                return new New(JavaAnalyzer.removeGenerics(Texts.removeWhitespace(type.text())),
+                return new New(Texts.removeGenerics(Texts.removeWhitespace(type.text())),
                         last == null ? null : convert(last, live, depth + 1));
             }
             case "array_creation_expression": {

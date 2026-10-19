@@ -6,13 +6,30 @@ package ch.unibe.seg.ciphersift.util;
 
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /** Small text helpers shared by the analysers. */
 public final class Texts {
     /** Compares strings by Unicode code points (SPEC 11.6), not UTF-16 units. */
     public static final Comparator<String> CODE_POINT_ORDER = Texts::compareCodePoints;
 
+    private static final Pattern GENERIC_GROUP = Pattern.compile("<[^<>]*>");
+
     private Texts() {}
+
+    /** A Java type text without its type arguments, nested ones included ({@code Map<K, List<V>>} → {@code Map}). */
+    public static String removeGenerics(String s) {
+        if (s.indexOf('<') < 0) {
+            return s;
+        }
+        String prev;
+        String cur = s;
+        do {
+            prev = cur;
+            cur = GENERIC_GROUP.matcher(cur).replaceAll("");
+        } while (!cur.equals(prev));
+        return cur;
+    }
 
     public static int compareCodePoints(String a, String b) {
         int i = 0;

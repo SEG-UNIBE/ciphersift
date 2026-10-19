@@ -86,7 +86,7 @@ final class GoOutliner {
                         String display = (o.goPackage.isEmpty() ? "" : o.goPackage + ".")
                                 + (recv == null ? "" : recv + ".") + name.text();
                         String owner = o.goDir + "|" + o.goPackage + "|" + (recv == null ? "" : recv);
-                        int endLine = n.startRow() + 1 + JavaOutliner.countLines(n.text());
+                        int endLine = Outlines.lastLine(n);
                         o.defs.add(new Outline.Def(o.defs.size(), name.text(), name.line(), endLine, n.start(),
                                 nesting, display, true, owner, -1, null, 0, false, recv, loc, ty));
                         locals.add(loc);
@@ -190,7 +190,7 @@ final class GoOutliner {
             }
         }
         int first = n.line();
-        int last = n.startRow() + 1 + JavaOutliner.countLines(n.text());
+        int last = Outlines.lastLine(n);
         returns.computeIfAbsent(def, k -> new ArrayList<>()).add(new int[] {first, last, conditional ? 1 : 0});
     }
 
