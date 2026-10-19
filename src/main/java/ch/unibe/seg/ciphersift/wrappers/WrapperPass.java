@@ -35,40 +35,14 @@ import java.util.stream.IntStream;
  * hash maps: outlines are visited in path order, definitions and calls in file order.
  */
 public final class WrapperPass {
-    /** SPEC 18.5: the longest chain, 4 definitions (DECISIONS B-C), 3 with {@code wrapper-depth-4=off}. */
-    private final int maxDepth;
     /** Safety bound on the number of levels; the computation stops earlier when nothing changes. */
     static final int MAX_LEVELS = 1000;
-    /** SPEC 18.5: the span limit of a thin wrapper, by language (DECISIONS T3, B-J-G, B-G-E). */
-    private int thinLines(Outline.Lang l) {
-        return switch (l) {
-            case JAVA -> options.features().on(Features.JAVA_THIN_12) ? 12 : 8;
-            case PYTHON -> 8;
-            case GO -> 12;
-        };
-    }
-
-    /**
-     * Whether a line of definition {@code d} lies in one of its conditional returns (Go only: SPEC 18.5,
-     * fallback-getter guard, DECISIONS B-G-E). Such findings and calls do not count for the thin-wrapper test.
-     */
-    private static boolean guarded(Outline o, int d, int line) {
-        List<int[]> g = o.goGuards.get(d);
-        if (g == null) {
-            return false;
-        }
-        for (int[] r : g) {
-            if (r[0] <= line && line <= r[1]) {
-                return true;
-            }
-        }
-        return false;
-    }
     static final int MAX_REEXPORT_HOPS = 4;
     static final int SNIPPET_MAX = 500;
 
-    /** Project facts beyond the outlines (SPEC 18.4). */
     /**
+     * Project facts beyond the outlines (SPEC 18.4).
+     *
      * @param javaFiles relative paths of all Java files
      * @param pythonModules module names (SPEC 18.2) of all Python files
      * @param goDirs directories of all Go files
@@ -125,11 +99,16 @@ public final class WrapperPass {
     /** Resolution of one call (SPEC 18.4). */
     private record Res(List<Node> group, List<Node> collision) {
         static final Res NONE = new Res(List.of(), List.of());
+        static final Res[] NO_RES = new Res[0];
 
         boolean ambiguous() {
             return !collision.isEmpty();
         }
     }
+
+    /** Findings of one file by line, then rule id. */
+    private static final Comparator<SourceFinding> BY_LINE_THEN_RULE = Comparator.comparingInt(SourceFinding::line)
+            .thenComparing(f -> f.rule().id(), Texts.CODE_POINT_ORDER);
 
     private static final Comparator<Node> NODE_ORDER = (a, b) -> {
         int c = Texts.compareCodePoints(a.o.path, b.o.path);
@@ -138,6 +117,8 @@ public final class WrapperPass {
 
     private final WrapperOptions options;
     private final Project project;
+    /** SPEC 18.5: the longest chain, 4 definitions (DECISIONS B-C), 3 with {@code wrapper-depth-4=off}. */
+    private final int maxDepth;
     /** DECISIONS P3-CLS: Python class wrappers. */
     private final boolean classes;
     /** DECISIONS R3-X-JOSE: a composite name's hash / MAC companions do not count for the thin test. */
@@ -154,6 +135,8 @@ public final class WrapperPass {
 
     // Java index
     private final Map<String, Outline> byPath = new HashMap<>();
+    /** FQN → paths of the files declaring an addressable class with that FQN (in index order). */
+    private final Map<String, List<String>> javaClassOwners = new HashMap<>();
     private final Map<String, Map<String, List<Node>>> javaMethods = new HashMap<>();
     // Python index
     private final Map<String, Outline> pyModules = new HashMap<>();
@@ -176,6 +159,37 @@ public final class WrapperPass {
         this.composite = options.features().on(Features.WRAPPER_COMPOSITE_NAMES);
     }
 
+    /** SPEC 18.5: the span limit of a thin wrapper, by language (DECISIONS T3, B-J-G, B-G-E). */
+    private int thinLines(Outline.Lang l) {
+        return switch (l) {
+            case JAVA -> options.features().on(Features.JAVA_THIN_12) ? 12 : 8;
+            case PYTHON -> 8;
+            case GO -> 12;
+        };
+    }
+
+    /** Whether a definition's span is short enough for a thin wrapper (SPEC 18.5). */
+    private boolean thinSpan(Node n) {
+        return n.d.endLine() - n.d.line() + 1 <= thinLines(n.o.lang);
+    }
+
+    /**
+     * Whether a line of definition {@code d} lies in one of its conditional returns (Go only: SPEC 18.5,
+     * fallback-getter guard, DECISIONS B-G-E). Such findings and calls do not count for the thin-wrapper test.
+     */
+    private static boolean guarded(Outline o, int d, int line) {
+        List<int[]> g = o.goGuards.get(d);
+        if (g == null) {
+            return false;
+        }
+        for (int[] r : g) {
+            if (r[0] <= line && line <= r[1]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The rule-id prefix of a language ({@code java}, {@code python}, {@code go}). */
     static String langPrefix(Outline.Lang l) {
         return switch (l) {
@@ -195,7 +209,6 @@ public final class WrapperPass {
         return GoOutliner.dirOf(path);
     }
 
-    /** The family key of a rule (SPEC 18.1): family, else subtype, else the rule id. */
     /** The family key of the CSPRNG findings (subtype {@code prng-secure}, SPEC 18.1). */
     static final String RANDOM_KEY = "prng-secure";
 
@@ -312,6 +325,7 @@ public final class WrapperPass {
         return out;
     }
 
+    /** The family key of a rule (SPEC 18.1): family, else subtype, else the rule id. */
     static String familyKey(SourceRule r) {
         if (r.asset().family() != null) {
             return r.asset().family();
@@ -330,7 +344,7 @@ public final class WrapperPass {
         if (f.rule().indicator() != null || f.via() != null) {
             return false;
         }
-        if ("prng-secure".equals(f.rule().asset().subtype())) {
+        if (RANDOM_KEY.equals(f.rule().asset().subtype())) {
             return f.rule().id().startsWith("java.") && options.features().on(Features.JAVA_PROPAGATE_RANDOM);
         }
         return true;
@@ -340,35 +354,20 @@ public final class WrapperPass {
 
     /** Builds the index and the crypto callables for the given outlines and phase-3 findings. */
     public void compute(Map<String, Outline> all, List<SourceFinding> findings) {
-        outlines.clear();
-        nodes.clear();
-        callers.clear();
-        resolutions.clear();
-        baseRes.clear();
-        javaClassOwners.clear();
-        byPath.clear();
-        javaMethods.clear();
-        pyModules.clear();
-        pyLookupCache.clear();
-        pyFuncs.clear();
-        pyMethods.clear();
-        goFuncs.clear();
-        goMethods.clear();
-        goDirFuncs.clear();
-        goDirMethods.clear();
-        goPkgs.clear();
+        clear();
         for (Outline o : all.values()) {
             if (options.on(o.lang)) {
                 outlines.put(o.path, o);
             }
         }
         this.direct = findings;
+        boolean v2 = options.features().on(Features.WRAPPER_ALIASES_V2);
+        boolean u1w = options.features().on(Features.PYTHON_HASH_WRAPPERS);
         for (Outline o : outlines.values()) {
             byPath.put(o.path, o);
             List<Node> l = new ArrayList<>(o.defs.size());
             for (Outline.Def d : o.defs) {
-                l.add(new Node(o, d, options.features().on(Features.WRAPPER_ALIASES_V2),
-                        options.features().on(Features.PYTHON_HASH_WRAPPERS)));
+                l.add(new Node(o, d, v2, u1w));
             }
             nodes.put(o, l);
             index(o, l);
@@ -381,46 +380,14 @@ public final class WrapperPass {
             }
         }
         for (Outline o : outlines.values()) {
-            List<Node> l = nodes.get(o);
             int[] cs = new int[o.calls.size()];
             for (int i = 0; i < cs.length; i++) {
                 cs[i] = innermost(o, o.calls.get(i).line());
             }
             callers.put(o, cs);
             List<SourceFinding> fs = new ArrayList<>(byFile.getOrDefault(o.path, List.of()));
-            fs.sort(Comparator.comparingInt(SourceFinding::line)
-                    .thenComparing(f -> f.rule().id(), Texts.CODE_POINT_ORDER));
-            Set<SourceFinding> comp = composite ? companions(fs) : Set.of();
-            for (SourceFinding f : fs) {
-                if (classes) {
-                    // a class node's body findings: every finding in its span (DECISIONS P3-CLS)
-                    for (int k : o.pyClassDefs) {
-                        Outline.Def cd = o.defs.get(k);
-                        if (cd.line() <= f.line() && f.line() <= cd.endLine()) {
-                            l.get(k).direct.putIfAbsent(familyKey(f.rule()), f);
-                            l.get(k).bodyByKey.computeIfAbsent(familyKey(f.rule()), x -> new ArrayList<>()).add(f);
-                        }
-                    }
-                }
-                int d = innermost(o, f.line());
-                if (d >= 0) {
-                    Node n = l.get(d);
-                    String key = familyKey(f.rule());
-                    boolean fresh = !n.direct.containsKey(key);
-                    n.direct.putIfAbsent(key, f);
-                    n.bodyByKey.computeIfAbsent(key, k -> new ArrayList<>()).add(f);
-                    if (comp.contains(f)) {
-                        if (fresh) {
-                            n.companions.add(key);
-                        }
-                        continue; // a companion does not count for the thin test (DECISIONS R3-X-JOSE)
-                    }
-                    n.companions.remove(key);
-                    if (!guarded(o, d, f.line())) {
-                        n.thinDirect.putIfAbsent(key, f);
-                    }
-                }
-            }
+            fs.sort(BY_LINE_THEN_RULE);
+            addBodyFindings(o, fs);
         }
         if (options.goNamed() && options.features().on(Features.GO_PACKAGE_NAMES)) {
             goPackages(byFile);
@@ -444,6 +411,66 @@ public final class WrapperPass {
             }
         }
         levels();
+    }
+
+    /** Forgets the outlines, index and callables of the previous {@link #compute}. */
+    private void clear() {
+        outlines.clear();
+        nodes.clear();
+        callers.clear();
+        resolutions.clear();
+        baseRes.clear();
+        javaClassOwners.clear();
+        byPath.clear();
+        javaMethods.clear();
+        pyModules.clear();
+        pyLookupCache.clear();
+        pyFuncs.clear();
+        pyMethods.clear();
+        goFuncs.clear();
+        goMethods.clear();
+        goDirFuncs.clear();
+        goDirMethods.clear();
+        goPkgs.clear();
+    }
+
+    /**
+     * Assigns a file's propagatable findings (by line, then rule id) to the innermost definition around them (SPEC
+     * 18.1) and, with Python class wrappers, to every class node whose span contains them (DECISIONS P3-CLS).
+     */
+    private void addBodyFindings(Outline o, List<SourceFinding> fs) {
+        List<Node> l = nodes.get(o);
+        Set<SourceFinding> comp = composite ? companions(fs) : Set.of();
+        for (SourceFinding f : fs) {
+            String key = familyKey(f.rule());
+            if (classes) {
+                for (int k : o.pyClassDefs) {
+                    Outline.Def cd = o.defs.get(k);
+                    if (cd.line() <= f.line() && f.line() <= cd.endLine()) {
+                        l.get(k).direct.putIfAbsent(key, f);
+                        l.get(k).bodyByKey.computeIfAbsent(key, x -> new ArrayList<>()).add(f);
+                    }
+                }
+            }
+            int d = innermost(o, f.line());
+            if (d < 0) {
+                continue;
+            }
+            Node n = l.get(d);
+            boolean fresh = !n.direct.containsKey(key);
+            n.direct.putIfAbsent(key, f);
+            n.bodyByKey.computeIfAbsent(key, k -> new ArrayList<>()).add(f);
+            if (comp.contains(f)) {
+                if (fresh) {
+                    n.companions.add(key);
+                }
+                continue; // a companion does not count for the thin test (DECISIONS R3-X-JOSE)
+            }
+            n.companions.remove(key);
+            if (!guarded(o, d, f.line())) {
+                n.thinDirect.putIfAbsent(key, f);
+            }
+        }
     }
 
     /**
@@ -476,8 +503,7 @@ public final class WrapperPass {
                     continue;
                 }
                 List<SourceFinding> fs = new ArrayList<>(byFile.getOrDefault(o.path, List.of()));
-                fs.sort(Comparator.comparingInt(SourceFinding::line)
-                        .thenComparing(f -> f.rule().id(), Texts.CODE_POINT_ORDER));
+                fs.sort(BY_LINE_THEN_RULE);
                 for (SourceFinding f : fs) {
                     String k = familyKey(f.rule());
                     if (fams.contains(k)) {
@@ -582,7 +608,7 @@ public final class WrapperPass {
                 }
                 // the guard only removes evidence: a guarded finding of another family still makes two (SPEC 18.5);
                 // a CSPRNG next to another key does not count (R-J2)
-                if (thin && !isClass(n) && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
+                if (thin && !isClass(n) && thinSpan(n)) {
                     // T3-G3 only for a definition without a name-consistent carry (loadPrivKey stays a key loader)
                     Outline.Lang tl = n.carry.isEmpty() ? o.lang : null;
                     Set<String> ks = thinKeys(n.thinDirect.keySet(), tl);
@@ -625,30 +651,8 @@ public final class WrapperPass {
                             }
                         }
                     }
-                    if (thin && n.carry.isEmpty() && m.isEmpty() && n.d.endLine() - n.d.line() + 1 <= thinLines(o.lang)) {
-                        Set<String> keys = new TreeSet<>(Texts.CODE_POINT_ORDER);
-                        keys.addAll(n.thinDirect.keySet());
-                        // all families, the guarded ones included: the guard only removes evidence, it never
-                        // turns a definition with two families into a one-family wrapper (SPEC 18.5)
-                        Set<String> all = new TreeSet<>(Texts.CODE_POINT_ORDER);
-                        all.addAll(thinBody(n));
-                        List<Integer> unguarded = new ArrayList<>();
-                        for (int i : e.getValue()) {
-                            Set<String> below = carriedBelow(rs[i].group(), level);
-                            all.addAll(below);
-                            if (!guarded(o, e.getKey(), o.calls.get(i).line())) {
-                                unguarded.add(i);
-                                keys.addAll(below);
-                            }
-                        }
-                        keys = thinKeys(keys, o.lang);
-                        if (keys.size() == 1 && keys.equals(thinKeys(all, o.lang))) {
-                            String f = keys.iterator().next();
-                            Carry c = bestVia(n, f, unguarded, rs, level);
-                            if (c != null) {
-                                m.put(f, c);
-                            }
-                        }
+                    if (thin && n.carry.isEmpty() && m.isEmpty() && thinSpan(n)) {
+                        thinVia(n, e.getValue(), rs, level, m);
                     }
                     if (!m.isEmpty()) {
                         pending.add(Map.entry(n, m));
@@ -663,6 +667,37 @@ public final class WrapperPass {
             }
             for (Map.Entry<Node, Map<String, Carry>> e : pending) {
                 e.getKey().carry.putAll(e.getValue());
+            }
+        }
+    }
+
+    /**
+     * Level k of a thin wrapper (SPEC 18.5): if the body findings and the keys carried by the resolved calls below
+     * {@code level} make exactly one key, {@code n} carries it through the best unguarded call (into {@code m}).
+     */
+    private void thinVia(Node n, List<Integer> calls, Res[] rs, int level, Map<String, Carry> m) {
+        Outline o = n.o;
+        Set<String> keys = new TreeSet<>(Texts.CODE_POINT_ORDER);
+        keys.addAll(n.thinDirect.keySet());
+        // all families, the guarded ones included: the guard only removes evidence, it never
+        // turns a definition with two families into a one-family wrapper (SPEC 18.5)
+        Set<String> all = new TreeSet<>(Texts.CODE_POINT_ORDER);
+        all.addAll(thinBody(n));
+        List<Integer> unguarded = new ArrayList<>();
+        for (int i : calls) {
+            Set<String> below = carriedBelow(rs[i].group(), level);
+            all.addAll(below);
+            if (!guarded(o, n.d.index(), o.calls.get(i).line())) {
+                unguarded.add(i);
+                keys.addAll(below);
+            }
+        }
+        keys = thinKeys(keys, o.lang);
+        if (keys.size() == 1 && keys.equals(thinKeys(all, o.lang))) {
+            String f = keys.iterator().next();
+            Carry c = bestVia(n, f, unguarded, rs, level);
+            if (c != null) {
+                m.put(f, c);
             }
         }
     }
@@ -769,7 +804,7 @@ public final class WrapperPass {
                 if (!seen.add(cls)) {
                     continue;
                 }
-                List<Node> ms = pyMethods.getOrDefault(cls.o.pyModule + "\u0000" + cls.d.name(), Map.of()).get(m);
+                List<Node> ms = pyMethods.getOrDefault(pyClassKey(cls.o.pyModule, cls.d.name()), Map.of()).get(m);
                 if (ms != null) {
                     for (Node mn : ms) {
                         for (String f : k.carry.keySet()) {
@@ -780,7 +815,7 @@ public final class WrapperPass {
                     }
                     continue; // the method is defined here: bases do not matter
                 }
-                for (Res b : baseRes.getOrDefault(cls, new Res[0])) {
+                for (Res b : baseRes.getOrDefault(cls, Res.NO_RES)) {
                     next.addAll(b.group());
                 }
             }
@@ -811,7 +846,7 @@ public final class WrapperPass {
                     inSpan.add(i);
                 }
             }
-            Res[] br = baseRes.getOrDefault(n, new Res[0]);
+            Res[] br = baseRes.getOrDefault(n, Res.NO_RES);
             Map<String, Carry> m = new TreeMap<>(Texts.CODE_POINT_ORDER);
             for (String f : n.nameFams) {
                 if (n.carry.containsKey(f)) {
@@ -891,7 +926,7 @@ public final class WrapperPass {
     public Result report(Function<String, String> text) {
         Set<String> directKeys = new HashSet<>();
         for (SourceFinding f : direct) {
-            directKeys.add(f.path() + "\u0000" + f.line() + "\u0000" + familyKey(f.rule()));
+            directKeys.add(siteKey(f.path(), f.line(), familyKey(f.rule())));
         }
         List<SourceFinding> out = new ArrayList<>();
         int callables = 0;
@@ -910,91 +945,123 @@ public final class WrapperPass {
                 order[i] = i;
             }
             Arrays.sort(order, Comparator.comparingInt(i -> o.calls.get(i).start()));
-            Set<String> seen = new HashSet<>();
-            String fileText = null;
-            boolean read = false;
+            Folding seen = new Folding(directKeys, new HashSet<>());
+            Snippets snippets = new Snippets(o, text);
             for (int i : order) {
-                Res r = rs[i];
-                if (r.ambiguous()) {
-                    if (r.collision().stream().anyMatch(n -> !n.carry.isEmpty())) {
+                if (rs[i].ambiguous()) {
+                    if (rs[i].collision().stream().anyMatch(n -> !n.carry.isEmpty())) {
                         ambiguous++;
                     }
                     continue;
                 }
-                Outline.Call c = o.calls.get(i);
-                Set<String> keys;
-                if (r.group().isEmpty()) {
-                    // a method call on an instance of a class wrapper (DECISIONS P3-CLS)
-                    Node k = classes ? instanceClass(o, c, callers.get(o)[i]) : null;
-                    if (k == null) {
-                        continue;
-                    }
-                    keys = instanceKeys(k, c.name());
-                    if (keys.isEmpty()) {
-                        continue;
-                    }
-                    r = new Res(List.of(k), List.of());
-                } else {
-                    keys = carried(r.group());
-                }
-                for (String f : keys) {
-                    String k = o.path + "\u0000" + c.line() + "\u0000" + f;
-                    if (directKeys.contains(k) || !seen.add(k)) {
-                        continue; // folding (SPEC 18.7)
-                    }
-                    Node rep = representative(r.group(), f, Integer.MAX_VALUE);
-                    Carry rc = rep.carry.get(f);
-                    if (!read) {
-                        fileText = text.apply(o.path);
-                        read = true;
-                    }
-                    String snippet = fileText != null && c.end() <= fileText.length()
-                            ? Texts.truncateCodePoints(fileText.substring(c.start(), c.end()), SNIPPET_MAX)
-                            : c.symbol();
-                    List<String> via = new ArrayList<>(rc.chain().size());
-                    for (Node v : rc.chain()) {
-                        via.add(v.where());
-                    }
-                    SourceFinding e0 = rc.evidence();
-                    Node last = rc.chain().get(rc.chain().size() - 1);
-                    SourceFinding e = generic(e0, variants(last.bodyByKey.get(f)), o.lang);
-                    out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippet, e.param(),
-                            e.oid(), o.test, via, e0.path() + ":" + e0.line()));
-                }
+                propagatedAt(o, i, seen, snippets, out);
             }
             // package-name consistency (SPEC 18.8): after the callables, so that a callable's chain wins
             if (o.lang == Outline.Lang.GO && !goPkgs.isEmpty()) {
-                int[] cs = callers.get(o);
                 for (int i : order) {
-                    if (rs[i].ambiguous()) {
-                        continue;
-                    }
-                    Outline.Call c = o.calls.get(i);
-                    GoPkg g = goPackageOf(o, c, cs[i]);
-                    if (g == null) {
-                        continue;
-                    }
-                    for (Map.Entry<String, SourceFinding> ev : g.evidence().entrySet()) {
-                        String k = o.path + "\u0000" + c.line() + "\u0000" + ev.getKey();
-                        if (directKeys.contains(k) || !seen.add(k)) {
-                            continue;
-                        }
-                        if (!read) {
-                            fileText = text.apply(o.path);
-                            read = true;
-                        }
-                        String snippet = fileText != null && c.end() <= fileText.length()
-                                ? Texts.truncateCodePoints(fileText.substring(c.start(), c.end()), SNIPPET_MAX)
-                                : c.symbol();
-                        SourceFinding e0 = ev.getValue();
-                        SourceFinding e = generic(e0, g.variantKeys().contains(ev.getKey()), o.lang);
-                        out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippet, e.param(),
-                                e.oid(), o.test, List.of(g.dir() + ": package " + g.name()), e.path() + ":" + e.line()));
+                    if (!rs[i].ambiguous()) {
+                        packageNamedAt(o, i, seen, snippets, out);
                     }
                 }
             }
         }
         return new Result(out, callables, ambiguous);
+    }
+
+    /** The key of a finding of family key {@code key} at a line, for folding (SPEC 18.7). */
+    private static String siteKey(String path, int line, String key) {
+        return path + "\u0000" + line + "\u0000" + key;
+    }
+
+    /** Folding (SPEC 18.7): the site keys of the direct findings and of the propagated ones of the current file. */
+    private record Folding(Set<String> direct, Set<String> added) {
+        /** Whether a finding with this site key is new (and records it). */
+        boolean add(String siteKey) {
+            return !direct.contains(siteKey) && added.add(siteKey);
+        }
+    }
+
+    /** The snippets of one file's calls; the file is read at the first one. */
+    private static final class Snippets {
+        private final Outline o;
+        private final Function<String, String> text;
+        private String fileText;
+        private boolean read;
+
+        Snippets(Outline o, Function<String, String> text) {
+            this.o = o;
+            this.text = text;
+        }
+
+        /** The call's source text (truncated), or its symbol if the file cannot be read. */
+        String of(Outline.Call c) {
+            if (!read) {
+                fileText = text.apply(o.path);
+                read = true;
+            }
+            return fileText != null && c.end() <= fileText.length()
+                    ? Texts.truncateCodePoints(fileText.substring(c.start(), c.end()), SNIPPET_MAX)
+                    : c.symbol();
+        }
+    }
+
+    /**
+     * Adds the findings propagated to call {@code i} of {@code o} (SPEC 18.7): one per family key its group
+     * carries — or, for a method call on an instance of a Python class wrapper, the keys of that method (DECISIONS
+     * P3-CLS) — unless {@code seen} has the key at that line already (folding).
+     */
+    private void propagatedAt(Outline o, int i, Folding seen, Snippets snippets, List<SourceFinding> out) {
+        Res r = resolutions.get(o)[i];
+        Outline.Call c = o.calls.get(i);
+        Set<String> keys;
+        if (r.group().isEmpty()) {
+            // a method call on an instance of a class wrapper (DECISIONS P3-CLS)
+            Node k = classes ? instanceClass(o, c, callers.get(o)[i]) : null;
+            if (k == null) {
+                return;
+            }
+            keys = instanceKeys(k, c.name());
+            if (keys.isEmpty()) {
+                return;
+            }
+            r = new Res(List.of(k), List.of());
+        } else {
+            keys = carried(r.group());
+        }
+        for (String f : keys) {
+            if (!seen.add(siteKey(o.path, c.line(), f))) {
+                continue; // folding (SPEC 18.7)
+            }
+            Node rep = representative(r.group(), f, Integer.MAX_VALUE);
+            Carry rc = rep.carry.get(f);
+            List<String> via = new ArrayList<>(rc.chain().size());
+            for (Node v : rc.chain()) {
+                via.add(v.where());
+            }
+            SourceFinding e0 = rc.evidence();
+            Node last = rc.chain().get(rc.chain().size() - 1);
+            SourceFinding e = generic(e0, variants(last.bodyByKey.get(f)), o.lang);
+            out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippets.of(c), e.param(),
+                    e.oid(), o.test, via, e0.path() + ":" + e0.line()));
+        }
+    }
+
+    /** Adds the package-name findings (SPEC 18.8) of Go call {@code i} of {@code o} not in {@code seen} yet. */
+    private void packageNamedAt(Outline o, int i, Folding seen, Snippets snippets, List<SourceFinding> out) {
+        Outline.Call c = o.calls.get(i);
+        GoPkg g = goPackageOf(o, c, callers.get(o)[i]);
+        if (g == null) {
+            return;
+        }
+        for (Map.Entry<String, SourceFinding> ev : g.evidence().entrySet()) {
+            if (!seen.add(siteKey(o.path, c.line(), ev.getKey()))) {
+                continue;
+            }
+            SourceFinding e0 = ev.getValue();
+            SourceFinding e = generic(e0, g.variantKeys().contains(ev.getKey()), o.lang);
+            out.add(new SourceFinding(o.path, c.line(), e.rule(), e.name(), c.symbol(), snippets.of(c), e.param(),
+                    e.oid(), o.test, List.of(g.dir() + ": package " + g.name()), e.path() + ":" + e.line()));
+        }
     }
 
     /** The family keys every member of a group carries, in code-point order. */
@@ -1033,7 +1100,7 @@ public final class WrapperPass {
                         pyFuncs.computeIfAbsent(o.pyModule, x -> new HashMap<>())
                                 .computeIfAbsent(n.d.name(), x -> new ArrayList<>()).add(n);
                     } else {
-                        pyMethods.computeIfAbsent(o.pyModule + "\u0000" + n.d.pyClass(), x -> new HashMap<>())
+                        pyMethods.computeIfAbsent(pyClassKey(o.pyModule, n.d.pyClass()), x -> new HashMap<>())
                                 .computeIfAbsent(n.d.name(), x -> new ArrayList<>()).add(n);
                     }
                 }
@@ -1041,7 +1108,7 @@ public final class WrapperPass {
             case GO -> {
                 boolean testPkg = o.goPackage.endsWith("_test");
                 for (Node n : l) {
-                    String pkgKey = o.goDir + "|" + o.goPackage;
+                    String pkgKey = goPackageKey(o);
                     if (n.d.recv() == null) {
                         goFuncs.computeIfAbsent(pkgKey, x -> new HashMap<>())
                                 .computeIfAbsent(n.d.name(), x -> new ArrayList<>()).add(n);
@@ -1062,9 +1129,6 @@ public final class WrapperPass {
             default -> throw new IllegalStateException();
         }
     }
-
-    /** FQN → paths of the files declaring an addressable class with that FQN (in index order). */
-    private final Map<String, List<String>> javaClassOwners = new HashMap<>();
 
     // ======================================================================== resolution (SPEC 18.4)
 
@@ -1251,6 +1315,11 @@ public final class WrapperPass {
 
     // ---- Python
 
+    /** The key of a Python class in {@link #pyMethods}. */
+    private static String pyClassKey(String module, String cls) {
+        return module + "\u0000" + cls;
+    }
+
     /** A resolved Python entity: a module, or a class of a module. */
     private record PyEntity(String module, String cls) {}
 
@@ -1303,7 +1372,7 @@ public final class WrapperPass {
         if (e.cls() == null) {
             return member(e.module(), c.name(), 0);
         }
-        return pyMethods.getOrDefault(e.module() + "\u0000" + e.cls(), Map.of()).get(c.name());
+        return pyMethods.getOrDefault(pyClassKey(e.module(), e.cls()), Map.of()).get(c.name());
     }
 
     /** The project module a dotted name denotes (SPEC 18.4): itself, else the single one ending with it. */
@@ -1390,12 +1459,17 @@ public final class WrapperPass {
 
     // ---- Go
 
+    /** The key of a file's Go package (directory and package name) in {@link #goFuncs} and {@link #goMethods}. */
+    private static String goPackageKey(Outline o) {
+        return o.goDir + "|" + o.goPackage;
+    }
+
     private List<Node> resolveGo(Outline o, Outline.Call c, int caller) {
         Outline.Def d = caller >= 0 ? o.defs.get(caller) : null;
         Set<String> locals = d == null ? Set.of() : d.locals();
         Map<String, Outline.TypeRef> types = d == null ? Map.of() : d.types();
         List<String> q = c.qualifier();
-        String pkgKey = o.goDir + "|" + o.goPackage;
+        String pkgKey = goPackageKey(o);
         if (q.isEmpty()) {
             if (locals.contains(c.name())) {
                 return null;
@@ -1431,7 +1505,7 @@ public final class WrapperPass {
 
     private List<Node> methodsOfType(Outline o, Outline.TypeRef t, String name) {
         if (t.pkg() == null) {
-            return goMethods.getOrDefault(o.goDir + "|" + o.goPackage + "|" + t.name(), Map.of()).get(name);
+            return goMethods.getOrDefault(goPackageKey(o) + "|" + t.name(), Map.of()).get(name);
         }
         String path = o.goImports.get(t.pkg());
         String dir = path == null ? null : importDir(path, o.goDir);
