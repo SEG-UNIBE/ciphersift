@@ -8,6 +8,20 @@
 Rounds t2 and t3 (boosters and tuning on the repositories in `TUNING-REPOS.md`). Development steps,
 newest first.
 
+### Refactoring (no behaviour change)
+
+* Code clean-up without any change of results: every CBOM of the 45 development projects (default options and
+  four sets of `--feature` / option settings) and of the conformance suite is byte-identical to the one before;
+  feature ids, CLI options, rule format and output fields are unchanged.
+* Dead code removed (unused methods, convenience constructors nothing called, a write-only syntax-node field);
+  inline fully qualified type names replaced by imports.
+* `Scanner`: one worker pool for scanning and indexing, one path for Java, Python and Go source files,
+  `propagate` split into steps. `WrapperPass`: fields grouped, `compute` / `levels` / `report` split, repeated
+  keys, comparators and snippet reading in one place each. `JavaAnalyzer.holds` split into anchor and conditions;
+  `PythonAnalyzer` refinement and call candidates in one method each.
+* Helpers that existed twice now have one home: `Texts.removeGenerics`, `Texts.isWordChar`,
+  `Outlines.lastLine`, `PythonAnalyzer.stringValue` (also used for `setup.py`), `GoAnalyzer.importPath`.
+
 ### Cross-language review, round t3 (DECISIONS R3-X-*)
 
 * **Java `anyCall`** (`java-any-call-metadata`): no findings on logging calls (`fatal`, JBoss Logging `tracev` /

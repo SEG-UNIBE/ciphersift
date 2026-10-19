@@ -62,6 +62,9 @@ Root package `ch.unibe.seg.ciphersift` (groupId `ch.unibe.seg`, artifactId `ciph
 | `cbom.Normaliser`, `Component`, `CbomWriter`, `Purl` | components and occurrences, ordering, bom-refs, serial number, JSON (10, 11) |
 | `cbom.CycloneDxVersion`, `CryptoRegistry` | output version (`--cyclonedx-version`), CycloneDX 1.7 registry mapping: `algorithmFamily`, `ellipticCurve` (11.3.1, DECISIONS C1) |
 | `scan.Scanner` | phases 1–4, worker pool, per-thread parsers, per-file error handling (2, 13, 14) |
+| `scan.Features`, `AnchorPrefilter`, `IdentifierBloom` | `--feature` switches and defaults (3.1), anchor pre-filter of source files, identifiers of skipped files (18.2) |
+| `wrappers.Outlines`, `Outline`, `JavaOutliner`, `PythonOutliner`, `GoOutliner`, `NameTokens`, `WrapperPass`, `WrapperOptions` | wrapper propagation: per-file outlines, name tokens and families, definition index, callables, propagated findings (18) |
+| `lang.OidTable`, `util.Texts` | OID rows of 5.11; small text helpers shared by the analysers (code-point order, whitespace, generics, word characters) |
 
 Other files: `native/build-natives.sh` (+ `sources.lock`, `vendor/` with the unpacked
 `src/`/`lib/` trees and MIT licences), `bin/ciphersift`, `Dockerfile` (+ `.dockerignore`),
@@ -577,3 +580,31 @@ folding), DeterminismIT with `--python-thin-wrappers`; five conformance cases.
   `spec/anycall-names.csv`), `gen_lists.py` (JDK/BC2/BCOID/JWT blocks, `spec/java-api-additions.csv`),
   `gen_oids.py` (OID table rows), `gen_lit.py` (Python literal lists). Re-running a generator replaces its
   own block.
+
+
+## Refactoring (2026-10-19, no behaviour change)
+
+Clean-up of the code base after round t3; results are unchanged (every CBOM of the 45 DEV projects, with
+default options and with four sets of non-default switches, byte-identical; conformance and determinism
+suites green; throughput unchanged within noise).
+
+* **Dead code.** Removed `Log.setOutput`, `FileClass.isManifest`, `JavaRuleIndex.hasAnyCall`,
+  `SyntaxNode.indexInParent` (and the field it read, which the tree copy no longer fills), and the convenience
+  constructors of `Scanner.Options`, `CbomWriter.Metadata`, `DependencyScanner` and `JavaRuleIndex` that
+  nothing called. Inline fully qualified type names are imports now.
+* **`Scanner`.** `run()` and the indexing of skipped files share `parallel(list, fn, threadPrefix)`.
+  `process()` reads and decodes; `sourceFile()` handles Java, Python and Go alike through `prefilter(fc)`,
+  `parser(fc)` and `language(fc)` (it replaces the Java/Python branch and `goFile`; `setup.py` is handled
+  there). `propagate()` delegates to `project()` (the SPEC 18.4 facts), `goModule()`, `freshNames()` and
+  `outlineMentioning()`.
+* **`WrapperPass`.** `compute()` = `clear()` + nodes and index + `addBodyFindings()` per file + Go package
+  names + resolutions + `levels()`; the thin step of levels ≥ 2 is `thinVia()`. `report()` walks the calls and
+  delegates to `propagatedAt()` (callables, Python instance calls) and `packageNamedAt()` (SPEC 18.8); folding
+  is the `Folding` record (direct site keys + this file's added ones), snippets come from `Snippets`, which
+  reads a file at its first propagated finding.
+* **Shared helpers.** `Texts.removeGenerics` (was in `JavaAnalyzer` and `JavaOutliner`), `Texts.isWordChar`
+  (also in `AnchorPrefilter`), `Outlines.lastLine` (the outliners' end-line computation),
+  `PythonAnalyzer.stringValue` (SPEC 8.5.1, also used by `SetupManifests`), `GoAnalyzer.importPath` (also used
+  by `GoOutliner`), `PythonAnalyzer.refine` (refinement of call and reference hits), `RuleLoader.sourceRule`.
+* **Long methods.** `JavaAnalyzer.holds` = `anchorHolds` + `conditionsHold`; `PythonAnalyzer.matchCall`
+  delegates candidate collection to `callCandidates`.
