@@ -51,7 +51,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -216,41 +215,7 @@ public final class Scanner {
     public Result run() throws InterruptedException {
         List<CollectedFile> files = new FileCollector(options.root(), options.excludes(), options.excludeTests())
                 .collect();
-        List<FileResult> results = new ArrayList<>(files.size());
-        // never more workers than files (a huge --threads value must not create thousands of threads)
-        int threads = Math.max(1, Math.min(options.threads(), files.size()));
-        if (threads == 1) {
-            for (CollectedFile f : files) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                results.add(process(f));
-            }
-        } else {
-            AtomicInteger n = new AtomicInteger();
-            ThreadFactory tf = r -> {
-                Thread t = new Thread(r, "ciphersift-worker-" + n.incrementAndGet());
-                t.setDaemon(true);
-                return t;
-            };
-            ExecutorService pool = Executors.newFixedThreadPool(threads, tf);
-            try {
-                List<Future<FileResult>> futures = new ArrayList<>(files.size());
-                for (CollectedFile f : files) {
-                    futures.add(pool.submit(() -> process(f)));
-                }
-                for (Future<FileResult> fu : futures) {
-                    try {
-                        results.add(fu.get());
-                    } catch (ExecutionException ex) {
-                        // process() handles all per-file failures; anything else is internal
-                        throw new IllegalStateException("internal error in worker", ex.getCause());
-                    }
-                }
-            } finally {
-                pool.shutdownNow();
-            }
-        }
+        List<FileResult> results = parallel(files, this::process, "ciphersift-worker-");
         int java = 0;
         int python = 0;
         int go = 0;
@@ -324,36 +289,7 @@ public final class Scanner {
                 }
                 String text = SourceText.decode(bytes);
                 noteUsedIf(fc, text);
-                if (fc == FileClass.GO) {
-                    return goFile(text, rel, f.test());
-                }
-                boolean java = fc == FileClass.JAVA;
-                // setup.py is Python source and may also declare requirements (SPEC 9.8)
-                boolean setupPy = !java && SetupManifests.isSetupPy(rel) && SetupManifests.maybeDeclaresRequirements(text);
-                if (!setupPy && !(java ? javaFilter : pythonFilter).mayMatch(text)) {
-                    // no pattern can fire: the findings are empty without parsing (see AnchorPrefilter)
-                    return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.EMPTY, null,
-                            bloom(fc, text));
-                }
-                SyntaxTrees.Parsed parsed = SyntaxTrees.parseChecked(
-                        java ? javaParser.get() : pythonParser.get(), java ? javaLanguage : pythonLanguage, text);
-                if (parsed.hasError()) {
-                    Log.debug("syntax errors in " + rel + "; analysing the well-formed parts");
-                }
-                List<SourceFinding> found;
-                if (java) {
-                    Path abs = f.path().toAbsolutePath().normalize();
-                    found = javaAnalyzer.analyze(parsed.root(), abs, rel, f.test());
-                } else {
-                    found = pythonAnalyzer.analyze(parsed.root(), rel, f.test());
-                }
-                Outline outline = outline(fc, parsed.root(), rel, f.test());
-                if (setupPy) {
-                    return new FileResult(Outcome.PYTHON, new FileFindings(List.copyOf(found),
-                            List.copyOf(dependencyScanner.setupPy(rel, parsed.root(), f.test()))), outline, null);
-                }
-                return new FileResult(java ? Outcome.JAVA : Outcome.PYTHON, FileFindings.ofSource(found), outline,
-                        null);
+                return sourceFile(f, text);
             }
             try {
                 List<DependencyFinding> deps = dependencyScanner.scan(rel, fc, bytes, f.test());
@@ -372,18 +308,71 @@ public final class Scanner {
         }
     }
 
-    /** A Go source file (SPEC 17); failures are handled by the caller like for the other languages. */
-    private FileResult goFile(String text, String rel, boolean test) {
-        if (!goFilter.mayMatch(text)) {
-            return new FileResult(Outcome.GO, FileFindings.EMPTY, null, bloom(FileClass.GO, text));
+    /**
+     * The findings and outline of a decoded Java, Python or Go source file (SPEC 7, 8, 17); failures are handled
+     * by the caller.
+     */
+    private FileResult sourceFile(CollectedFile f, String text) {
+        FileClass fc = f.fileClass();
+        String rel = f.relativePath();
+        Outcome outcome = switch (fc) {
+            case JAVA -> Outcome.JAVA;
+            case PYTHON -> Outcome.PYTHON;
+            case GO -> Outcome.GO;
+            default -> throw new IllegalArgumentException("not a source file: " + rel);
+        };
+        // setup.py is Python source and may also declare requirements (SPEC 9.8)
+        boolean setupPy = fc == FileClass.PYTHON && SetupManifests.isSetupPy(rel)
+                && SetupManifests.maybeDeclaresRequirements(text);
+        if (!setupPy && !prefilter(fc).mayMatch(text)) {
+            // no pattern can fire: the findings are empty without parsing (see AnchorPrefilter)
+            return new FileResult(outcome, FileFindings.EMPTY, null, bloom(fc, text));
         }
-        SyntaxTrees.Parsed parsed = SyntaxTrees.parseChecked(goParser.get(), goLanguage, text);
+        SyntaxTrees.Parsed parsed = SyntaxTrees.parseChecked(parser(fc), language(fc), text);
         if (parsed.hasError()) {
             Log.debug("syntax errors in " + rel + "; analysing the well-formed parts");
         }
-        List<SourceFinding> found = goAnalyzer.analyze(parsed.root(), rel, test);
-        return new FileResult(Outcome.GO, FileFindings.ofSource(found), outline(FileClass.GO, parsed.root(), rel, test),
-                null);
+        List<SourceFinding> found = switch (fc) {
+            case JAVA -> javaAnalyzer.analyze(parsed.root(), f.path().toAbsolutePath().normalize(), rel, f.test());
+            case PYTHON -> pythonAnalyzer.analyze(parsed.root(), rel, f.test());
+            default -> goAnalyzer.analyze(parsed.root(), rel, f.test());
+        };
+        Outline outline = outline(fc, parsed.root(), rel, f.test());
+        if (setupPy) {
+            return new FileResult(Outcome.PYTHON, new FileFindings(List.copyOf(found),
+                    List.copyOf(dependencyScanner.setupPy(rel, parsed.root(), f.test()))), outline, null);
+        }
+        return new FileResult(outcome, FileFindings.ofSource(found), outline, null);
+    }
+
+    /** The anchor pre-filter of a source language. */
+    private AnchorPrefilter prefilter(FileClass fc) {
+        return switch (fc) {
+            case JAVA -> javaFilter;
+            case PYTHON -> pythonFilter;
+            case GO -> goFilter;
+            default -> throw new IllegalArgumentException(fc.name());
+        };
+    }
+
+    /** This thread's parser of a source language. */
+    private Parser parser(FileClass fc) {
+        return switch (fc) {
+            case JAVA -> javaParser.get();
+            case PYTHON -> pythonParser.get();
+            case GO -> goParser.get();
+            default -> throw new IllegalArgumentException(fc.name());
+        };
+    }
+
+    /** The grammar of a source language. */
+    private Language language(FileClass fc) {
+        return switch (fc) {
+            case JAVA -> javaLanguage;
+            case PYTHON -> pythonLanguage;
+            case GO -> goLanguage;
+            default -> throw new IllegalArgumentException(fc.name());
+        };
     }
 
     // ====================================================================== wrapper propagation (SPEC 18)
@@ -420,18 +409,9 @@ public final class Scanner {
     /** Parses and outlines a file the pre-filter skipped (SPEC 18.2); null if it cannot be read or parsed. */
     private Outline outlineSkipped(CollectedFile f, String text) {
         try {
-            Outline.Lang l = lang(f.fileClass());
-            Parser p = switch (l) {
-                case JAVA -> javaParser.get();
-                case PYTHON -> pythonParser.get();
-                case GO -> goParser.get();
-            };
-            Language lg = switch (l) {
-                case JAVA -> javaLanguage;
-                case PYTHON -> pythonLanguage;
-                case GO -> goLanguage;
-            };
-            return outline(f.fileClass(), SyntaxTrees.parseChecked(p, lg, text).root(), f.relativePath(), f.test());
+            FileClass fc = f.fileClass();
+            return outline(fc, SyntaxTrees.parseChecked(parser(fc), language(fc), text).root(), f.relativePath(),
+                    f.test());
         } catch (RuntimeException | StackOverflowError ex) {
             Log.debug("cannot index " + f.relativePath() + " for wrapper propagation (" + message(ex) + ")");
             return null;
@@ -528,92 +508,31 @@ public final class Scanner {
         Map<String, Outline> outlines = new HashMap<>();
         List<CollectedFile> unparsed = new ArrayList<>();
         Map<CollectedFile, IdentifierBloom> blooms = new IdentityHashMap<>();
-        Set<String> javaFiles = new HashSet<>();
-        Set<String> pythonModules = new HashSet<>();
-        Set<String> goDirs = new HashSet<>();
-        Map<String, String> goModules = new TreeMap<>(Texts.CODE_POINT_ORDER);
         Map<String, CollectedFile> byPath = new HashMap<>();
         for (int i = 0; i < files.size(); i++) {
             CollectedFile f = files.get(i);
             FileResult r = results.get(i);
             byPath.put(f.relativePath(), f);
-            String rel = f.relativePath();
-            switch (f.fileClass()) {
-                case JAVA -> javaFiles.add(rel);
-                case PYTHON -> pythonModules.add(WrapperPass.pythonModule(rel));
-                case GO -> goDirs.add(WrapperPass.dirOf(rel));
-                case GO_MOD -> {
-                    if (r.outcome() == Outcome.MANIFEST) {
-                        String t = readText(f);
-                        if (t != null) {
-                            for (String line : t.split("\n")) {
-                                Matcher m = GO_MODULE.matcher(line);
-                                if (m.find()) {
-                                    goModules.put(WrapperPass.dirOf(rel), m.group(1));
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                default -> {
-                    // nothing
-                }
-            }
             if (r.outline() != null) {
-                outlines.put(rel, r.outline());
+                outlines.put(f.relativePath(), r.outline());
             } else if (r.unparsed() != null) {
                 unparsed.add(f);
                 blooms.put(f, r.unparsed());
             }
         }
-        WrapperPass pass = new WrapperPass(options.wrappers(),
-                new WrapperPass.Project(javaFiles, pythonModules, goDirs, goModules));
+        WrapperPass pass = new WrapperPass(options.wrappers(), project(files, results));
         Map<Outline.Lang, Set<String>> checked = new HashMap<>();
         while (true) {
             pass.compute(outlines, direct);
-            Map<Outline.Lang, Set<String>> names = pass.callableNames();
-            Map<Outline.Lang, Set<String>> fresh = new HashMap<>();
-            for (Map.Entry<Outline.Lang, Set<String>> e : names.entrySet()) {
-                Set<String> s = new HashSet<>(e.getValue());
-                s.removeAll(checked.getOrDefault(e.getKey(), Set.of()));
-                if (!s.isEmpty()) {
-                    fresh.put(e.getKey(), s);
-                }
-                checked.computeIfAbsent(e.getKey(), k -> new HashSet<>()).addAll(e.getValue());
-            }
+            Map<Outline.Lang, Set<String>> fresh = freshNames(pass.callableNames(), checked);
             if (fresh.isEmpty() || unparsed.isEmpty()) {
                 break;
             }
-            Map<Outline.Lang, NameSet> sets = new HashMap<>();
-            fresh.forEach((k, v) -> sets.put(k, new NameSet(v)));
-            List<Outline> got = parallel(unparsed, f -> {
-                NameSet s = sets.get(lang(f.fileClass()));
-                if (s == null) {
-                    return null;
-                }
-                IdentifierBloom b = blooms.get(f);
-                if (fresh.get(lang(f.fileClass())).stream().noneMatch(b::mightContain)) {
-                    return null;
-                }
-                String t = readText(f);
-                return t != null && s.occursIn(t) ? outlineSkipped(f, t) : null;
-            });
-            List<CollectedFile> rest = new ArrayList<>();
-            boolean added = false;
-            for (int i = 0; i < unparsed.size(); i++) {
-                Outline o = got.get(i);
-                if (o != null) {
-                    outlines.put(unparsed.get(i).relativePath(), o);
-                    added = true;
-                } else {
-                    rest.add(unparsed.get(i));
-                }
-            }
-            unparsed = rest;
-            if (!added) {
+            List<CollectedFile> rest = outlineMentioning(fresh, unparsed, blooms, outlines);
+            if (rest.size() == unparsed.size()) {
                 break;
             }
+            unparsed = rest;
         }
         WrapperPass.Result r = pass.report(path -> {
             CollectedFile f = byPath.get(path);
@@ -624,9 +543,102 @@ public final class Scanner {
         return r.findings();
     }
 
-    /** Applies {@code fn} to every element, on the worker threads; results in input order. */
-    private <T, R> List<R> parallel(List<T> in, Function<T, R> fn) throws InterruptedException {
+    /** The project facts of SPEC 18.4: Java files, Python modules, Go directories and the modules of go.mod files. */
+    private static WrapperPass.Project project(List<CollectedFile> files, List<FileResult> results) {
+        Set<String> javaFiles = new HashSet<>();
+        Set<String> pythonModules = new HashSet<>();
+        Set<String> goDirs = new HashSet<>();
+        Map<String, String> goModules = new TreeMap<>(Texts.CODE_POINT_ORDER);
+        for (int i = 0; i < files.size(); i++) {
+            CollectedFile f = files.get(i);
+            String rel = f.relativePath();
+            switch (f.fileClass()) {
+                case JAVA -> javaFiles.add(rel);
+                case PYTHON -> pythonModules.add(WrapperPass.pythonModule(rel));
+                case GO -> goDirs.add(WrapperPass.dirOf(rel));
+                case GO_MOD -> {
+                    String module = results.get(i).outcome() == Outcome.MANIFEST ? goModule(f) : null;
+                    if (module != null) {
+                        goModules.put(WrapperPass.dirOf(rel), module);
+                    }
+                }
+                default -> {
+                    // nothing
+                }
+            }
+        }
+        return new WrapperPass.Project(javaFiles, pythonModules, goDirs, goModules);
+    }
+
+    /** The module path of a go.mod file (its first {@code module} line), or null. */
+    private static String goModule(CollectedFile f) {
+        String t = readText(f);
+        if (t != null) {
+            for (String line : t.split("\n")) {
+                Matcher m = GO_MODULE.matcher(line);
+                if (m.find()) {
+                    return m.group(1);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** The callable names of each language that are not in {@code checked} yet; adds them all to {@code checked}. */
+    private static Map<Outline.Lang, Set<String>> freshNames(Map<Outline.Lang, Set<String>> names,
+            Map<Outline.Lang, Set<String>> checked) {
+        Map<Outline.Lang, Set<String>> fresh = new HashMap<>();
+        for (Map.Entry<Outline.Lang, Set<String>> e : names.entrySet()) {
+            Set<String> s = new HashSet<>(e.getValue());
+            s.removeAll(checked.getOrDefault(e.getKey(), Set.of()));
+            if (!s.isEmpty()) {
+                fresh.put(e.getKey(), s);
+            }
+            checked.computeIfAbsent(e.getKey(), k -> new HashSet<>()).addAll(e.getValue());
+        }
+        return fresh;
+    }
+
+    /**
+     * Parses and outlines the files the pre-filter skipped that mention one of the {@code fresh} names (SPEC 18.2),
+     * adding them to {@code outlines}; returns the files still not outlined, in their order.
+     */
+    private List<CollectedFile> outlineMentioning(Map<Outline.Lang, Set<String>> fresh, List<CollectedFile> unparsed,
+            Map<CollectedFile, IdentifierBloom> blooms, Map<String, Outline> outlines) throws InterruptedException {
+        Map<Outline.Lang, NameSet> sets = new HashMap<>();
+        fresh.forEach((k, v) -> sets.put(k, new NameSet(v)));
+        List<Outline> got = parallel(unparsed, f -> {
+            NameSet s = sets.get(lang(f.fileClass()));
+            if (s == null) {
+                return null;
+            }
+            IdentifierBloom b = blooms.get(f);
+            if (fresh.get(lang(f.fileClass())).stream().noneMatch(b::mightContain)) {
+                return null;
+            }
+            String t = readText(f);
+            return t != null && s.occursIn(t) ? outlineSkipped(f, t) : null;
+        }, "ciphersift-index-");
+        List<CollectedFile> rest = new ArrayList<>();
+        for (int i = 0; i < unparsed.size(); i++) {
+            Outline o = got.get(i);
+            if (o != null) {
+                outlines.put(unparsed.get(i).relativePath(), o);
+            } else {
+                rest.add(unparsed.get(i));
+            }
+        }
+        return rest;
+    }
+
+    /**
+     * Applies {@code fn} to every element on up to {@code --threads} daemon threads named {@code threadPrefix} and
+     * a number; results in input order. {@code fn} handles its own per-element failures (SPEC 13): an exception
+     * that escapes it is an internal error.
+     */
+    private <T, R> List<R> parallel(List<T> in, Function<T, R> fn, String threadPrefix) throws InterruptedException {
         List<R> out = new ArrayList<>(in.size());
+        // never more workers than elements (a huge --threads value must not create thousands of threads)
         int threads = Math.max(1, Math.min(options.threads(), in.size()));
         if (threads == 1) {
             for (T t : in) {
@@ -639,7 +651,7 @@ public final class Scanner {
         }
         AtomicInteger n = new AtomicInteger();
         ExecutorService pool = Executors.newFixedThreadPool(threads, r -> {
-            Thread t = new Thread(r, "ciphersift-index-" + n.incrementAndGet());
+            Thread t = new Thread(r, threadPrefix + n.incrementAndGet());
             t.setDaemon(true);
             return t;
         });
