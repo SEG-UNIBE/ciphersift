@@ -187,16 +187,7 @@ final class JavaOutliner {
         if (name.isEmpty() || !Character.isUpperCase(name.charAt(0))) {
             return;
         }
-        int arity = 0;
-        SyntaxNode args = n.field("arguments");
-        if (args != null) {
-            for (SyntaxNode a : args.namedChildren()) {
-                if (!a.is("line_comment") && !a.is("block_comment")) {
-                    arity++;
-                }
-            }
-        }
-        o.calls.add(new Outline.Call(name, List.of(t), type.line(), n.start(), n.end(), arity, "new " + t, -1, cls,
+        o.calls.add(new Outline.Call(name, List.of(t), type.line(), n.start(), n.end(), arity(n), "new " + t, -1, cls,
                 null));
     }
 
@@ -221,6 +212,12 @@ final class JavaOutliner {
         } else {
             return;
         }
+        o.calls.add(new Outline.Call(name.text(), q, name.line(), n.start(), n.end(), arity(n), symbol, -1, cls,
+                null));
+    }
+
+    /** The number of arguments of a call or {@code new} expression (comments do not count). */
+    private static int arity(SyntaxNode n) {
         int arity = 0;
         SyntaxNode args = n.field("arguments");
         if (args != null) {
@@ -230,6 +227,6 @@ final class JavaOutliner {
                 }
             }
         }
-        o.calls.add(new Outline.Call(name.text(), q, name.line(), n.start(), n.end(), arity, symbol, -1, cls, null));
+        return arity;
     }
 }

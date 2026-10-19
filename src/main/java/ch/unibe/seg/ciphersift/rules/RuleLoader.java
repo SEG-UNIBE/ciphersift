@@ -610,6 +610,12 @@ public final class RuleLoader {
                 text(a, "protocol"), text(a, "version"));
     }
 
+    /** A source rule of a language with the id, name, asset and indicator of its document; patterns follow. */
+    private static SourceRule sourceRule(JsonNode doc, String language, List<?> patterns, String file) {
+        return new SourceRule(doc.get("id").asText(), language, doc.get("name").asText(), asset(doc.get("asset")),
+                patterns, file, text(doc, "indicator"));
+    }
+
     private static String text(JsonNode n, String key) {
         JsonNode v = n.get(key);
         return v == null || v.isNull() ? null : v.asText();
@@ -617,8 +623,7 @@ public final class RuleLoader {
 
     private static SourceRule javaRule(String file, JsonNode doc, List<String> problems) {
         List<JavaPattern> patterns = new ArrayList<>();
-        SourceRule rule = new SourceRule(doc.get("id").asText(), "java", doc.get("name").asText(),
-                asset(doc.get("asset")), patterns, file, text(doc, "indicator"));
+        SourceRule rule = sourceRule(doc, "java", patterns, file);
         int before = problems.size();
         JsonNode match = doc.get("match");
         for (int i = 0; i < match.size(); i++) {
@@ -721,8 +726,7 @@ public final class RuleLoader {
     /** Compiles a Go source rule (SPEC 17.3). */
     private static SourceRule goRule(String file, JsonNode doc, List<String> problems) {
         List<GoPattern> patterns = new ArrayList<>();
-        SourceRule rule = new SourceRule(doc.get("id").asText(), "go", doc.get("name").asText(),
-                asset(doc.get("asset")), patterns, file, text(doc, "indicator"));
+        SourceRule rule = sourceRule(doc, "go", patterns, file);
         int before = problems.size();
         JsonNode match = doc.get("match");
         for (int i = 0; i < match.size(); i++) {
@@ -792,8 +796,7 @@ public final class RuleLoader {
 
     private static SourceRule pythonRule(String file, JsonNode doc, List<String> problems) {
         List<PythonPattern> patterns = new ArrayList<>();
-        SourceRule rule = new SourceRule(doc.get("id").asText(), "python", doc.get("name").asText(),
-                asset(doc.get("asset")), patterns, file, text(doc, "indicator"));
+        SourceRule rule = sourceRule(doc, "python", patterns, file);
         int before = problems.size();
         JsonNode match = doc.get("match");
         for (int i = 0; i < match.size(); i++) {

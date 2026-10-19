@@ -296,13 +296,8 @@ final class GoOutliner {
     }
 
     private static void importSpec(Outline o, SyntaxNode n) {
-        SyntaxNode p = n.field("path");
-        if (p == null || p.text().length() < 2) {
-            return;
-        }
-        String t = p.text();
-        String path = t.substring(1, t.length() - 1);
-        if (path.isEmpty()) {
+        String path = GoAnalyzer.importPath(n);
+        if (path == null) {
             return;
         }
         SyntaxNode name = n.field("name");

@@ -84,6 +84,17 @@ public final class GoAnalyzer {
         return new FileRun(root, relativePath, test).run();
     }
 
+    /** The path of an {@code import_spec} without its quotes, or null if it has none or it is empty. */
+    public static String importPath(SyntaxNode spec) {
+        SyntaxNode p = spec.field("path");
+        if (p == null || p.text().length() < 2) {
+            return null;
+        }
+        String t = p.text();
+        String path = t.substring(1, t.length() - 1);
+        return path.isEmpty() ? null : path;
+    }
+
     /**
      * The local name an import without explicit name gets (SPEC 17.4): the last path segment, the one
      * before a major-version suffix {@code vN}, without a trailing {@code .vN}.
@@ -416,16 +427,8 @@ public final class GoAnalyzer {
         }
 
         private void importSpec(SyntaxNode n) {
-            SyntaxNode p = n.field("path");
-            if (p == null) {
-                return;
-            }
-            String t = p.text();
-            if (t.length() < 2) {
-                return;
-            }
-            String path = t.substring(1, t.length() - 1);
-            if (path.isEmpty()) {
+            String path = importPath(n);
+            if (path == null) {
                 return;
             }
             SyntaxNode name = n.field("name");

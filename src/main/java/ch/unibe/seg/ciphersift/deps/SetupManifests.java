@@ -4,6 +4,7 @@
  */
 package ch.unibe.seg.ciphersift.deps;
 
+import ch.unibe.seg.ciphersift.lang.python.PythonAnalyzer;
 import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayDeque;
@@ -150,7 +151,7 @@ public final class SetupManifests {
         if (depth > MAX_DEPTH) {
             return;
         }
-        String v = stringValue(e);
+        String v = PythonAnalyzer.stringValue(e);
         if (v != null) {
             // a direct reference (pkg @ https://…) is skipped as in requirements files (SPEC 9.2)
             if (!v.contains("://")) {
@@ -175,46 +176,6 @@ public final class SetupManifests {
                 }
             }
         }
-    }
-
-    /** String value as in SPEC 8.5.1 (no bytes, no f-strings, escapes not interpreted). */
-    static String stringValue(SyntaxNode n) {
-        if (n.is("string")) {
-            if (n.childCount() == 0) {
-                return null;
-            }
-            String start = Texts.lower(n.child(0).text());
-            if (start.indexOf('b') >= 0 || start.indexOf('f') >= 0) {
-                return null;
-            }
-            StringBuilder b = new StringBuilder();
-            for (int i = 0; i < n.childCount(); i++) {
-                SyntaxNode c = n.child(i);
-                if (c.is("interpolation")) {
-                    return null;
-                }
-                if (c.is("string_content")) {
-                    b.append(c.text());
-                }
-            }
-            return b.toString();
-        }
-        if (n.is("concatenated_string")) {
-            StringBuilder b = new StringBuilder();
-            for (int i = 0; i < n.childCount(); i++) {
-                SyntaxNode c = n.child(i);
-                if (!c.isNamed() || c.is("comment")) {
-                    continue;
-                }
-                String v = stringValue(c);
-                if (v == null) {
-                    return null;
-                }
-                b.append(v);
-            }
-            return b.toString();
-        }
-        return null;
     }
 
     /**

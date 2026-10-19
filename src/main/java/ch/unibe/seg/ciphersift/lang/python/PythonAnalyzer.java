@@ -114,6 +114,49 @@ public final class PythonAnalyzer {
         return new FileRun(root, relativePath, test).run();
     }
 
+    /**
+     * String value of a {@code string} / {@code concatenated_string} (SPEC 8.5.1: no bytes, no f-strings, escapes
+     * not interpreted), or null.
+     */
+    public static String stringValue(SyntaxNode n) {
+        if (n.is("string")) {
+            if (n.childCount() == 0) {
+                return null;
+            }
+            String start = Texts.lower(n.child(0).text());
+            if (start.indexOf('b') >= 0 || start.indexOf('f') >= 0) {
+                return null;
+            }
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < n.childCount(); i++) {
+                SyntaxNode c = n.child(i);
+                if (c.is("interpolation")) {
+                    return null;
+                }
+                if (c.is("string_content")) {
+                    b.append(c.text());
+                }
+            }
+            return b.toString();
+        }
+        if (n.is("concatenated_string")) {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < n.childCount(); i++) {
+                SyntaxNode c = n.child(i);
+                if (!c.isNamed() || c.is("comment")) {
+                    continue;
+                }
+                String v = stringValue(c);
+                if (v == null) {
+                    return null;
+                }
+                b.append(v);
+            }
+            return b.toString();
+        }
+        return null;
+    }
+
     // ====================================================================== scopes
 
     static final class Scope {
@@ -709,46 +752,6 @@ public final class PythonAnalyzer {
         }
 
         // ------------------------------------------------------------------ 8.5 argument analysis
-
-        /** String value of a {@code string} / {@code concatenated_string}, or null. */
-        String stringValue(SyntaxNode n) {
-            if (n.is("string")) {
-                if (n.childCount() == 0) {
-                    return null;
-                }
-                String start = Texts.lower(n.child(0).text());
-                if (start.indexOf('b') >= 0 || start.indexOf('f') >= 0) {
-                    return null;
-                }
-                StringBuilder b = new StringBuilder();
-                for (int i = 0; i < n.childCount(); i++) {
-                    SyntaxNode c = n.child(i);
-                    if (c.is("interpolation")) {
-                        return null;
-                    }
-                    if (c.is("string_content")) {
-                        b.append(c.text());
-                    }
-                }
-                return b.toString();
-            }
-            if (n.is("concatenated_string")) {
-                StringBuilder b = new StringBuilder();
-                for (int i = 0; i < n.childCount(); i++) {
-                    SyntaxNode c = n.child(i);
-                    if (!c.isNamed() || c.is("comment")) {
-                        continue;
-                    }
-                    String v = stringValue(c);
-                    if (v == null) {
-                        return null;
-                    }
-                    b.append(v);
-                }
-                return b.toString();
-            }
-            return null;
-        }
 
         static String integerValue(SyntaxNode n) {
             return n.is("integer") ? n.text().replace("_", "") : null;
