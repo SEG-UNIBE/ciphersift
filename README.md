@@ -395,3 +395,8 @@ linux-x86_64 only.
 pass with `--cyclonedx-version 1.6`, validated against 1.6, with the same findings), determinism
 checks and CLI checks (failsafe). The Python reference comparator also works:
 `python3 spec/tools/conformance.py --cmd "java -jar target/ciphersift-1.0.0-SNAPSHOT-all.jar"`.
+
+## Evaluating CipherSift
+
+CipherSift's rules and heuristics were tuned on the repositories in [TUNING-REPOS.md](TUNING-REPOS.md). Results on
+those repositories are in-sample; use other projects for any evaluation or tool comparison.
