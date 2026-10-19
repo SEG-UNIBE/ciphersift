@@ -9,9 +9,12 @@ import ch.unibe.seg.ciphersift.rules.SourceRule;
 import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +22,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 /**
  * Wrapper propagation (SPEC 18): from the outlines of the project's source files and the findings of
@@ -79,8 +84,8 @@ public final class WrapperPass {
     record GoPkg(String dir, String name, TreeMap<String, SourceFinding> evidence, Set<String> variantKeys) {}
 
     /** Member names that a package-name call does not count for (SPEC 18.8): sizes, encodings, look-ups, names. */
-    static final java.util.regex.Pattern GO_PKG_EXCLUDED = java.util.regex.Pattern.compile(
-            "length|size|encode|decode|fields|find|name|string|params|oid|info", java.util.regex.Pattern.CASE_INSENSITIVE);
+    static final Pattern GO_PKG_EXCLUDED = Pattern.compile(
+            "length|size|encode|decode|fields|find|name|string|params|oid|info", Pattern.CASE_INSENSITIVE);
 
     /** A definition in the index, with its body findings and what it carries. */
     static final class Node {
@@ -281,7 +286,7 @@ public final class WrapperPass {
      * next to HMAC). One composite name is one key for the thin-wrapper test (SPEC 18.5).
      */
     static Set<SourceFinding> companions(List<SourceFinding> fs) {
-        Set<SourceFinding> out = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        Set<SourceFinding> out = Collections.newSetFromMap(new IdentityHashMap<>());
         Map<Integer, List<SourceFinding>> byLine = new HashMap<>();
         for (SourceFinding f : fs) {
             byLine.computeIfAbsent(f.line(), k -> new ArrayList<>()).add(f);
@@ -813,7 +818,7 @@ public final class WrapperPass {
                     continue;
                 }
                 Carry c = bestVia(n, f, inSpan, rs, level);
-                Carry b = bestVia(n, f, java.util.stream.IntStream.range(0, br.length).boxed().toList(), br, level);
+                Carry b = bestVia(n, f, IntStream.range(0, br.length).boxed().toList(), br, level);
                 if (b != null && (c == null || b.depth() < c.depth())) {
                     c = b;
                 }
@@ -904,7 +909,7 @@ public final class WrapperPass {
             for (int i = 0; i < order.length; i++) {
                 order[i] = i;
             }
-            java.util.Arrays.sort(order, Comparator.comparingInt(i -> o.calls.get(i).start()));
+            Arrays.sort(order, Comparator.comparingInt(i -> o.calls.get(i).start()));
             Set<String> seen = new HashSet<>();
             String fileText = null;
             boolean read = false;
@@ -1141,7 +1146,7 @@ public final class WrapperPass {
             refs = null;
             from = segs.length;
             for (int k = segs.length; k >= 2; k--) {
-                List<String[]> r = classesByFqn(String.join(".", java.util.Arrays.copyOfRange(segs, 0, k)));
+                List<String[]> r = classesByFqn(String.join(".", Arrays.copyOfRange(segs, 0, k)));
                 if (!r.isEmpty()) {
                     refs = r;
                     from = k;

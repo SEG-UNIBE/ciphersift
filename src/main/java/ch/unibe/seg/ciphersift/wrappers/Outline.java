@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * The definitions and call sites of one source file (SPEC 18.2, 18.3), with what the resolution of its
@@ -97,7 +98,7 @@ public final class Outline {
      * Python: indices into {@link #defs} of the module-level class definitions (SPEC 18.2, DECISIONS P3-CLS); they are
      * definitions only for the class-wrapper test and are ignored without the feature {@code python-class-wrappers}.
      */
-    public final Set<Integer> pyClassDefs = new java.util.TreeSet<>();
+    public final Set<Integer> pyClassDefs = new TreeSet<>();
     /** Python: class definition index → its base-class references, as call-like records (never call sites). */
     public final Map<Integer, List<Call>> pyBases = new HashMap<>();
     /**

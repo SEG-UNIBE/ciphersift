@@ -7,6 +7,8 @@ package ch.unibe.seg.ciphersift.files;
 import ch.unibe.seg.ciphersift.cli.Log;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -66,7 +68,7 @@ public final class FileCollector {
                 for (Path p : ds) {
                     entries.add(Map.entry(FileNames.name(p), p)); // UTF-8 whatever the locale (O1)
                 }
-            } catch (IOException | SecurityException | java.nio.file.DirectoryIteratorException ex) {
+            } catch (IOException | SecurityException | DirectoryIteratorException ex) {
                 Log.warning("cannot list directory " + (relDir.isEmpty() ? "." : relDir) + ": " + message(ex));
                 continue;
             }
@@ -132,7 +134,7 @@ public final class FileCollector {
     private static boolean pythonScript(Path p, String rel) {
         byte[] head = new byte[FileClass.SHEBANG_BYTES];
         int n = 0;
-        try (java.io.InputStream in = Files.newInputStream(p)) {
+        try (InputStream in = Files.newInputStream(p)) {
             int r;
             while (n < head.length && (r = in.read(head, n, head.length - n)) > 0) {
                 n += r;

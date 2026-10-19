@@ -17,7 +17,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Reads one rule document into a {@link JsonNode} tree with the streaming parsers only, without an
@@ -56,7 +59,7 @@ final class TreeReader {
     }
 
     /** Reads a bundle {@code [{"path": …, "doc": …}, …]} written by {@link RuleLoader#bundle}. */
-    static java.util.List<java.util.Map.Entry<String, JsonNode>> readBundle(byte[] bytes) throws IOException {
+    static List<Map.Entry<String, JsonNode>> readBundle(byte[] bytes) throws IOException {
         JsonNode root;
         try (JsonParser p = JSON.createParser(bytes)) {
             JsonToken t = p.nextToken();
@@ -68,14 +71,14 @@ final class TreeReader {
                 throw new IOException("trailing tokens in bundle");
             }
         }
-        java.util.List<java.util.Map.Entry<String, JsonNode>> out = new java.util.ArrayList<>(root.size());
+        List<Map.Entry<String, JsonNode>> out = new ArrayList<>(root.size());
         for (JsonNode e : root) {
             JsonNode path = e.get("path");
             JsonNode doc = e.get("doc");
             if (path == null || !path.isTextual() || doc == null || e.size() != 2) {
                 throw new IOException("malformed bundle entry");
             }
-            out.add(java.util.Map.entry(path.asText(), doc));
+            out.add(Map.entry(path.asText(), doc));
         }
         return out;
     }

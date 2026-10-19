@@ -10,7 +10,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Build step (Maven {@code process-classes}): validates the bundled rule set in the build output in
@@ -56,7 +58,7 @@ public final class BundledRulesCheck {
         }
         byte[] schema = Files.readAllBytes(classes.resolve("schema/rule-schema.json"));
         byte[] loaded = RuleLoader.resourceBytes("schema/rule-schema.json");
-        if (loaded == null || !java.util.Arrays.equals(loaded, schema)) {
+        if (loaded == null || !Arrays.equals(loaded, schema)) {
             throw new RuleException("the schema on the class path differs from " + classes.resolve("schema"));
         }
         RuleSet full = RuleLoader.load(files); // full validation; throws on any problem
@@ -75,7 +77,7 @@ public final class BundledRulesCheck {
             }
         }
         byte[] bundle = RuleLoader.bundle(files);
-        List<java.util.Map.Entry<String, JsonNode>> back = TreeReader.readBundle(bundle);
+        List<Map.Entry<String, JsonNode>> back = TreeReader.readBundle(bundle);
         for (int i = 0; i < files.size(); i++) {
             RuleLoader.RuleFile f = files.get(i);
             if (i >= back.size() || !back.get(i).getKey().equals(f.path())

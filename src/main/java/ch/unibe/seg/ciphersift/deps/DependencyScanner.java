@@ -10,11 +10,19 @@ import ch.unibe.seg.ciphersift.model.DependencyFinding;
 import ch.unibe.seg.ciphersift.rules.DependencyRule;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.scan.Features;
+import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Dependency manifests (SPEC 9): parse, deduplicate per manifest, match the ecosystem's rule. */
 public final class DependencyScanner {
@@ -36,12 +44,12 @@ public final class DependencyScanner {
     /** Test-scoped Maven / Gradle dependencies are test occurrences (t3 J-TSCOPE). */
     private final boolean testScope;
     /** Scan root for version catalogs of Gradle scripts (t3 J-CAT), or null. */
-    private final java.nio.file.Path root;
-    private final java.util.concurrent.ConcurrentHashMap<java.nio.file.Path,
-            java.util.Optional<Map<String, List<ManifestEntry>>>> catalogs = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Path root;
+    private final ConcurrentHashMap<Path,
+            Optional<Map<String, List<ManifestEntry>>>> catalogs = new ConcurrentHashMap<>();
 
     /** @param root canonical scan root; Gradle catalog accessors are resolved below it (feature gradle-catalog-accessors) */
-    public DependencyScanner(RuleSet rules, Features features, java.nio.file.Path root) {
+    public DependencyScanner(RuleSet rules, Features features, Path root) {
         this.rules = rules;
         this.transitive = features.on(Features.TRANSITIVE_DEPS);
         this.skipPythonLocks = features.on(Features.SKIP_PYTHON_LOCK_FILES);
@@ -57,10 +65,10 @@ public final class DependencyScanner {
         if (root == null) {
             return Map.of();
         }
-        java.nio.file.Path dir = root.resolve(relativePath).normalize().getParent();
+        Path dir = root.resolve(relativePath).normalize().getParent();
         while (dir != null && dir.startsWith(root)) {
-            java.nio.file.Path cat = dir.resolve("gradle").resolve("libs.versions.toml");
-            java.util.Optional<Map<String, List<ManifestEntry>>> m = catalogs.computeIfAbsent(cat, DependencyScanner::readCatalog);
+            Path cat = dir.resolve("gradle").resolve("libs.versions.toml");
+            Optional<Map<String, List<ManifestEntry>>> m = catalogs.computeIfAbsent(cat, DependencyScanner::readCatalog);
             if (m.isPresent()) {
                 return m.get();
             }
@@ -72,16 +80,15 @@ public final class DependencyScanner {
         return Map.of();
     }
 
-    private static java.util.Optional<Map<String, List<ManifestEntry>>> readCatalog(java.nio.file.Path p) {
+    private static Optional<Map<String, List<ManifestEntry>>> readCatalog(Path p) {
         try {
-            java.nio.file.attribute.BasicFileAttributes a = java.nio.file.Files.readAttributes(p,
-                    java.nio.file.attribute.BasicFileAttributes.class, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+            BasicFileAttributes a = Files.readAttributes(p, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
             if (!a.isRegularFile() || a.size() > SourceText.MAX_SIZE) {
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
-            return java.util.Optional.of(MavenManifests.catalogAliases(SourceText.decode(SourceText.readBounded(p))));
+            return Optional.of(MavenManifests.catalogAliases(SourceText.decode(SourceText.readBounded(p))));
         } catch (IOException | RuntimeException ex) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
     }
 
@@ -127,7 +134,7 @@ public final class DependencyScanner {
      */
     static List<ManifestEntry> deduplicate(List<ManifestEntry> entries) {
         Map<String, ManifestEntry> m = new LinkedHashMap<>();
-        Map<String, Boolean> allTest = new java.util.HashMap<>();
+        Map<String, Boolean> allTest = new HashMap<>();
         for (ManifestEntry e : entries) {
             ManifestEntry prev = m.get(e.key());
             if (prev == null || e.version() != null || prev.version() == null) {
@@ -148,8 +155,7 @@ public final class DependencyScanner {
      * Findings of the requirements declared in a parsed {@code setup.py} (SPEC 9.8); the file itself is
      * Python source.
      */
-    public List<DependencyFinding> setupPy(String relativePath, ch.unibe.seg.ciphersift.syntax.SyntaxNode root,
-            boolean test) {
+    public List<DependencyFinding> setupPy(String relativePath, SyntaxNode root, boolean test) {
         return findings(relativePath, "pypi", SetupManifests.SETUP_PY_LABEL, SetupManifests.setupPy(root), test);
     }
 

@@ -9,14 +9,19 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -169,7 +174,7 @@ public final class NativeLibraries {
             }
             Path dir = base.resolve("ciphersift").resolve("native").resolve(hex(sha256(sums)));
             for (String name : parseSums(new String(sums, StandardCharsets.UTF_8)).keySet()) {
-                if (!Files.isRegularFile(dir.resolve(name), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                if (!Files.isRegularFile(dir.resolve(name), LinkOption.NOFOLLOW_LINKS)) {
                     return false;
                 }
             }
@@ -207,8 +212,8 @@ public final class NativeLibraries {
         Path dir = base.resolve("ciphersift").resolve("native").resolve(digest);
         try {
             if (dir.getFileSystem().supportedFileAttributeViews().contains("posix")) {
-                Files.createDirectories(dir, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
-                        java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+                Files.createDirectories(dir, PosixFilePermissions.asFileAttribute(
+                        PosixFilePermissions.fromString("rwx------")));
             } else {
                 Files.createDirectories(dir);
             }
@@ -228,28 +233,27 @@ public final class NativeLibraries {
      * systems without POSIX attributes the check is skipped.
      */
     static boolean privateDirectory(Path dir) throws IOException {
-        java.nio.file.attribute.BasicFileAttributes a = Files.readAttributes(dir,
-                java.nio.file.attribute.BasicFileAttributes.class, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+        BasicFileAttributes a = Files.readAttributes(dir, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         if (!a.isDirectory()) {
             return false;
         }
         if (!dir.getFileSystem().supportedFileAttributeViews().contains("unix")) {
             return true;
         }
-        int owner = (Integer) Files.getAttribute(dir, "unix:uid", java.nio.file.LinkOption.NOFOLLOW_LINKS);
+        int owner = (Integer) Files.getAttribute(dir, "unix:uid", LinkOption.NOFOLLOW_LINKS);
         Integer self = currentUid();
         if (self != null && owner != self && owner != 0) {
             return false;
         }
-        int mode = (Integer) Files.getAttribute(dir, "unix:mode", java.nio.file.LinkOption.NOFOLLOW_LINKS);
+        int mode = (Integer) Files.getAttribute(dir, "unix:mode", LinkOption.NOFOLLOW_LINKS);
         if ((mode & 0022) != 0 && (mode & 01000) == 0 && self != null && owner == self) {
             // our own cache directory, created group-writable under a umask of 002: tighten it (never a
             // sticky shared directory such as /tmp, which root also owns when running as root)
-            var perms = Files.getPosixFilePermissions(dir, java.nio.file.LinkOption.NOFOLLOW_LINKS);
-            perms.remove(java.nio.file.attribute.PosixFilePermission.GROUP_WRITE);
-            perms.remove(java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE);
+            var perms = Files.getPosixFilePermissions(dir, LinkOption.NOFOLLOW_LINKS);
+            perms.remove(PosixFilePermission.GROUP_WRITE);
+            perms.remove(PosixFilePermission.OTHERS_WRITE);
             Files.setPosixFilePermissions(dir, perms);
-            mode = (Integer) Files.getAttribute(dir, "unix:mode", java.nio.file.LinkOption.NOFOLLOW_LINKS);
+            mode = (Integer) Files.getAttribute(dir, "unix:mode", LinkOption.NOFOLLOW_LINKS);
         }
         return (mode & 0022) == 0; // not group- or world-writable
     }
@@ -298,7 +302,7 @@ public final class NativeLibraries {
             if (sp < 0) {
                 throw new NativeLoadException("malformed SHA256SUMS line: " + l);
             }
-            String sum = l.substring(0, sp).toLowerCase(java.util.Locale.ROOT);
+            String sum = l.substring(0, sp).toLowerCase(Locale.ROOT);
             String name = l.substring(sp).strip();
             if (name.startsWith("*")) {
                 name = name.substring(1);

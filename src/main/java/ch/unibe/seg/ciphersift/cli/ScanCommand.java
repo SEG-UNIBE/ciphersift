@@ -8,18 +8,23 @@ import ch.unibe.seg.ciphersift.CipherSift;
 import ch.unibe.seg.ciphersift.cbom.CbomWriter;
 import ch.unibe.seg.ciphersift.cbom.CycloneDxVersion;
 import ch.unibe.seg.ciphersift.cli.ExitCodes.ExitException;
+import ch.unibe.seg.ciphersift.files.FileNames;
 import ch.unibe.seg.ciphersift.files.Glob;
 import ch.unibe.seg.ciphersift.natives.NativeLoadException;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.scan.Scanner;
+import ch.unibe.seg.ciphersift.wrappers.WrapperOptions;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -137,14 +142,14 @@ public final class ScanCommand implements Callable<Integer> {
         Scanner.Result result;
         try {
             result = new Scanner(new Scanner.Options(root, globs, excludeTests, n, rules, weaknessIndicators,
-                    ch.unibe.seg.ciphersift.wrappers.WrapperOptions.defaults(pythonThinWrappers, features), features)).run();
+                    WrapperOptions.defaults(pythonThinWrappers, features), features)).run();
         } catch (NativeLoadException ex) {
             throw new ExitException(ExitCodes.INTERNAL, ex.getMessage(), ex);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new ExitException(ExitCodes.INTERRUPTED, "interrupted");
         }
-        String rootName = ch.unibe.seg.ciphersift.files.FileNames.name(root);
+        String rootName = FileNames.name(root);
         CbomWriter.Metadata meta = new CbomWriter.Metadata(CipherSift.version(), rootName, rules.digest(),
                 !excludeTests, result.scanned(), result.skipped(), sourceDateEpoch(), weaknessIndicators, cdx,
                 pythonThinWrappers, features.describe());
@@ -216,7 +221,7 @@ public final class ScanCommand implements Callable<Integer> {
         }
         try {
             long v = Long.parseLong(s);
-            return v <= java.time.Instant.MAX.getEpochSecond() ? v : null;
+            return v <= Instant.MAX.getEpochSecond() ? v : null;
         } catch (NumberFormatException ex) {
             return null;
         }
@@ -249,12 +254,12 @@ public final class ScanCommand implements Callable<Integer> {
      * directory must leave a file the host user can read.
      */
     private static Path createTemporary(Path out) throws IOException {
-        java.security.SecureRandom rnd = new java.security.SecureRandom();
+        SecureRandom rnd = new SecureRandom();
         for (int attempt = 0; ; attempt++) {
             Path p = out.resolveSibling("." + out.getFileName() + "." + Long.toHexString(rnd.nextLong()) + ".tmp");
             try {
                 return Files.createFile(p);
-            } catch (java.nio.file.FileAlreadyExistsException ex) {
+            } catch (FileAlreadyExistsException ex) {
                 if (attempt >= 100) {
                     throw ex;
                 }

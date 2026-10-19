@@ -10,16 +10,19 @@ import ch.unibe.seg.ciphersift.rules.JavaPattern;
 import ch.unibe.seg.ciphersift.rules.JavaPattern.EventKind;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
+import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -45,19 +48,19 @@ public final class JavaAnalyzer {
     private final boolean anyCallMetadata;
 
     public JavaAnalyzer(RuleSet rules, JavaContexts contexts) {
-        this(rules, contexts, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
+        this(rules, contexts, Features.DEFAULTS);
     }
 
-    public JavaAnalyzer(RuleSet rules, JavaContexts contexts, ch.unibe.seg.ciphersift.scan.Features features) {
+    public JavaAnalyzer(RuleSet rules, JavaContexts contexts, Features features) {
         this.rules = rules;
         this.index = new JavaRuleIndex(rules.javaRules(), features);
         this.contexts = contexts;
-        this.getters = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CONSTANT_GETTERS);
-        this.deferred = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_DEFERRED_LOCALS);
-        this.inherited = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_INHERITED_CONSTANTS);
-        this.crossModule = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CROSS_MODULE_CONSTANTS);
-        this.constructorCalls = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_CONSTRUCTOR_CALLS);
-        this.anyCallMetadata = features.on(ch.unibe.seg.ciphersift.scan.Features.JAVA_ANY_CALL_METADATA);
+        this.getters = features.on(Features.JAVA_CONSTANT_GETTERS);
+        this.deferred = features.on(Features.JAVA_DEFERRED_LOCALS);
+        this.inherited = features.on(Features.JAVA_INHERITED_CONSTANTS);
+        this.crossModule = features.on(Features.JAVA_CROSS_MODULE_CONSTANTS);
+        this.constructorCalls = features.on(Features.JAVA_CONSTRUCTOR_CALLS);
+        this.anyCallMetadata = features.on(Features.JAVA_ANY_CALL_METADATA);
     }
 
     /**
@@ -360,8 +363,8 @@ public final class JavaAnalyzer {
             Selected f = first.get(i);
             boolean same = true;
             for (List<Selected> l : per) {
-                same &= java.util.Objects.equals(l.get(i).matched(), f.matched())
-                        && java.util.Objects.equals(l.get(i).oid(), f.oid());
+                same &= Objects.equals(l.get(i).matched(), f.matched())
+                        && Objects.equals(l.get(i).oid(), f.oid());
             }
             out.add(new Selected(ev, f.rule(), f.chosen(), same ? f.matched() : null, same ? f.oid() : null));
         }
@@ -548,14 +551,14 @@ public final class JavaAnalyzer {
                 if (x != null) {
                     if (oids == null) {
                         mapped = new ArrayList<>(raw);
-                        oids = new ArrayList<>(java.util.Collections.nCopies(raw.size(), (String) null));
+                        oids = new ArrayList<>(Collections.nCopies(raw.size(), (String) null));
                     }
                     mapped.set(i, x.name());
                     oids.set(i, x.oid());
                 }
             }
             ev.strings = mapped;
-            ev.stringOids = oids == null ? java.util.Collections.nCopies(raw.size(), (String) null) : oids;
+            ev.stringOids = oids == null ? Collections.nCopies(raw.size(), (String) null) : oids;
         }
     }
 

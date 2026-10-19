@@ -4,6 +4,8 @@
  */
 package ch.unibe.seg.ciphersift.rules;
 
+import ch.unibe.seg.ciphersift.files.FileNames;
+import ch.unibe.seg.ciphersift.scan.Features;
 import ch.unibe.seg.ciphersift.util.Texts;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.StreamReadFeature;
@@ -12,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
@@ -25,11 +28,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryIteratorException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HexFormat;
@@ -39,6 +48,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.zip.ZipEntry;
@@ -75,11 +87,11 @@ public final class RuleLoader {
      * are validated in full like a {@code --rules} directory.
      */
     public static RuleSet loadBundled() throws RuleException {
-        java.util.concurrent.FutureTask<RuleSet> pending = PREFETCHED.getAndSet(null);
+        FutureTask<RuleSet> pending = PREFETCHED.getAndSet(null);
         if (pending != null) {
             try {
                 return pending.get();
-            } catch (java.util.concurrent.ExecutionException ex) {
+            } catch (ExecutionException ex) {
                 Throwable c = ex.getCause();
                 if (c instanceof RuleException re) {
                     throw re;
@@ -99,8 +111,8 @@ public final class RuleLoader {
         return loadBundledNow();
     }
 
-    private static final java.util.concurrent.atomic.AtomicReference<java.util.concurrent.FutureTask<RuleSet>>
-            PREFETCHED = new java.util.concurrent.atomic.AtomicReference<>();
+    private static final AtomicReference<FutureTask<RuleSet>>
+            PREFETCHED = new AtomicReference<>();
 
     /**
      * Starts loading the bundled rules on a background thread; the next {@link #loadBundled} call
@@ -108,7 +120,7 @@ public final class RuleLoader {
      * the command-line parsing and the rule loading overlap.
      */
     public static void prefetchBundled() {
-        java.util.concurrent.FutureTask<RuleSet> task = new java.util.concurrent.FutureTask<>(RuleLoader::loadBundledNow);
+        FutureTask<RuleSet> task = new FutureTask<>(RuleLoader::loadBundledNow);
         if (PREFETCHED.compareAndSet(null, task)) {
             Thread t = new Thread(task, "ciphersift-rules");
             t.setDaemon(true);
@@ -182,7 +194,7 @@ public final class RuleLoader {
 
     /** The pre-parsed bundle of fully validated rule files, as {@link BundledRulesCheck} writes it. */
     static byte[] bundle(List<RuleFile> files) throws RuleException {
-        com.fasterxml.jackson.databind.node.ArrayNode arr = Mappers.JSON.createArrayNode();
+        ArrayNode arr = Mappers.JSON.createArrayNode();
         for (RuleFile f : files) {
             arr.addObject().put("path", f.path()).set("doc", parse(f));
         }
@@ -255,16 +267,16 @@ public final class RuleLoader {
         }
         TreeMap<String, Path> paths = new TreeMap<>(Texts.CODE_POINT_ORDER);
         List<String> problems = new ArrayList<>();
-        java.util.ArrayDeque<Map.Entry<Path, String>> pending = new java.util.ArrayDeque<>();
+        ArrayDeque<Map.Entry<Path, String>> pending = new ArrayDeque<>();
         pending.push(Map.entry(dir, ""));
         while (!pending.isEmpty()) {
             Map.Entry<Path, String> d = pending.pop();
-            try (java.nio.file.DirectoryStream<Path> ds = Files.newDirectoryStream(d.getKey())) {
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(d.getKey())) {
                 for (Path p : ds) {
-                    String name = ch.unibe.seg.ciphersift.files.FileNames.name(p);
+                    String name = FileNames.name(p);
                     String rel = d.getValue().isEmpty() ? name : d.getValue() + "/" + name;
-                    java.nio.file.attribute.BasicFileAttributes a = Files.readAttributes(p,
-                            java.nio.file.attribute.BasicFileAttributes.class, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+                    BasicFileAttributes a = Files.readAttributes(p,
+                            BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
                     if (a.isSymbolicLink()) {
                         problems.add(rel + ": (document): symbolic links are not allowed in a rule directory");
                     } else if (a.isDirectory()) {
@@ -273,7 +285,7 @@ public final class RuleLoader {
                         paths.put(rel, p);
                     }
                 }
-            } catch (IOException | java.nio.file.DirectoryIteratorException | SecurityException ex) {
+            } catch (IOException | DirectoryIteratorException | SecurityException ex) {
                 throw new RuleException(dir + ": cannot be read: " + ex.getMessage());
             }
         }
@@ -283,7 +295,7 @@ public final class RuleLoader {
         }
         List<RuleFile> out = new ArrayList<>();
         for (Map.Entry<String, Path> e : paths.entrySet()) {
-            try (InputStream in = Files.newInputStream(e.getValue(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            try (InputStream in = Files.newInputStream(e.getValue(), LinkOption.NOFOLLOW_LINKS)) {
                 out.add(new RuleFile(e.getKey(), in.readAllBytes()));
             } catch (IOException ex) {
                 throw new RuleException(e.getKey() + ": cannot be read: " + ex.getMessage());
@@ -396,7 +408,7 @@ public final class RuleLoader {
                         usedIf.add(pk.has("usedIf") ? pk.get("usedIf").asText() : null);
                     }
                     deps.put(eco, new DependencyRule(id, eco, doc.get("name").asText(), List.copyOf(pkgs),
-                            java.util.Collections.unmodifiableList(usedIf)));
+                            Collections.unmodifiableList(usedIf)));
                 }
                 case "constants" -> {
                     String lang = doc.get("language").asText();
@@ -700,7 +712,7 @@ public final class RuleLoader {
             return null;
         }
         String f = p.get("feature").asText();
-        if (!ch.unibe.seg.ciphersift.scan.Features.known().containsKey(f)) {
+        if (!Features.known().containsKey(f)) {
             problems.add(file + ": " + ptr + "/feature: unknown feature \"" + f + "\"");
         }
         return f;
@@ -775,7 +787,7 @@ public final class RuleLoader {
             Map.Entry<String, JsonNode> kv = it.next();
             m.put(kv.getKey(), regex(file, ptr + "/" + key + "/" + kv.getKey(), kv.getValue(), CI, problems));
         }
-        return java.util.Collections.unmodifiableMap(m);
+        return Collections.unmodifiableMap(m);
     }
 
     private static SourceRule pythonRule(String file, JsonNode doc, List<String> problems) {

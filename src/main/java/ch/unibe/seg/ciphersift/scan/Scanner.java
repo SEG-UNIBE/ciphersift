@@ -37,18 +37,26 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Runs phases 1–4 of a scan (SPEC 2): collection, classification, extraction, normalisation. */
 public final class Scanner {
@@ -100,9 +108,9 @@ public final class Scanner {
     private final AnchorPrefilter pythonFilter;
     private final AnchorPrefilter goFilter;
     /** {@code usedIf} texts of the dependency rules, by source file class (SPEC 5.9, DECISIONS B-J4). */
-    private final Map<FileClass, Set<String>> usedIfTexts = new java.util.EnumMap<>(FileClass.class);
+    private final Map<FileClass, Set<String>> usedIfTexts = new EnumMap<>(FileClass.class);
     /** The {@code usedIf} texts found so far, as {@code <file class>:<text>} (thread-safe). */
-    private final Set<String> usedIfFound = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<String> usedIfFound = ConcurrentHashMap.newKeySet();
 
     /**
      * System property that disables the anchor pre-filter (every source file is parsed and analysed).
@@ -131,7 +139,7 @@ public final class Scanner {
         for (DependencyRule r : options.rules().dependencyRules().values()) {
             FileClass lang = languageOf(r.ecosystem());
             if (lang != null && !r.usedIfTexts().isEmpty()) {
-                usedIfTexts.computeIfAbsent(lang, k -> new java.util.TreeSet<>()).addAll(r.usedIfTexts());
+                usedIfTexts.computeIfAbsent(lang, k -> new TreeSet<>()).addAll(r.usedIfTexts());
             }
         }
     }
@@ -197,8 +205,7 @@ public final class Scanner {
         t.start();
     }
 
-    private static final java.util.concurrent.atomic.AtomicBoolean PREFETCH_STARTED =
-            new java.util.concurrent.atomic.AtomicBoolean();
+    private static final AtomicBoolean PREFETCH_STARTED = new AtomicBoolean();
 
     private Parser newParser(Language l) {
         Parser p = new Parser(l);
@@ -513,15 +520,14 @@ public final class Scanner {
         }
     }
 
-    private static final java.util.regex.Pattern GO_MODULE =
-            java.util.regex.Pattern.compile("^\\s*module\\s+\"?([^\\s\"]+)\"?");
+    private static final Pattern GO_MODULE = Pattern.compile("^\\s*module\\s+\"?([^\\s\"]+)\"?");
 
     /** The findings of wrapper propagation (SPEC 18). */
     private List<SourceFinding> propagate(List<CollectedFile> files, List<FileResult> results,
             List<SourceFinding> direct) throws InterruptedException {
         Map<String, Outline> outlines = new HashMap<>();
         List<CollectedFile> unparsed = new ArrayList<>();
-        Map<CollectedFile, IdentifierBloom> blooms = new java.util.IdentityHashMap<>();
+        Map<CollectedFile, IdentifierBloom> blooms = new IdentityHashMap<>();
         Set<String> javaFiles = new HashSet<>();
         Set<String> pythonModules = new HashSet<>();
         Set<String> goDirs = new HashSet<>();
@@ -541,7 +547,7 @@ public final class Scanner {
                         String t = readText(f);
                         if (t != null) {
                             for (String line : t.split("\n")) {
-                                java.util.regex.Matcher m = GO_MODULE.matcher(line);
+                                Matcher m = GO_MODULE.matcher(line);
                                 if (m.find()) {
                                     goModules.put(WrapperPass.dirOf(rel), m.group(1));
                                     break;
@@ -619,7 +625,7 @@ public final class Scanner {
     }
 
     /** Applies {@code fn} to every element, on the worker threads; results in input order. */
-    private <T, R> List<R> parallel(List<T> in, java.util.function.Function<T, R> fn) throws InterruptedException {
+    private <T, R> List<R> parallel(List<T> in, Function<T, R> fn) throws InterruptedException {
         List<R> out = new ArrayList<>(in.size());
         int threads = Math.max(1, Math.min(options.threads(), in.size()));
         if (threads == 1) {

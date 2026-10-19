@@ -14,6 +14,7 @@ import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -241,7 +242,7 @@ public final class GoAnalyzer {
         /** scope node → name → bindings (in walk order). */
         final Map<SyntaxNode, Map<String, List<Binding>>> scopes = new IdentityHashMap<>();
         /** Type arguments of {@code new(T)} composite events; not reference events themselves. */
-        final Set<SyntaxNode> consumed = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        final Set<SyntaxNode> consumed = Collections.newSetFromMap(new IdentityHashMap<>());
         final Set<Object> resolving = new HashSet<>();
         /** Plain assignments, bound after all declarations are known (SPEC 17.6). */
         final List<Assignment> assignments = new ArrayList<>();

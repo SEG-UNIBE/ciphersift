@@ -7,6 +7,7 @@ package ch.unibe.seg.ciphersift.lang;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -226,7 +227,7 @@ public final class OidTable {
         if (c != '0' && c != '1' && c != '2' && c != 'O' && c != 'o') {
             return null;
         }
-        java.util.regex.Matcher m = DOTTED.matcher(s);
+        Matcher m = DOTTED.matcher(s);
         return m.matches() ? BY_OID.get(m.group(1)) : null;
     }
 

@@ -4,13 +4,18 @@
  */
 package ch.unibe.seg.ciphersift.lang.java;
 
+import ch.unibe.seg.ciphersift.files.FileNames;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
 import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
-import ch.unibe.seg.ciphersift.files.FileNames;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,7 +54,7 @@ final class JavaResolver {
      * Start offsets of the deferred locals being resolved (DECISIONS B-J-JP3): a value that needs the local itself
      * (s = s + "x", or a = b; b = a) is unresolved instead of recursing without bound.
      */
-    private final java.util.Set<Integer> resolvingDeferred = new java.util.HashSet<>();
+    private final Set<Integer> resolvingDeferred = new HashSet<>();
 
     /** t3 J-INH: constants inherited from project supertypes; J-XMOD: classes in other source roots. */
     private final boolean inherited;
@@ -208,7 +213,7 @@ final class JavaResolver {
                 return r;
             }
         }
-        return inherited ? inheritedField(name, ctx, ctx, 1, new java.util.HashSet<>()) : null;
+        return inherited ? inheritedField(name, ctx, ctx, 1, new HashSet<>()) : null;
     }
 
     /**
@@ -217,7 +222,7 @@ final class JavaResolver {
      * recursively, that file's supertypes (at most {@link #MAX_SUPER} levels; each file once).
      */
     private Resolution inheritedField(String name, JavaContext origin, JavaContext ctx, int depth,
-            java.util.Set<Path> seen) {
+            Set<Path> seen) {
         if (depth > MAX_SUPER || contexts == null) {
             return null;
         }
@@ -307,7 +312,7 @@ final class JavaResolver {
 
     private Resolution deferredLocal0(SyntaxNode block, SyntaxNode decl, String name, JavaContext ctx) {
         List<JExpr> values = new ArrayList<>();
-        java.util.ArrayDeque<SyntaxNode> stack = new java.util.ArrayDeque<>();
+        ArrayDeque<SyntaxNode> stack = new ArrayDeque<>();
         stack.push(block);
         while (!stack.isEmpty()) {
             SyntaxNode n = stack.pop();
@@ -376,8 +381,7 @@ final class JavaResolver {
     private record LocalDeclaration(int start, SyntaxNode declaration, SyntaxNode declarator) {}
 
     /** Per block: local declarations by name, in child order (built once per block and file). */
-    private final java.util.IdentityHashMap<SyntaxNode, java.util.Map<String, List<LocalDeclaration>>> blockIndex =
-            new java.util.IdentityHashMap<>();
+    private final IdentityHashMap<SyntaxNode, Map<String, List<LocalDeclaration>>> blockIndex = new IdentityHashMap<>();
 
     /**
      * The last {@code variable_declarator} named {@code name} among the {@code local_variable_declaration}
@@ -385,9 +389,9 @@ final class JavaResolver {
      * block, so that a block with many statements is not rescanned for every lookup.
      */
     private LocalDeclaration lastDeclarationBefore(SyntaxNode block, String name, int before) {
-        java.util.Map<String, List<LocalDeclaration>> index = blockIndex.get(block);
+        Map<String, List<LocalDeclaration>> index = blockIndex.get(block);
         if (index == null) {
-            index = new java.util.HashMap<>();
+            index = new HashMap<>();
             for (int i = 0; i < block.childCount(); i++) {
                 SyntaxNode s = block.child(i);
                 if (!s.isNamed() || !s.is("local_variable_declaration")) {
@@ -441,7 +445,7 @@ final class JavaResolver {
         if (f.thisObject() || ctx.localClasses.contains(s)) {
             Resolution r = fieldLookup(field, ctx);
             // this.F / C.F of a class of the file, F declared in a supertype (t3 J-INH)
-            return r == null && inherited ? inheritedField(field, ctx, ctx, 1, new java.util.HashSet<>()) : r;
+            return r == null && inherited ? inheritedField(field, ctx, ctx, 1, new HashSet<>()) : r;
         }
         if (!s.isEmpty() && Character.isUpperCase(s.charAt(0))) {
             int dot = q.indexOf('.');
@@ -501,7 +505,7 @@ final class JavaResolver {
         Resolution r = fieldLookup(field, decl);
         if (r == null && inherited) {
             // C.F where F is declared in a supertype of C (t3 J-INH)
-            java.util.Set<Path> seen = new java.util.HashSet<>();
+            Set<Path> seen = new HashSet<>();
             if (decl.file != null) {
                 seen.add(decl.file);
             }

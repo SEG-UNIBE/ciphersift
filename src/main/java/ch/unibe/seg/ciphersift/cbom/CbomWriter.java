@@ -21,10 +21,12 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /** Serialises the CBOM (SPEC 11) deterministically with Jackson's streaming generator. */
@@ -149,7 +151,7 @@ public final class CbomWriter {
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException(ex);
         }
-        byte[] u = java.util.Arrays.copyOf(h, 16);
+        byte[] u = Arrays.copyOf(h, 16);
         u[6] = (byte) ((u[6] & 0x0f) | 0x80);
         u[8] = (byte) ((u[8] & 0x3f) | 0x80);
         String hex = HexFormat.of().formatHex(u);
@@ -267,7 +269,7 @@ public final class CbomWriter {
         if (variant == null) {
             return null;
         }
-        return switch (variant.toUpperCase(java.util.Locale.ROOT)) {
+        return switch (variant.toUpperCase(Locale.ROOT)) {
             case "ECB" -> "ecb";
             case "CBC" -> "cbc";
             case "CCM" -> "ccm";
@@ -282,7 +284,7 @@ public final class CbomWriter {
 
     static String padding(Asset a) {
         if (a.variant() != null) {
-            switch (a.variant().toUpperCase(java.util.Locale.ROOT)) {
+            switch (a.variant().toUpperCase(Locale.ROOT)) {
                 case "OAEP" -> {
                     return "oaep";
                 }

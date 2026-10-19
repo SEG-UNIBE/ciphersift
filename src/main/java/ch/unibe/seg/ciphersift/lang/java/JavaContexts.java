@@ -9,12 +9,19 @@ import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.syntax.SyntaxTrees;
 import io.github.treesitter.jtreesitter.Language;
 import io.github.treesitter.jtreesitter.Parser;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -59,15 +66,15 @@ public final class JavaContexts {
     }
 
     /** Java files under the scan root by file name (t3 J-XMOD), built on first use. */
-    private volatile java.util.Map<String, java.util.List<Path>> byName;
+    private volatile Map<String, List<Path>> byName;
 
     /**
      * The Java files under the scan root whose path ends with {@code suffix} (a relative path {@code a/b/C.java},
      * matched at a directory boundary), in path order. Directories named {@code .git}, {@code .hg}, {@code .svn}
      * and symbolic links are not entered (SPEC 4.1).
      */
-    java.util.List<Path> filesEndingWith(String suffix) {
-        java.util.Map<String, java.util.List<Path>> m = byName;
+    List<Path> filesEndingWith(String suffix) {
+        Map<String, List<Path>> m = byName;
         if (m == null) {
             synchronized (this) {
                 m = byName;
@@ -78,13 +85,13 @@ public final class JavaContexts {
             }
         }
         int slash = suffix.lastIndexOf('/');
-        java.util.List<Path> l = m.get(slash < 0 ? suffix : suffix.substring(slash + 1));
+        List<Path> l = m.get(slash < 0 ? suffix : suffix.substring(slash + 1));
         if (l == null) {
-            return java.util.List.of();
+            return List.of();
         }
-        java.util.List<Path> out = new java.util.ArrayList<>(1);
+        List<Path> out = new ArrayList<>(1);
         for (Path p : l) {
-            String rel = scanRoot.relativize(p).toString().replace(java.io.File.separatorChar, '/');
+            String rel = scanRoot.relativize(p).toString().replace(File.separatorChar, '/');
             if (rel.equals(suffix) || rel.endsWith("/" + suffix)) {
                 out.add(p);
             }
@@ -92,13 +99,13 @@ public final class JavaContexts {
         return out;
     }
 
-    private java.util.Map<String, java.util.List<Path>> indexByName() {
-        java.util.TreeMap<String, java.util.List<Path>> m = new java.util.TreeMap<>();
-        java.util.ArrayDeque<Path> dirs = new java.util.ArrayDeque<>();
+    private Map<String, List<Path>> indexByName() {
+        TreeMap<String, List<Path>> m = new TreeMap<>();
+        ArrayDeque<Path> dirs = new ArrayDeque<>();
         dirs.push(scanRoot);
         while (!dirs.isEmpty()) {
             Path d = dirs.pop();
-            try (java.nio.file.DirectoryStream<Path> ds = Files.newDirectoryStream(d)) {
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(d)) {
                 for (Path c : ds) {
                     String n = c.getFileName().toString();
                     BasicFileAttributes a;
@@ -112,14 +119,14 @@ public final class JavaContexts {
                             dirs.push(c);
                         }
                     } else if (a.isRegularFile() && n.endsWith(".java")) {
-                        m.computeIfAbsent(n, k -> new java.util.ArrayList<>(1)).add(c.toAbsolutePath().normalize());
+                        m.computeIfAbsent(n, k -> new ArrayList<>(1)).add(c.toAbsolutePath().normalize());
                     }
                 }
             } catch (IOException | RuntimeException ex) {
                 // unreadable directory: skipped
             }
         }
-        for (java.util.List<Path> l : m.values()) {
+        for (List<Path> l : m.values()) {
             l.sort(null);
         }
         return m;

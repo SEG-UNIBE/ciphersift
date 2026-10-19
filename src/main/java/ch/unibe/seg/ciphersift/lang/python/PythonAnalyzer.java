@@ -14,6 +14,8 @@ import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -982,7 +984,7 @@ public final class PythonAnalyzer {
             for (String n : names) {
                 String[] seg = n.split("\\.", -1);
                 for (int k = seg.length; k >= 1; k--) {
-                    String prefix = String.join(".", java.util.Arrays.copyOf(seg, k));
+                    String prefix = String.join(".", Arrays.copyOf(seg, k));
                     List<PythonPattern> ps = index.byCall.get(prefix);
                     if (ps != null) {
                         for (PythonPattern p : ps) {
@@ -1541,7 +1543,7 @@ public final class PythonAnalyzer {
         }
 
         /** Calls with a hit (SPEC 8.6.2: literals in their arguments are their data). */
-        final Set<SyntaxNode> callsWithHits = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        final Set<SyntaxNode> callsWithHits = Collections.newSetFromMap(new IdentityHashMap<>());
 
         /** Per call: the (asset type, family) of its hits (DECISIONS B-P-B3). */
         final Map<SyntaxNode, Set<String>> callFamilies = new IdentityHashMap<>();

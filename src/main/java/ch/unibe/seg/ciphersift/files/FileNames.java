@@ -5,6 +5,7 @@
 package ch.unibe.seg.ciphersift.files;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryIteratorException;
@@ -69,7 +70,7 @@ public final class FileNames {
         String raw;
         try {
             raw = p.toUri().getRawPath();
-        } catch (RuntimeException | java.io.IOError ex) {
+        } catch (RuntimeException | IOError ex) {
             return p.getFileName().toString();
         }
         if (raw == null) {

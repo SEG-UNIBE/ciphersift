@@ -6,11 +6,15 @@ package ch.unibe.seg.ciphersift.cli;
 
 import ch.unibe.seg.ciphersift.CipherSift;
 import ch.unibe.seg.ciphersift.cli.ExitCodes.ExitException;
+import ch.unibe.seg.ciphersift.files.FileNames;
 import ch.unibe.seg.ciphersift.natives.Grammars;
+import ch.unibe.seg.ciphersift.natives.NativeLibraries;
 import ch.unibe.seg.ciphersift.natives.NativeLoadException;
 import ch.unibe.seg.ciphersift.rules.RuleException;
 import ch.unibe.seg.ciphersift.rules.RuleLoader;
 import ch.unibe.seg.ciphersift.rules.RuleSet;
+import ch.unibe.seg.ciphersift.scan.Scanner;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
@@ -78,8 +82,8 @@ public final class Main {
         if (!ownRules) {
             RuleLoader.prefetchBundled();
         }
-        if ("scan".equals(args[0]) && ch.unibe.seg.ciphersift.natives.NativeLibraries.cachedAlready()) {
-            ch.unibe.seg.ciphersift.scan.Scanner.prefetchNatives();
+        if ("scan".equals(args[0]) && NativeLibraries.cachedAlready()) {
+            Scanner.prefetchNatives();
         }
     }
 
@@ -89,7 +93,7 @@ public final class Main {
      * arrives with U+FFFD in it; say so instead of failing obscurely later.
      */
     private static void warnUndecodableArguments(String[] args) {
-        if (ch.unibe.seg.ciphersift.files.FileNames.jvmUsesUtf8()) {
+        if (FileNames.jvmUsesUtf8()) {
             return;
         }
         for (String a : args) {
@@ -129,8 +133,8 @@ public final class Main {
         warnUndecodableArguments(args);
         CommandLine cl = new CommandLine(new Root());
         cl.setCaseInsensitiveEnumValuesAllowed(false);
-        cl.setOut(new PrintWriter(new java.io.OutputStreamWriter(System.out, StandardCharsets.UTF_8), true));
-        cl.setErr(new PrintWriter(new java.io.OutputStreamWriter(System.err, StandardCharsets.UTF_8), true));
+        cl.setOut(new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true));
+        cl.setErr(new PrintWriter(new OutputStreamWriter(System.err, StandardCharsets.UTF_8), true));
         cl.setParameterExceptionHandler((ex, a) -> {
             Log.error(ex.getMessage());
             CommandLine c = ex.getCommandLine();

@@ -11,6 +11,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,7 +96,7 @@ final class JavaContext {
         List<SyntaxNode> fieldDecls = new ArrayList<>();
         Set<String> classes = new HashSet<>();
         Set<String> reassigned = new HashSet<>();
-        java.util.LinkedHashSet<String> supers = new java.util.LinkedHashSet<>();
+        LinkedHashSet<String> supers = new LinkedHashSet<>();
         Map<String, List<SyntaxNode>> methods = new HashMap<>();
         ArrayDeque<SyntaxNode> stack = new ArrayDeque<>();
         stack.push(root);

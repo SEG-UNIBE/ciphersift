@@ -6,6 +6,7 @@ package ch.unibe.seg.ciphersift.lang.python;
 
 import ch.unibe.seg.ciphersift.rules.PythonPattern;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
+import ch.unibe.seg.ciphersift.scan.Features;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,11 +51,11 @@ final class PythonRuleIndex {
     }
 
     PythonRuleIndex(List<SourceRule> rules) {
-        this(rules, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
+        this(rules, Features.DEFAULTS);
     }
 
     /** The index of the patterns that are on with these feature switches (SPEC 5.6 {@code feature}). */
-    PythonRuleIndex(List<SourceRule> rules, ch.unibe.seg.ciphersift.scan.Features features) {
+    PythonRuleIndex(List<SourceRule> rules, Features features) {
         for (SourceRule r : rules) {
             List<PythonPattern> assigns = new ArrayList<>();
             for (PythonPattern p : r.pythonPatterns()) {

@@ -7,7 +7,9 @@ package ch.unibe.seg.ciphersift.deps;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -214,7 +216,7 @@ final class MavenManifests {
     }
 
     private static void collect(Element root, String name, List<Element> out) {
-        java.util.ArrayDeque<Element> stack = new java.util.ArrayDeque<>();
+        ArrayDeque<Element> stack = new ArrayDeque<>();
         stack.push(root);
         while (!stack.isEmpty()) {
             Element e = stack.pop();
@@ -300,7 +302,7 @@ final class MavenManifests {
                 }
                 boolean bundle = segs[0].equals("bundles");
                 for (int k = segs.length; k >= (bundle ? 2 : 1); k--) {
-                    String alias = String.join(".", java.util.Arrays.copyOfRange(segs, 0, k));
+                    String alias = String.join(".", Arrays.copyOfRange(segs, 0, k));
                     List<ManifestEntry> es = catalog.get(alias);
                     if (es != null) {
                         boolean t = testConfiguration(clean, am.start());

@@ -4,7 +4,11 @@
  */
 package ch.unibe.seg.ciphersift.rules;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 /** A dependency rule (SPEC 5.9): the crypto-library list of one ecosystem. */
@@ -25,7 +29,7 @@ public final class DependencyRule {
     }
 
     DependencyRule(String id, String ecosystem, String name, List<Pattern> packages) {
-        this(id, ecosystem, name, packages, java.util.Collections.nCopies(packages.size(), (String) null));
+        this(id, ecosystem, name, packages, Collections.nCopies(packages.size(), (String) null));
     }
 
     /**
@@ -34,7 +38,7 @@ public final class DependencyRule {
      * which must occur in a source file of the ecosystem's language.
      */
     public List<String> usedIf(String key) {
-        List<String> out = new java.util.ArrayList<>();
+        List<String> out = new ArrayList<>();
         for (int i = 0; i < packages.size(); i++) {
             if (packages.get(i).matcher(key).matches()) {
                 if (usedIf.get(i) == null) {
@@ -47,8 +51,8 @@ public final class DependencyRule {
     }
 
     /** All {@code usedIf} texts of the rule. */
-    public java.util.Set<String> usedIfTexts() {
-        java.util.Set<String> s = new java.util.TreeSet<>();
+    public Set<String> usedIfTexts() {
+        Set<String> s = new TreeSet<>();
         for (String u : usedIf) {
             if (u != null) {
                 s.add(u);

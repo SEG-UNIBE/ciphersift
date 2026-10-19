@@ -6,12 +6,14 @@ package ch.unibe.seg.ciphersift.lang.java;
 
 import ch.unibe.seg.ciphersift.rules.JavaPattern;
 import ch.unibe.seg.ciphersift.rules.SourceRule;
+import ch.unibe.seg.ciphersift.scan.Features;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Index of Java patterns by (event kind, name) with prefix keys (SPEC 7.5). */
 public final class JavaRuleIndex {
@@ -25,7 +27,7 @@ public final class JavaRuleIndex {
      * Methods an {@code anyCall} anchor does not fire on (SPEC 5.5): comparisons and look-ups, logging and
      * printing, collection builders, the JCA factories (their own patterns decide), messages and properties.
      */
-    static final java.util.Set<String> ANY_CALL_EXCLUDED = java.util.Set.of("equals", "equalsIgnoreCase", "contains",
+    static final Set<String> ANY_CALL_EXCLUDED = Set.of("equals", "equalsIgnoreCase", "contains",
             "containsKey", "containsValue", "startsWith", "endsWith", "indexOf", "lastIndexOf", "matches", "compareTo",
             "compareToIgnoreCase", "regionMatches", "getInstance", "debug", "info", "warn", "warning", "error", "trace",
             "fine", "finer", "finest", "log", "println", "printf", "print", "format", "append", "fail", "getProperty",
@@ -52,7 +54,7 @@ public final class JavaRuleIndex {
             Comparator.<JavaPattern>comparingInt(p -> p.rule.order()).thenComparingInt(p -> p.position);
 
     /** The index of the patterns that are on with these feature switches (SPEC 5.5 {@code feature}). */
-    public JavaRuleIndex(List<SourceRule> rules, ch.unibe.seg.ciphersift.scan.Features features) {
+    public JavaRuleIndex(List<SourceRule> rules, Features features) {
         Map<JavaPattern.EventKind, Map<String, List<JavaPattern>>> pre = new EnumMap<>(JavaPattern.EventKind.class);
         for (JavaPattern.EventKind k : JavaPattern.EventKind.values()) {
             exact.put(k, new HashMap<>());

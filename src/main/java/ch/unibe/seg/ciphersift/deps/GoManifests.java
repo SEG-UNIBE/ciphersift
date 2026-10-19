@@ -6,6 +6,7 @@ package ch.unibe.seg.ciphersift.deps;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /** Go module manifests {@code go.mod} and {@code go.sum} (SPEC 17.10). */
 public final class GoManifests {
@@ -55,7 +56,7 @@ public final class GoManifests {
      * module imports directly: {@code // indirect}, possibly followed by {@code ;} and more text
      * (https://go.dev/ref/mod#go-mod-file-require).
      */
-    private static final java.util.regex.Pattern INDIRECT = java.util.regex.Pattern.compile("[ \\t]*indirect[ \\t]*(;|$)");
+    private static final Pattern INDIRECT = Pattern.compile("[ \\t]*indirect[ \\t]*(;|$)");
 
     /** {@code PATH VERSION} (the path optionally quoted). */
     private static void entry(String s, boolean indirect, List<ManifestEntry> out) {

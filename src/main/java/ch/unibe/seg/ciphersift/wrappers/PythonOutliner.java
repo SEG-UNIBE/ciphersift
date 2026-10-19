@@ -8,6 +8,7 @@ import ch.unibe.seg.ciphersift.syntax.SyntaxNode;
 import ch.unibe.seg.ciphersift.util.Texts;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +45,8 @@ final class PythonOutliner {
         int dot = o.pyModule.lastIndexOf('.');
         o.pyPackage = init ? o.pyModule : dot < 0 ? "" : o.pyModule.substring(0, dot);
         List<Set<String>> locals = new ArrayList<>();
-        Map<Integer, Map<String, Integer>> counts = new java.util.HashMap<>();
-        Map<Integer, Set<String>> paramsOf = new java.util.HashMap<>();
+        Map<Integer, Map<String, Integer>> counts = new HashMap<>();
+        Map<Integer, Set<String>> paramsOf = new HashMap<>();
         ArrayDeque<Frame> stack = new ArrayDeque<>();
         stack.push(new Frame(root, null, 0, -1, 0));
         while (!stack.isEmpty()) {
@@ -135,7 +136,7 @@ final class PythonOutliner {
                                 && right.is("call") && right.field("function") != null) {
                             Outline.Call c = reference(right.field("function"), cls);
                             if (c != null) {
-                                o.pyInstances.computeIfAbsent(def, k -> new java.util.HashMap<>())
+                                o.pyInstances.computeIfAbsent(def, k -> new HashMap<>())
                                         .putIfAbsent(left.text(), c);
                             }
                         }
@@ -183,7 +184,7 @@ final class PythonOutliner {
     private static void count(Map<Integer, Map<String, Integer>> counts, int def, SyntaxNode t) {
         Set<String> names = new HashSet<>();
         targets(t, names);
-        Map<String, Integer> m = counts.computeIfAbsent(def, k -> new java.util.HashMap<>());
+        Map<String, Integer> m = counts.computeIfAbsent(def, k -> new HashMap<>());
         for (String x : names) {
             m.merge(x, 1, Integer::sum);
         }

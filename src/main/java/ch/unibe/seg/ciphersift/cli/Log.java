@@ -5,6 +5,7 @@
 package ch.unibe.seg.ciphersift.cli;
 
 import java.io.PrintStream;
+import java.util.Locale;
 
 /** Standard-error logging, {@code ciphersift: <level>: <message>} (SPEC 3.2). Thread-safe. */
 public final class Log {
@@ -62,7 +63,7 @@ public final class Log {
             }
             if (b != null) {
                 if (control) {
-                    b.append(String.format(java.util.Locale.ROOT, "\\u%04X", (int) c));
+                    b.append(String.format(Locale.ROOT, "\\u%04X", (int) c));
                 } else {
                     b.append(c);
                 }
@@ -75,7 +76,7 @@ public final class Log {
         if (!enabled(level)) {
             return;
         }
-        String line = "ciphersift: " + level.name().toLowerCase(java.util.Locale.ROOT) + ": " + sanitise(message);
+        String line = "ciphersift: " + level.name().toLowerCase(Locale.ROOT) + ": " + sanitise(message);
         PrintStream o = OUT;
         synchronized (Log.class) {
             o.println(line);

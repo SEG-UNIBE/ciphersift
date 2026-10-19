@@ -6,8 +6,10 @@ package ch.unibe.seg.ciphersift.cbom;
 
 import ch.unibe.seg.ciphersift.rules.Asset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps rule assets to the CycloneDX 1.7 cryptography registry ({@code cryptography-defs.schema.json},
@@ -69,7 +71,7 @@ public final class CryptoRegistry {
      * (ConcatKDF, X963KDF), or the family covers several registry families and the rule does not say
      * which (PBE: PBES1 or PBES2). EC, RSA, Curve25519 and Curve448 are decided by primitive / variant.
      */
-    static final java.util.Set<String> UNMAPPED = java.util.Set.of("ConcatKDF", "X963KDF", "PBE");
+    static final Set<String> UNMAPPED = Set.of("ConcatKDF", "X963KDF", "PBE");
 
     /** The registry family of a component, or null (SPEC table 11.3.1a). */
     public static String algorithmFamily(Asset a, String componentName) {
@@ -117,7 +119,7 @@ public final class CryptoRegistry {
     }
 
     /** The registry names of the curves CipherSift can name (SPEC table 11.3.1b). */
-    static final java.util.List<String> CURVES = java.util.List.of(
+    static final List<String> CURVES = List.of(
             "brainpool/brainpoolP160r1", "brainpool/brainpoolP160t1", "brainpool/brainpoolP192r1",
             "brainpool/brainpoolP192t1", "brainpool/brainpoolP224r1", "brainpool/brainpoolP224t1",
             "brainpool/brainpoolP256r1", "brainpool/brainpoolP256t1", "brainpool/brainpoolP320r1",
