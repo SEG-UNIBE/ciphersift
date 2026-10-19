@@ -136,6 +136,29 @@ public final class PythonAnalyzer {
 
     private record Hit(SourceRule rule, String nameUsed, PythonPattern pattern) {}
 
+    /**
+     * The hits that survive refinement (SPEC 8.6): a hit of an unrefined rule is dropped if another hit has a refined
+     * rule with the same asset identity.
+     */
+    private static List<Hit> refine(List<Hit> hits) {
+        Set<String> refinedIdentities = new HashSet<>();
+        for (Hit h : hits) {
+            if (h.rule().asset().refined()) {
+                refinedIdentities.add(h.rule().asset().identity());
+            }
+        }
+        if (refinedIdentities.isEmpty()) {
+            return hits;
+        }
+        List<Hit> out = new ArrayList<>(hits.size());
+        for (Hit h : hits) {
+            if (h.rule().asset().refined() || !refinedIdentities.contains(h.rule().asset().identity())) {
+                out.add(h);
+            }
+        }
+        return out;
+    }
+
     private record Range(int start, int end) {}
 
     /**
@@ -979,39 +1002,8 @@ public final class PythonAnalyzer {
                 return;
             }
             String m = methodName(call);
-            List<Candidate> cands = new ArrayList<>();
             Set<PythonPattern> seen = new HashSet<>();
-            for (String n : names) {
-                String[] seg = n.split("\\.", -1);
-                for (int k = seg.length; k >= 1; k--) {
-                    String prefix = String.join(".", Arrays.copyOf(seg, k));
-                    List<PythonPattern> ps = index.byCall.get(prefix);
-                    if (ps != null) {
-                        for (PythonPattern p : ps) {
-                            if (seen.add(p)) {
-                                cands.add(new Candidate(p, n));
-                            }
-                        }
-                    }
-                }
-            }
-            List<PythonPattern> byMethod = index.byMethod.get(m);
-            if (byMethod != null) {
-                for (PythonPattern p : byMethod) {
-                    if (seen.add(p)) {
-                        cands.add(new Candidate(p, names.get(0)));
-                    }
-                }
-            }
-            if (cands.isEmpty()) {
-                for (String n : names) {
-                    for (PythonPattern p : reexported(n, true)) {
-                        if (seen.add(p)) {
-                            cands.add(new Candidate(p, n));
-                        }
-                    }
-                }
-            }
+            List<Candidate> cands = callCandidates(names, m, seen);
             Args args = null;
             if (!index.anyCall.isEmpty()) {
                 args = new Args(call, s);
@@ -1060,22 +1052,51 @@ public final class PythonAnalyzer {
             if (hits.isEmpty()) {
                 return;
             }
-            // refinement
-            Set<String> refinedIdentities = new HashSet<>();
-            for (Hit h : hits) {
-                if (h.rule().asset().refined()) {
-                    refinedIdentities.add(h.rule().asset().identity());
+            for (Hit h : refine(hits)) {
+                if (!fallbackSuperseded(h, hits)) {
+                    emit(h, call, args);
                 }
             }
-            for (Hit h : hits) {
-                if (!h.rule().asset().refined() && refinedIdentities.contains(h.rule().asset().identity())) {
-                    continue;
+        }
+
+        /**
+         * The call and method patterns of a call with these names (each name and its dotted prefixes, longest
+         * first), else the re-exported pyca patterns (DECISIONS B-P-RX); each pattern once (recorded in {@code seen}).
+         */
+        private List<Candidate> callCandidates(List<String> names, String method, Set<PythonPattern> seen) {
+            List<Candidate> cands = new ArrayList<>();
+            for (String n : names) {
+                String[] seg = n.split("\\.", -1);
+                for (int k = seg.length; k >= 1; k--) {
+                    String prefix = String.join(".", Arrays.copyOf(seg, k));
+                    List<PythonPattern> ps = index.byCall.get(prefix);
+                    if (ps != null) {
+                        for (PythonPattern p : ps) {
+                            if (seen.add(p)) {
+                                cands.add(new Candidate(p, n));
+                            }
+                        }
+                    }
                 }
-                if (fallbackSuperseded(h, hits)) {
-                    continue;
-                }
-                emit(h, call, args);
             }
+            List<PythonPattern> byMethod = index.byMethod.get(method);
+            if (byMethod != null) {
+                for (PythonPattern p : byMethod) {
+                    if (seen.add(p)) {
+                        cands.add(new Candidate(p, names.get(0)));
+                    }
+                }
+            }
+            if (cands.isEmpty()) {
+                for (String n : names) {
+                    for (PythonPattern p : reexported(n, true)) {
+                        if (seen.add(p)) {
+                            cands.add(new Candidate(p, n));
+                        }
+                    }
+                }
+            }
+            return cands;
         }
 
         /**
@@ -1246,16 +1267,7 @@ public final class PythonAnalyzer {
                     hits.add(new Hit(r, c.nameUsed(), c.pattern()));
                 }
             }
-            Set<String> refinedIdentities = new HashSet<>();
-            for (Hit h : hits) {
-                if (h.rule().asset().refined()) {
-                    refinedIdentities.add(h.rule().asset().identity());
-                }
-            }
-            for (Hit h : hits) {
-                if (!h.rule().asset().refined() && refinedIdentities.contains(h.rule().asset().identity())) {
-                    continue;
-                }
+            for (Hit h : refine(hits)) {
                 emitReference(h, ref);
             }
         }
