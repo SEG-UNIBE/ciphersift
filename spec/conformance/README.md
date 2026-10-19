@@ -193,7 +193,7 @@ covered by SPEC.md section 11 and by unit tests.
 `spec/tools/conformance.py` implements exactly this (Python 3 standard library only):
 
 ```sh
-python3 spec/tools/conformance.py --cmd "java --enable-native-access=ALL-UNNAMED -jar target/ciphersift-1.2.0-SNAPSHOT-all.jar"
+python3 spec/tools/conformance.py --cmd "java --enable-native-access=ALL-UNNAMED -jar target/ciphersift-1.2.0-all.jar"
 python3 spec/tools/conformance.py --show out.json      # print a CBOM's normalised findings
 ```
 

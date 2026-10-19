@@ -27,9 +27,9 @@ SPEC 11.5 example are reproduced exactly.
 ```sh
 export JAVA_HOME=/usr/lib/jvm/jdk-25.0.1
 mvn verify                                   # natives (if missing), tests, conformance, headers
-java -jar target/ciphersift-1.2.0-SNAPSHOT-all.jar scan <dir> -o out.cdx.json
+java -jar target/ciphersift-1.2.0-all.jar scan <dir> -o out.cdx.json
 bin/ciphersift scan <dir> -o out.cdx.json    # launcher (adds --enable-native-access)
-python3 spec/tools/conformance.py --cmd "java -jar target/ciphersift-1.2.0-SNAPSHOT-all.jar"
+python3 spec/tools/conformance.py --cmd "java -jar target/ciphersift-1.2.0-all.jar"
 ```
 
 In this sandbox Maven was run with `-Dmaven.repo.local=$PWD/.m2` and a settings file in

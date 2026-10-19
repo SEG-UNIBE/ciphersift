@@ -3,7 +3,7 @@
 
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.2.0 (2026-10-19)
 
 Rounds t2 and t3 (boosters and tuning on the repositories in `TUNING-REPOS.md`). Development steps,
 newest first.

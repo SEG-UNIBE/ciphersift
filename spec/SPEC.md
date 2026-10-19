@@ -5,7 +5,7 @@
 
 Version 1.0 of the specification (rule format version 1), with the later amendments recorded in
 `DECISIONS.md` (evaluation fixes, owner decisions, CycloneDX 1.7, Go support, fix round). Status:
-implemented (CipherSift 1.2.0-SNAPSHOT).
+implemented (CipherSift 1.2.0).
 
 CipherSift is an open-source (Apache-2.0) static scanner written in Java. It finds
 cryptographic assets in **Java**, **Python** and **Go** source code and in **Maven/Gradle**,
@@ -2513,7 +2513,7 @@ rules/  spec/                          as delivered
   uses the Foreign Function & Memory API; the minimum runtime is therefore Java 23 (not
   22). Build and test with JDK 25 (`/usr/lib/jvm/jdk-25.0.1` on the reference machine).
 * Coordinates: `groupId` **`ch.unibe.seg`**, `artifactId` `ciphersift`, version
-  `1.2.0-SNAPSHOT`. Java root package **`ch.unibe.seg.ciphersift`**. All versions below are
+  `1.2.0`. Java root package **`ch.unibe.seg.ciphersift`**. All versions below are
   pinned exactly, for a reproducible build.
 * Runtime dependencies (all Apache-2.0 or MIT):
   `io.github.tree-sitter:jtreesitter:0.26.1`,
