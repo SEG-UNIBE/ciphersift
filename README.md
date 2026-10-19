@@ -28,7 +28,7 @@ Linux x86-64 for the native tree-sitter libraries.
 
 ```sh
 mvn verify            # natives if missing, bundled-rule validation, unit tests, conformance suite, licence headers
-ls target/ciphersift-1.0.0-SNAPSHOT-all.jar
+ls target/ciphersift-1.2.0-SNAPSHOT-all.jar
 ```
 
 `native/build-natives.sh` compiles the tree-sitter core and the Java, Python and Go grammars from
@@ -56,7 +56,7 @@ ciphersift --version
 ciphersift --help | ciphersift <command> --help
 ```
 
-Run it with `java -jar target/ciphersift-1.0.0-SNAPSHOT-all.jar …` (the jar manifest enables
+Run it with `java -jar target/ciphersift-1.2.0-SNAPSHOT-all.jar …` (the jar manifest enables
 native access) or with the launcher `bin/ciphersift`.
 
 **Java runtime.** CipherSift needs Java 23 or newer. The launcher uses `$CIPHERSIFT_JAVA` (path
@@ -394,7 +394,7 @@ linux-x86_64 only.
 `spec/conformance/` with CycloneDX 1.7 schema validation of every produced CBOM (and a second
 pass with `--cyclonedx-version 1.6`, validated against 1.6, with the same findings), determinism
 checks and CLI checks (failsafe). The Python reference comparator also works:
-`python3 spec/tools/conformance.py --cmd "java -jar target/ciphersift-1.0.0-SNAPSHOT-all.jar"`.
+`python3 spec/tools/conformance.py --cmd "java -jar target/ciphersift-1.2.0-SNAPSHOT-all.jar"`.
 
 ## Evaluating CipherSift
 

@@ -242,8 +242,9 @@ public final class NativeLibraries {
             return false;
         }
         int mode = (Integer) Files.getAttribute(dir, "unix:mode", java.nio.file.LinkOption.NOFOLLOW_LINKS);
-        if ((mode & 0022) != 0 && self != null && owner == self) {
-            // our own cache directory, created group-writable under a umask of 002: tighten it
+        if ((mode & 0022) != 0 && (mode & 01000) == 0 && self != null && owner == self) {
+            // our own cache directory, created group-writable under a umask of 002: tighten it (never a
+            // sticky shared directory such as /tmp, which root also owns when running as root)
             var perms = Files.getPosixFilePermissions(dir, java.nio.file.LinkOption.NOFOLLOW_LINKS);
             perms.remove(java.nio.file.attribute.PosixFilePermission.GROUP_WRITE);
             perms.remove(java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE);

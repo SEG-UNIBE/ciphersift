@@ -3,9 +3,10 @@
 
 # Changelog
 
-## 1.0.0 (unreleased)
+## 1.2.0 (unreleased)
 
-Development steps of the unreleased 1.0.0, newest first.
+Rounds t2 and t3 (boosters and tuning on the repositories in `TUNING-REPOS.md`). Development steps,
+newest first.
 
 ### Cross-language review, round t3 (DECISIONS R3-X-*)
 
@@ -82,6 +83,21 @@ Every behaviour booster has a feature switch (`--feature ID=on|off`, SPEC 3.1; r
   wrapper names; re-exported pyca names; `isinstance` key dispatch; IANA names as literals
   (`literal` anchor); ML-KEM / ML-DSA rules; asn1crypto schemas and receiver folding.
 * Conformance: 93 cases, 1648 findings (1624 + 3 of the Java review, + 6 of the Go review fix of the fallback-getter guard, + 15 and one case of the cross-language review); changed expectations are listed in DECISIONS (round t2 and its reviews).
+
+## 1.1.1
+
+* **Version**: `pom.xml` carries the release version. The 1.0.0 and 1.1.0 jars both reported
+  themselves as `1.0.0-SNAPSHOT` (manifest `Implementation-Version` and CBOM tool metadata)
+  because the version was never bumped.
+* **Native cache as root**: the permission check of the native-library cache no longer tightens a
+  sticky shared directory such as `/tmp`. Running as root (where root owns `/tmp`), it removed the
+  world-write bit from `/tmp` and accepted it instead of rejecting it; this also failed
+  `NativesTest.cacheDirectoryMustBePrivate` in the Docker build, which builds as root.
+
+## 1.1.0 (2026-10-17)
+
+Released as tag `v1.1.0`; the jar reports itself as `1.0.0-SNAPSHOT` (fixed in 1.1.1). Development
+steps, newest first.
 
 ### Recall extension, tier 1 (DECISIONS T1–T14, SPEC section 18; benchmark-informed)
 
@@ -175,6 +191,11 @@ Every behaviour booster has a feature switch (`--feature ID=on|off`, SPEC 3.1; r
 * Tests validate every conformance CBOM against 1.7 and, in a second pass with the option, against
   1.6 — with cyclonedx-core-java 13.2.0 (unchanged pin; it bundles the 1.7.2 schema) and with
   json-schema-validator against the schemas vendored in `src/test/resources/cyclonedx/`.
+
+## 1.0.0 (2026-10-17)
+
+Released as tag `v1.0.0`; the jar reports itself as `1.0.0-SNAPSHOT`. Development steps, newest
+first.
 
 ### Owner decisions (E2, E15, E16; 7.3.2 and setup files confirmed)
 
