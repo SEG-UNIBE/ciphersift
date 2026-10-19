@@ -403,6 +403,11 @@ public final class JavaAnalyzer {
     }
 
     private boolean holds(JavaPattern p, Event ev, JavaContext ctx, JavaResolver resolver) {
+        return anchorHolds(p, ev, ctx) && conditionsHold(p, ev, ctx, resolver);
+    }
+
+    /** Whether the event is of the pattern's anchor kind and names its class and member (SPEC 7.6). */
+    private boolean anchorHolds(JavaPattern p, Event ev, JavaContext ctx) {
         switch (p.anchor) {
             case CALL -> {
                 if (ev.kind != EventKind.CALL || !p.nameMatches(ev.name)) {
@@ -447,6 +452,11 @@ public final class JavaAnalyzer {
                 return false;
             }
         }
+        return true;
+    }
+
+    /** Whether the event satisfies the pattern's conditions on strings, arguments, owner type and body (SPEC 7.6). */
+    private boolean conditionsHold(JavaPattern p, Event ev, JavaContext ctx, JavaResolver resolver) {
         if (p.firstString != null) {
             List<String> s = strings(ev, ctx, resolver);
             if (s.isEmpty() || !p.firstString.matcher(s.get(0)).lookingAt()) {
