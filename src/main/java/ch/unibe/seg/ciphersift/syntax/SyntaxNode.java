@@ -25,7 +25,6 @@ public final class SyntaxNode {
     final int startRow;
     SyntaxNode parent;
     SyntaxNode[] children = NO_CHILDREN;
-    int index;
 
     SyntaxNode(String source, String type, boolean named, String field, int start, int end, int startRow) {
         this.source = source;
@@ -89,11 +88,6 @@ public final class SyntaxNode {
 
     public SyntaxNode child(int i) {
         return children[i];
-    }
-
-    /** Index of this node among its parent's children. */
-    public int indexInParent() {
-        return index;
     }
 
     public List<SyntaxNode> children() {

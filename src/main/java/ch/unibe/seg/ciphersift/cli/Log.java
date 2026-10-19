@@ -12,7 +12,7 @@ public final class Log {
     public enum Level { ERROR, WARNING, INFO, DEBUG }
 
     private static volatile Level threshold = Level.INFO;
-    private static volatile PrintStream out = System.err;
+    private static final PrintStream OUT = System.err;
 
     private Log() {}
 
@@ -22,11 +22,6 @@ public final class Log {
 
     public static Level threshold() {
         return threshold;
-    }
-
-    /** Redirects output (tests). */
-    public static void setOutput(PrintStream stream) {
-        out = stream;
     }
 
     public static boolean enabled(Level level) {
@@ -81,7 +76,7 @@ public final class Log {
             return;
         }
         String line = "ciphersift: " + level.name().toLowerCase(java.util.Locale.ROOT) + ": " + sanitise(message);
-        PrintStream o = out;
+        PrintStream o = OUT;
         synchronized (Log.class) {
             o.println(line);
             o.flush();

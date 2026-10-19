@@ -38,10 +38,6 @@ public enum FileClass {
         return this == JAVA || this == PYTHON || this == GO;
     }
 
-    public boolean isManifest() {
-        return ecosystem != null;
-    }
-
     /** {@code maven}, {@code pypi} or {@code golang} for manifests. */
     public String ecosystem() {
         return ecosystem;

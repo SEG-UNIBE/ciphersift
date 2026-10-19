@@ -60,17 +60,6 @@ public final class Scanner {
                 boolean weaknessIndicators, WrapperOptions wrappers) {
             this(root, excludes, excludeTests, threads, rules, weaknessIndicators, wrappers, Features.DEFAULTS);
         }
-
-        /** Options with the default wrapper propagation (SPEC 18). */
-        public Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules,
-                boolean weaknessIndicators) {
-            this(root, excludes, excludeTests, threads, rules, weaknessIndicators, WrapperOptions.defaults(false));
-        }
-
-        /** Options of a scan without weakness indicators (the default, DECISIONS E2). */
-        public Options(Path root, List<Glob> excludes, boolean excludeTests, int threads, RuleSet rules) {
-            this(root, excludes, excludeTests, threads, rules, false);
-        }
     }
 
     /** What happened to one file. */

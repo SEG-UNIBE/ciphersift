@@ -41,20 +41,15 @@ public final class CbomWriter {
             }
         }
 
-        /** Metadata of a scan with the default feature switches (SPEC 3.1). */
-        public Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
-                long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded,
-                CycloneDxVersion cyclonedx, boolean pythonThinWrappers) {
-            this(toolVersion, rootName, rulesDigest, testsIncluded, filesScanned, filesSkipped, sourceDateEpoch,
-                    weaknessIndicatorsIncluded, cyclonedx, pythonThinWrappers, null);
-        }
-
-        /** Metadata of a scan without {@code --python-thin-wrappers} (the default, DECISIONS T3). */
+        /**
+         * Metadata of a scan without {@code --python-thin-wrappers} (the default, DECISIONS T3) and with the default
+         * feature switches (SPEC 3.1).
+         */
         public Metadata(String toolVersion, String rootName, String rulesDigest, boolean testsIncluded,
                 long filesScanned, long filesSkipped, Long sourceDateEpoch, boolean weaknessIndicatorsIncluded,
                 CycloneDxVersion cyclonedx) {
             this(toolVersion, rootName, rulesDigest, testsIncluded, filesScanned, filesSkipped, sourceDateEpoch,
-                    weaknessIndicatorsIncluded, cyclonedx, false);
+                    weaknessIndicatorsIncluded, cyclonedx, false, null);
         }
 
         /** Metadata of a scan in the default CycloneDX version. */

@@ -51,10 +51,6 @@ public final class JavaRuleIndex {
     private static final Comparator<JavaPattern> ORDER =
             Comparator.<JavaPattern>comparingInt(p -> p.rule.order()).thenComparingInt(p -> p.position);
 
-    public JavaRuleIndex(List<SourceRule> rules) {
-        this(rules, ch.unibe.seg.ciphersift.scan.Features.DEFAULTS);
-    }
-
     /** The index of the patterns that are on with these feature switches (SPEC 5.5 {@code feature}). */
     public JavaRuleIndex(List<SourceRule> rules, ch.unibe.seg.ciphersift.scan.Features features) {
         Map<JavaPattern.EventKind, Map<String, List<JavaPattern>>> pre = new EnumMap<>(JavaPattern.EventKind.class);
@@ -89,11 +85,6 @@ public final class JavaRuleIndex {
             });
         }
         anyCall.sort(ORDER);
-    }
-
-    /** Whether some enabled pattern has an {@code anyCall} anchor. */
-    public boolean hasAnyCall() {
-        return !anyCall.isEmpty();
     }
 
     /** Is there any candidate for this event (cheap pre-check)? */

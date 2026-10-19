@@ -124,7 +124,6 @@ public final class SyntaxTrees {
             SyntaxNode parent = path[depth];
             SyntaxNode n = make(cur, alloc, sym, offsets, rows, text);
             n.parent = parent;
-            n.index = pendingSize - frames[depth];
             if (pendingSize == pending.length) {
                 pending = Arrays.copyOf(pending, pendingSize * 2);
             }

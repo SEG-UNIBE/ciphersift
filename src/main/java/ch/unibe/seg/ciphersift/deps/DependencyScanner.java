@@ -40,10 +40,6 @@ public final class DependencyScanner {
     private final java.util.concurrent.ConcurrentHashMap<java.nio.file.Path,
             java.util.Optional<Map<String, List<ManifestEntry>>>> catalogs = new java.util.concurrent.ConcurrentHashMap<>();
 
-    public DependencyScanner(RuleSet rules, Features features) {
-        this(rules, features, null);
-    }
-
     /** @param root canonical scan root; Gradle catalog accessors are resolved below it (feature gradle-catalog-accessors) */
     public DependencyScanner(RuleSet rules, Features features, java.nio.file.Path root) {
         this.rules = rules;
@@ -87,11 +83,6 @@ public final class DependencyScanner {
         } catch (IOException | RuntimeException ex) {
             return java.util.Optional.empty();
         }
-    }
-
-    /** A scanner with the default features. */
-    public DependencyScanner(RuleSet rules) {
-        this(rules, Features.DEFAULTS);
     }
 
     /**
